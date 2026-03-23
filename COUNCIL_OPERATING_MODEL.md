@@ -11,6 +11,11 @@ Nero handles it, or Nero sends a scoped prompt to one specialist and delivers th
 
 **Trigger:** Problem is clearly within one domain.
 
+**Specialist routes:**
+- Coding, repo, implementation → Forge
+- Research, evidence, competitive analysis → Scout
+- Commercial drafting, offers, content → Mercury
+
 ### Mode 2: Limited Council
 Nero + one or two specialists. No full panel.
 
@@ -69,24 +74,31 @@ Good: "Scout: Identify 3 competitors offering AI chatbot services to SMBs in Ire
 
 ---
 
-## Forge Delegation vs Full Council Mode
+## Specialist Dispatch vs Full Council Mode
 
-**Forge delegation is not the same as full council mode.**
+**Single specialist dispatch is not the same as full council mode.**
 
-Forge is a permanent specialist agent. Sending Forge a scoped task is a **single-specialist dispatch** — not a council consultation. Most build/repo/implementation tasks belong here:
+A single specialist dispatch goes to one agent directly:
 
 ```
-Nero → Forge (direct dispatch) → Nero synthesizes → Nero delivers
+Nero → Forge (build/implementation task)
+Nero → Scout (research/evidence task)
+Nero → Mercury (commercial drafting task)
 ```
 
 Full council mode is needed only when:
 - Multiple specialists have genuinely different perspectives needed simultaneously
-- The problem spans strategy + implementation + research simultaneously
+- The problem spans strategy + implementation + research + commercial simultaneously
 - Cross-domain tradeoffs require synthesis beyond one specialist's scope
 
-Most coding, repo, and implementation tasks are single-specialist dispatches. The full council is for the complex cross-domain cases.
+Most tasks are single specialist dispatches. The full council is for complex cross-domain problems.
 
-See `DELEGATION_STYLE.md` for the full Nero → Forge delegation model.
+**Specialist routes:**
+- Forge → coding, repo, implementation, testing
+- Scout → research, evidence, competitive analysis, opportunity identification
+- Mercury → offers, content drafts, monetization, growth planning
+
+See `DELEGATION_STYLE.md` for the full delegation model.
 
 ---
 
