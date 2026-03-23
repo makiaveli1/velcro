@@ -1,40 +1,70 @@
-# TOOLS.md - Local Notes
+# TOOLS.md — WSL Workspace Notes
 
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
-
-## What Goes Here
-
-Things like:
-
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
-
-## Examples
-
-```markdown
-### Cameras
-
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
-
-### SSH
-
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
+_Stuff that's true about this machine and environment. Keep it accurate._
 
 ---
 
-Add whatever helps you do your job. This is your cheat sheet.
+## WSL Environment
+
+- Running in WSL on Likwid's machine — full Linux environment under Windows
+- Working directory maps to: `/home/likwid/.openclaw/workspace`
+- OpenClaw lives at: `/home/likwid/openclaw/`
+- Config lives at: `/home/likwid/.openclaw/openclaw.json`
+
+## Shell
+
+- Default shell: `bash`
+- Node.js: `v24.14.0`
+- OpenClaw CLI: `openclaw` (installed globally)
+
+## Useful Commands
+
+```bash
+# OpenClaw
+openclaw gateway status      # Is the gateway running?
+openclaw gateway restart     # Restart after config changes
+openclaw pairing list        # See pending pairings
+openclaw pairing approve      # Approve a pairing code
+openclaw logs --follow        # Tail gateway logs
+openclaw channels status      # Channel health
+
+# Git workspace
+git -C /home/likwid/.openclaw/workspace add -A
+git -C /home/likwid/.openclaw/workspace commit -m "message"
+git -C /home/likwid/.openclaw/workspace status
+
+# Disk usage
+df -h /home/likwid
+```
+
+## WSL-Specific Notes
+
+- Filesystem access to Windows: `/mnt/c/` (use carefully — path quirks)
+- Network: localhost routes to Windows host, useful for gateway port 18789
+- If `openclaw` commands feel slow, check WSL version (`wsl --version`)
+
+## Docs
+
+OpenClaw docs are local at `/home/likwid/openclaw/docs/`. If I need to look something up and can't guess the path, check `index.md` for the docs structure.
+
+Online docs: `https://docs.openclaw.ai`
+
+## Cron & Scheduling
+
+For exact-time tasks, use cron (`cron` tool). For loose periodic checks, use heartbeat batching in `HEARTBEAT.md`.
+
+## Skills
+
+Skills are stored in `/home/likwid/openclaw/skills/`. Each skill has a `SKILL.md` with instructions. Read the skill file before using an unfamiliar tool.
+
+## Secrets
+
+Bot tokens, API keys, auth credentials — never store in workspace files. They live in:
+- `/home/likwid/.openclaw/openclaw.json` (config, already gitignored)
+- Environment variables where appropriate
+
+If I ever need to store a secret mid-session, I use a memory file, not a committed file.
+
+---
+
+_Update this as the setup evolves._
