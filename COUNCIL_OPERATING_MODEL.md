@@ -69,6 +69,27 @@ Good: "Scout: Identify 3 competitors offering AI chatbot services to SMBs in Ire
 
 ---
 
+## Forge Delegation vs Full Council Mode
+
+**Forge delegation is not the same as full council mode.**
+
+Forge is a permanent specialist agent. Sending Forge a scoped task is a **single-specialist dispatch** — not a council consultation. Most build/repo/implementation tasks belong here:
+
+```
+Nero → Forge (direct dispatch) → Nero synthesizes → Nero delivers
+```
+
+Full council mode is needed only when:
+- Multiple specialists have genuinely different perspectives needed simultaneously
+- The problem spans strategy + implementation + research simultaneously
+- Cross-domain tradeoffs require synthesis beyond one specialist's scope
+
+Most coding, repo, and implementation tasks are single-specialist dispatches. The full council is for the complex cross-domain cases.
+
+See `DELEGATION_STYLE.md` for the full Nero → Forge delegation model.
+
+---
+
 ## Response Quality Standards
 
 Specialists must:
