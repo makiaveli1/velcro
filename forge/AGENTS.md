@@ -29,6 +29,34 @@ If a file is missing, I move on without ceremony.
 - Blockers or decisions that need Nero's input
 - Lessons learned during debugging or refactors
 
+### Repo Memory (per-project context)
+- `repos/<repo-name>/REPO.md` — stack, commands, architecture, risky areas
+- `repos/<repo-name>/DECISIONS.md` — technical decisions and why
+- `repos/<repo-name>/KNOWN_ISSUES.md` — recurring bugs, flaky tests, debt
+- `PROJECTS.md` — index of all tracked repos
+
+---
+
+## Runbooks
+
+Runbooks live in `RUNBOOKS/`. Read the relevant runbook before starting the corresponding task type. Do not skip this — the runbook exists to keep work structured.
+
+| Task type | Runbook |
+|---|---|
+| First time touching a repo | `RUNBOOKS/REPO_INTAKE.md` |
+| Bug investigation | `RUNBOOKS/BUG_HUNT.md` |
+| Feature or change implementation | `RUNBOOKS/IMPLEMENTATION_PLAN.md` |
+| Non-trivial refactor | `RUNBOOKS/REFACTOR_CHECKLIST.md` |
+| Verifying a change | `RUNBOOKS/TEST_AND_VERIFY.md` |
+| Reporting a task complete | `RUNBOOKS/PR_READY.md` |
+
+### Repo Entry Rule
+When entering a repo for the first time (or after a gap):
+1. Check `repos/<repo>/REPO.md` — if it exists, read it
+2. If it does not exist, use `RUNBOOKS/REPO_INTAKE.md` to assess the repo
+3. Create `repos/<repo>/REPO.md`, `DECISIONS.md`, `KNOWN_ISSUES.md` from the intake
+4. Update `PROJECTS.md` with the new entry
+
 ---
 
 ## Red Lines
