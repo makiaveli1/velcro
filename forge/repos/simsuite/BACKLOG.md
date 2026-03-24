@@ -82,7 +82,7 @@
 |---|---|---|---|---|
 | **F1** | **Snooze / Remind-Later** | Custom duration picker per item (user chooses) | Custom duration picker | Entire Snooze feature |
 | **F2** | **Undo Applied Item** | Always available, confirm each time | Always available + confirm | Entire Undo feature |
-| **F3** | **Patreon / Early Access Surfacing** | Creator tier — full patron access + compare + download | Creator tier + Patreon API research | Patreon surfacing feature |
+| **F3** | **Patreon / Early Access Surfacing** | Show Patreon badge + link on updates that are Patreon-sourced. No login needed. | Badge + link only, no OAuth/API | Patreon surfacing feature |
 | **F4** | **Inbox ↔ Library Version Loop** | Summary + "Open in Library" button | Summary + Open in Library | Version comparison in Inbox |
 | **F5** | **Creator search migration scope** | On-the-fly GROUP_CONCAT (no migration) | ✅ Done | B1 (creator search) |
 
@@ -138,7 +138,7 @@ GROWTH WORK
 └── D1: Casual guided flows (most impactful Casual fix)
 
 P3 DECISIONS NEEDED
-└── F1–F5: Decisions made (2026-03-24) — F1 custom snooze, F2 always-undo+confirm, F3 creator tier+Patreon API, F4 summary+open-lib, F5 done (on-the-fly)
+└── F1–F5: Decisions made (2026-03-24) — F1 custom snooze, F2 always-undo+confirm, F3 badge+link only (no OAuth), F4 summary+open-lib, F5 done (on-the-fly)
 ```
 
 ---
