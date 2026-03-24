@@ -80,11 +80,11 @@
 
 | # | Task | Decision Needed | Options | Blocks |
 |---|---|---|---|---|
-| **F1** | **Snooze / Remind-Later** | How should snooze work? | 1: Fixed 3-day / 2: Custom duration / 3: Lazy unsnooze + default: 1 day / 3 days / 1 week | Entire Snooze feature |
-| **F2** | **Undo Applied Item** | How strict should undo be? | 1: 30-min window / 2: Always with confirm / 3: Snapshots only + window: 15 min / 30 min / 1 hour | Entire Undo feature |
-| **F3** | **Patreon / Early Access Surfacing** | What to show? | 1: Badge only / 2: Badge + compare / 3: Creator tier | Patreon surfacing feature |
-| **F4** | **Inbox ↔ Library Version Loop** | What to show? | 1: Inbox summary / 2: Summary + Open in Library / 3: Skip | Version comparison in Inbox |
-| **F5** | **Creator search migration scope** | Add `creator_name` column vs. on-the-fly compute? | Schema migration vs. search-only compute | B1 (creator search) |
+| **F1** | **Snooze / Remind-Later** | Custom duration picker per item (user chooses) | Custom duration picker | Entire Snooze feature |
+| **F2** | **Undo Applied Item** | Always available, confirm each time | Always available + confirm | Entire Undo feature |
+| **F3** | **Patreon / Early Access Surfacing** | Creator tier — full patron access + compare + download | Creator tier + Patreon API research | Patreon surfacing feature |
+| **F4** | **Inbox ↔ Library Version Loop** | Summary + "Open in Library" button | Summary + Open in Library | Version comparison in Inbox |
+| **F5** | **Creator search migration scope** | On-the-fly GROUP_CONCAT (no migration) | ✅ Done | B1 (creator search) |
 
 ---
 
@@ -138,7 +138,7 @@ GROWTH WORK
 └── D1: Casual guided flows (most impactful Casual fix)
 
 P3 DECISIONS NEEDED
-└── F1–F5: Get Likwid's decisions → unblocks F1/F2/F3/F4 features + C1
+└── F1–F5: Decisions made (2026-03-24) — F1 custom snooze, F2 always-undo+confirm, F3 creator tier+Patreon API, F4 summary+open-lib, F5 done (on-the-fly)
 ```
 
 ---
