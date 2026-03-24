@@ -29,8 +29,8 @@ TOKEN_PATH = os.path.expanduser('~/.credentials/gmail-token.pickle')
 PROSPECTS_CSV = os.path.join(os.path.dirname(__file__), 'prospects.csv')
 SENT_LOG = os.path.join(os.path.dirname(__file__), 'sent-log.json')
 
-SENDER_NAME = "Gbemi Akadiri"
-SENDER_EMAIL = "likwidveli@gmail.com"
+SENDER_NAME = "Gbemi Akadiri — Verdantia Digital"
+SENDER_EMAIL = "verdantiadigital@gmail.com"  # TODO: Update when new Gmail is ready
 
 def load_credentials():
     with open(TOKEN_PATH, 'rb') as f:
@@ -63,65 +63,65 @@ def save_sent_log(log):
 
 def generate_email_content(prospect, email_num=1):
     """Generate personalized email content for a prospect."""
-
     business = prospect['business_name']
     trade = prospect['trade']
     website = prospect['website']
 
     if email_num == 1:
-        subject = f"What if your {trade} website brought you 2x more calls?"
+        subject = f"{business} — something I want to show you"
         body = f"""Hi {business} Team,
 
-I came across your site recently and noticed you offer great {trade} services across Dublin — but I have to be honest with you:
+I came across {business} recently and noticed you're offering {trade} services across Dublin — solid work from what I can see.
 
-Your website isn't working as hard as it should be.
+I run Verdantia Digital — we build professional websites specifically for trade businesses. Think of it like giving your business a digital storefront that actually works.
 
-Most of the businesses I work with are leaving 30–50% of their incoming leads on the table because their site looks outdated, loads slowly, or doesn't show up well on Google when people search for "{trade} Dublin."
+I've already put together a custom redesign for {business}. It's a rough mockup, but it shows what a modern, professional site could look like for your business — and I'd love to get your honest thoughts.
 
-I've put together a quick mockup redesign for {business} — takes 2 minutes to look at — showing exactly what a modern, professional site could look like for your business.
+Here's the thing: I'm only taking on 3 new clients this month. These mockups are ready to go, and I'd prioritise the first few businesses that move quickly.
 
-Would you be open to a 2-minute look? If it's not for you, no worries at all — just reply and I'll leave you alone.
+Worth a 5-minute look? If it's not relevant, no worries — just reply and I'll leave you alone.
 
-Either way — what would it mean for your business if you doubled your website leads?
-
-Best,
-Gbemi
+Talk soon,
+Gbemi Akadiri
+Verdantia Digital
 +353 89 975 8277"""
+
     elif email_num == 2:
-        subject = f"Quick follow up — {business} website"
+        subject = f"Following up — {business} website mockup"
         body = f"""Hi {business} Team,
 
-Just following up on my note from a few days ago about your website.
+Just following up on the mockup I sent over — wanted to make sure it didn't get buried.
 
-I genuinely think there's real potential there — a clean redesign could make a meaningful difference to how many people contact you versus your competitors.
+I've had a few other Dublin {trade} businesses reach out after seeing similar previews, and they're pretty happy with how things are shaping up.
 
-I've attached the mockup again — happy to share the full version if you'd like to take a look.
+No pressure at all. But if you've been thinking about upgrading your online presence, this is a good time to chat. I'm booking new sites over the next 2 weeks.
 
-Even if you're not ready to make a change right now, it might be worth having a conversation about what's possible.
-
-Happy to jump on a quick 10-minute call this week if you're curious.
+Happy to jump on a quick call if you're curious — even 10 minutes.
 
 — Gbemi
+Verdantia Digital
 +353 89 975 8277"""
+
     else:
-        subject = f"One more thing on {business}"
+        subject = f"One last thing — {business}"
         body = f"""Hi {business} Team,
 
-I won't take up any more of your time after this — but I wanted to leave you with one thought:
+I won't take up any more of your time after this.
 
-Your website is usually the first thing a potential customer sees before they call. What does it say about your business right now?
+I just wanted to leave you with one thought: your website is usually the first thing a potential customer sees before they call. What does it say about {business} right now?
 
-I've built websites for {trade} businesses across Dublin and the difference in customer inquiries after the redesign is real and measurable.
+I've built these mockups for a handful of Dublin {trade} businesses, and the response has been genuinely positive — owners who weren't sure they needed a redesign changed their minds pretty quickly once they saw the difference.
 
-If you're even slightly curious, I'd love to show you what I put together. No pitch, no pressure — just a quick look.
+If you're even slightly curious, I'd love to show you what I put together. No pitch, no pressure — just a quick look and honest advice on what's worth doing.
 
 Talk soon,
 Gbemi
+Verdantia Digital
 +353 89 975 8277"""
 
     return subject, body
 
-def create_message(to_email, subject, body, prospect_name):
+def create_message(to_email, subject, body, prospect_name, attach_screenshots=True):
     message = MIMEMultipart()
     message['to'] = to_email
     message['from'] = SENDER_EMAIL
@@ -131,19 +131,23 @@ def create_message(to_email, subject, body, prospect_name):
     part1 = MIMEText(body, 'plain')
     message.attach(part1)
 
-    # Try to attach a mockup image if it exists
-    mockup_path = os.path.join(os.path.dirname(__file__), 'mockups', f'{prospect_name.replace(" ", "-").lower()}-mockup.png')
-    if os.path.exists(mockup_path):
-        with open(mockup_path, 'rb') as f:
-            img = MIMEImage(f.read())
-            img.add_header('Content-Disposition', 'attachment', filename=f'{prospect_name}-mockup.png')
-            message.attach(img)
+    # Attach all mockup screenshots if they exist
+    if attach_screenshots:
+        mockups_dir = os.path.join(os.path.dirname(__file__), 'mockups')
+        screenshot_names = ['hero', 'services', 'pricing', 'contact']
+        for shot_name in screenshot_names:
+            shot_path = os.path.join(mockups_dir, f'{prospect_name.replace(" ", "-").lower()}-{shot_name}.png')
+            if os.path.exists(shot_path):
+                with open(shot_path, 'rb') as f:
+                    img = MIMEImage(f.read())
+                    img.add_header('Content-Disposition', 'inline', filename=f'{shot_name}.png')
+                    message.attach(img)
 
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
     return {'raw': raw}
 
 def send_email(service, to_email, subject, body, prospect_name):
-    message = create_message(to_email, subject, body, prospect_name)
+    message = create_message(to_email, subject, body, prospect_name, attach_screenshots=True)
     result = service.users().messages().send(userId='me', body=message).execute()
     return result
 

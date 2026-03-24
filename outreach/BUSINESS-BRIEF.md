@@ -38,9 +38,12 @@ Dublin-based trades business — electrician, plumber, painter, carpenter, heati
 
 | Package | What's Included | Price |
 |---|---|---|
-| **Starter Site** | 5-page WordPress website, mobile responsive, contact forms, Google Business setup, 1 year hosting | €799 |
-| **Pro Site** | Everything in Starter + custom imagery, SEO basics, WhatsApp CTA button, 1 year hosting | €1,199 |
+| **Site Refresh** | Modernize their existing site — new theme, mobile fix, contact forms, SEO basics. Fast turnaround. Entry point for budget-conscious leads. | €349 |
+| **Full Site** | 5-page WordPress website, mobile responsive, contact forms, Google Business setup, 1 year hosting | €799 |
+| **Pro Site** | Everything in Full + custom imagery, SEO basics, WhatsApp CTA button | €1,199 |
 | **Premium** | Everything in Pro + 10 pages, e-commerce ready, monthly analytics report, 6 months hosting | €1,799 |
+
+**Pitch flow:** Lead with Site Refresh (€349) as the easy yes — then upsell to Full Site once they're impressed. Most will want the better package once they see quality.
 
 **What's NOT included (upsell later):**
 - Copywriting / content writing (they provide text or we charge £150 extra)
