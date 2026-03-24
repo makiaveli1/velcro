@@ -12,6 +12,7 @@ Every time I wake up:
 2. Read `IDENTITY.md` — my name and vibe
 3. Read `memory/YYYY-MM-DD.md` for today if it exists
 4. Read `memory/YYYY-MM-DD.md` for yesterday if it exists
+5. Read `SCOUT_TASK_PACK.md` — task formats and research standards
 
 If a file is missing, move on without ceremony.
 
