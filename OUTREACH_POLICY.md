@@ -4,6 +4,8 @@
 
 **No outbound communication of any kind is sent without explicit written approval from Nero.**
 
+**Mercury drafts. Mercury prepares. Mercury does NOT send anything without explicit, separate Nero approval to deploy.**
+
 This applies to:
 - Cold emails
 - LinkedIn messages or connection requests
@@ -40,8 +42,8 @@ These do NOT require approval because they are internal research and preparation
 
 | Channel | Status | Notes |
 |---|---|---|
-| Email (via Gmail API) | ✅ Allowed with approval | Must use approved template with business-specific content |
-| LinkedIn | ✅ Allowed with approval | Only for B2B contexts; no InMail spam |
+| Email (via Gmail API) | ✅ Allowed with Nero content approval + deployment approval | Must use approved content with business-specific details |
+| LinkedIn | ✅ Allowed with Nero content approval + deployment approval | Only for B2B contexts; no InMail spam |
 | Web contact form (if existing) | ✅ Allowed with approval | Only if already public on their site |
 | Twitter/X DMs | ❌ Not used | Not a primary outreach channel |
 | Instagram DMs | ❌ Not used | Not appropriate for B2B or professional services |
@@ -110,6 +112,7 @@ Businesses on the suppression list are never contacted, regardless of score or q
 - Each follow-up must have genuine new context or value — not just "bumping this"
 - Acceptable new context: a related observation, a relevant market insight, a different angle on the concept
 - Follow-up content MUST be approved by Nero before sending
+- **Separate from content approval:** Nero must also separately approve the deployment of each follow-up touch — Mercury does not send until Nero explicitly says "go ahead" for that specific touch
 
 ### After 3 touches:
 - Mark as NO_RESPONSE

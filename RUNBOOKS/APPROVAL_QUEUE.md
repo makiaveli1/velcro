@@ -98,6 +98,7 @@ The lead is cleared for outreach.
 - Outreach channel confirmed (Email / LinkedIn / Both)
 - Send timing (specific date or "as soon as practical")
 - Any specific notes for Mercury before deployment
+- **Deployment go-ahead issued to Mercury** (separate step — Mercury does not deploy until this is given)
 
 ### REJECTED
 The lead is not approved. It returns to the appropriate specialist with specific feedback.
@@ -137,10 +138,11 @@ The lead has potential but isn't ready now.
 
 1. Nero updates STATUS.md with approval decision and send timing
 2. Nero notifies Mercury with any specific notes
-3. Mercury deploys outreach on approved timing
-4. Mercury logs sent confirmation in STATUS.md with timestamp
-5. CRM/INDEX.md is updated
-6. Campaign tracking is updated if applicable
+3. **Nero sends explicit deployment go-ahead to Mercury** — approval to proceed is not the same as deployment go-ahead. Approval means "this content is cleared." Deployment go-ahead means "now send it."
+4. Mercury executes the send only after receiving explicit deployment go-ahead
+5. Mercury logs sent confirmation in STATUS.md with exact timestamp
+6. CRM/INDEX.md is updated
+7. Campaign tracking is updated if applicable
 
 ### After REJECTED:
 

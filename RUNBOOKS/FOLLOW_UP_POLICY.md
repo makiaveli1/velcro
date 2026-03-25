@@ -106,11 +106,11 @@ Mercury maintains a follow-up tracking system in the lead STATUS.md:
 
 ```markdown
 ## Follow-Up Log
-| Touch | Date | Channel | Content | Nero Approved | Sent |
-|---|---|---|---|---|---|
-| 1 | YYYY-MM-DD | Email | Full pitch | Yes | Sent |
-| 2 | YYYY-MM-DD | Email | New angle on market gap | Yes | Sent |
-| 3 | Pending | — | — | — | — |
+| Touch | Date | Channel | Content | Content Approved | Deployment Approved | Sent |
+|---|---|---|---|---|---|---|
+| 1 | YYYY-MM-DD | Email | Full pitch | Yes (Nero) | Yes (Nero) | Sent |
+| 2 | YYYY-MM-DD | Email | New angle on market gap | Yes (Nero) | Yes (Nero) | Sent |
+| 3 | Pending | — | — | — | — | — |
 ```
 
 Before any follow-up is sent, Mercury checks:
@@ -118,6 +118,7 @@ Before any follow-up is sent, Mercury checks:
 2. Is the correct number of days elapsed since the last touch?
 3. Is there a new angle/value to add?
 4. Does Nero approve this specific follow-up content?
+5. **Has Nero separately approved deployment of this specific follow-up touch?** (Content approval and deployment approval are separate gates)
 
 ---
 

@@ -167,17 +167,20 @@ The pipeline is designed so that a lead can only advance when there's a concrete
 ---
 
 ### Stage 9 — OUTREACH_SENT
-**Trigger:** Nero confirms send timing and approves deployment.
+**Trigger:** Nero explicitly approves the deployment timing and grants go-ahead for Mercury to execute.
 
 **Required:**
-- Nero explicit approval to send (not just approval to proceed)
+- Nero explicit verbal or written approval to send (not just approval to proceed)
 - Outreach artifact finalised (final review by Nero if any concerns)
 - Suppression check confirmed (business not in do-not-contact list)
+- Nero has confirmed the specific send timing
 
 **Process:**
-- Mercury sends via appropriate channel (email via outreach system, LinkedIn via connection)
-- Sent confirmation logged in `STATUS.md` with timestamp
-- Source system updated (sent-log.json for outreach system)
+- **Mercury executes the send only after receiving explicit Nero go-ahead**
+- Mercury sends via approved channel
+- Sent confirmation logged in `STATUS.md` with exact timestamp
+- CRM/INDEX.md updated
+- Source system updated (sent-log.json)
 
 ---
 
