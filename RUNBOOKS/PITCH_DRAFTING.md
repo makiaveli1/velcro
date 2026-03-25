@@ -195,3 +195,18 @@ Route to Nero immediately. Do not answer detailed questions about pricing, timel
 
 ### If they reply positively
 Route to Nero immediately. This is now a warm lead and requires human handling.
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After completing a pitch draft, you MUST complete the following before reporting back:
+
+1. **Update `LEADS/{slug}/STATUS.md`** — log: pitch draft complete, date, subject line used, pitch angle summary, and recommendation (ready for queue / needs revision)
+2. **Update `CRM/INDEX.md`** — update the lead's stage to PITCH_DRAFTED, last activity date, and next action field
+3. **Save the pitch draft** — final pitch draft must be saved as `LEADS/{slug}/PITCH.md` in the lead folder
+4. **Log any concerns** — if pitch is thin or forced, state the reason in STATUS.md and escalate to Nero before queuing
+
+**"Work done but CRM not updated" means work is not done.**

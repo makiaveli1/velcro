@@ -240,3 +240,18 @@ Before submitting the concept brief:
 - [ ] The differentiation rationale is specific and evidenced
 - [ ] Mercury has enough to write a genuinely tailored pitch
 - [ ] This concept is honest about content gaps — it doesn't promise what the business can't deliver
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After completing a concept brief, you MUST complete the following before reporting back:
+
+1. **Update `LEADS/{slug}/STATUS.md`** — log: concept brief complete, date, design direction summary, differentiation note, and recommendation (strong enough for pitch / needs revision / recommend not proceeding)
+2. **Update `CRM/INDEX.md`** — update the lead's stage, last activity date, and next action field
+3. **Log rejection reasons** — if concept is weak or generic, state the specific reason in STATUS.md and return to Scout/Forge for revision
+4. **Set next action** — who does what next
+
+**"Work done but CRM not updated" means work is not done.**
