@@ -7,7 +7,7 @@
 
 ## Current Stage
 
-**STAGE: BUSINESS_RESEARCHED** ✅
+**STAGE: CONCEPT_CREATED** ✅
 
 ---
 
@@ -17,30 +17,60 @@
 |------|-------|-------|
 | 2026-03-25 | VERIFIED | Initial verification — active business, contact confirmed |
 | 2026-03-25 | BUSINESS_RESEARCHED | Full business research complete — Scout subagent |
+| 2026-03-25 | CONCEPT_CREATED | Concept brief complete — Forge subagent |
 
 ---
 
-## Next Recommended Steps
+## Concept Brief Summary
 
-1. **DECISION NEEDED:** Does Verdantia want to pursue outreach to Brian McGarry?
-   - Email: brianmcgarry90@gmail.com ✅
-   - Phone: 0876182500 ✅
-   - Best route: Mobile phone call first, then email follow-up with website proposal
+**Design direction:** Mobile-first single-page website, sole-trader personal brand. Deep charcoal slate primary + warm copper accent on off-white. DM Serif Display headings, Instrument Sans body. Tap-to-call (087 618 2500) sticky on mobile at all times.
 
-2. **GBP + Website opportunity brief** is documented in BUSINESS.md
-   - The pitch angle: "You're invisible to the 2,500 Dublin 12 homeowners who search for a plumber online every month"
-   - Offer: GBP setup + simple 1-page website package
+**Differentiation:** Unapologetically a one-man local operation vs. national chains. 11 years in business (since 2014) as the primary trust anchor. Direct phone access (no receptionist, no form). Local Walkinstown address.
 
-3. **Outreach priority:** MEDIUM
-   - He has a usable email (personal Gmail)
-   - He has a mobile number (better for tradespeople first contact)
-   - He has no website = real pain point he may not know he has
-   - Risk: May be resistant to change / phone-only mindset
+**Key differentiator sentence:** "A website that is unmistakably a one-man operation, designed around the idea that Dublin 12 homeowners will choose a local person they can call directly over a company they can't get hold of."
+
+**CTA model:** Primary = tap-to-call 087 618 2500 (sticky mobile bar). Secondary = email. No contact form.
+
+**GBP integration:** Website + GBP claim are one strategy. NAP consistency between site and GBP. RGI registration is the critical unknown — must be confirmed before launch.
+
+---
+
+## Content Gaps / Launch Blockers
+
+| Item | Owner | Risk if Missing |
+|---|---|---|
+| RGI registration status | Brian | High — can't claim this trust signal |
+| 3+ customer testimonials | Brian | Medium — primary trust builder |
+| Confirmed service list | Brian | Low — can launch with inferred list |
+| Professional photography | Brian | Low — can launch without |
+| GBP listing | Brian + Forge | Critical — site alone won't drive traffic |
+
+---
+
+## Recommendation
+
+**Decision: RECOMMEND FOR PITCH** — Strong concept for this specific business.
+
+The concept is honest about what Brian has (11 years, local address, direct phone) and what he doesn't (reviews, RGI status, photography). It positions the website + GBP as a paired intervention, which is the correct framing.
+
+**Pitch angle for Mercury:** Lead with the visibility problem — "Dublin 12 homeowners searching for a plumber will never find Brian McGarry online. That's not a website problem. That's a discovery problem. And the fix is simpler than he thinks."
+
+**Next action:** Mercury drafts pitch → Nero reviews → outreach to Brian (email or phone).
+
+---
+
+## Next Steps
+
+1. **Mercury:** Draft personalised outreach pitch using CONCEPT_BRIEF.md
+2. **Brian must supply:** RGI status, 3 testimonials, confirmed service list (these are pitch prerequisites)
+3. **GBP:** Forge can support Brian with GBP claim setup — include in pitch as paired deliverable
+4. **Outreach route:** Mobile phone call first (087 618 2500), then email follow-up
 
 ---
 
 ## Files
 
 - `LEAD_RECORD.md` — Contact verification details
-- `BUSINESS.md` — Full business research brief ← Current
+- `BUSINESS.md` — Full business research brief
+- `CONCEPT_BRIEF.md` — Website concept direction ← Current
 - `STATUS.md` — Stage tracking ← Current
