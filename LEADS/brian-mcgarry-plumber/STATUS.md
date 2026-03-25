@@ -93,3 +93,25 @@ The concept is honest about what Brian has (11 years, local address, direct phon
 - `BUSINESS.md` — Full business research brief
 - `CONCEPT_BRIEF.md` — Website concept direction ← Current
 - `STATUS.md` — Stage tracking ← Current
+
+---
+
+## Approval Queue Entry
+
+**Submitted for Nero approval:** 2026-03-25
+
+**Lead package:**
+- `LEAD_RECORD.md` — score 44, AUDIT-WORTHY
+- `BUSINESS.md` — full research, GBP gap, €3.7k–€15k revenue gap estimate
+- `NO_SITE_BRIEF.md` — combined with business research
+- `CONCEPT_BRIEF.md` — mobile-first, tap-to-call, sole-trader positioning
+- `PITCH.md` — DRAFT, ~160 words, GBP visibility hook
+
+**Pitch summary:**
+> "I searched 'plumber Dublin 12' on Google — the local map pack shows 3 businesses. Brian McGarry wasn't one of them."
+
+**Pitch notes:** Specific, evidenced, low-pressure. Discovery gap framing. No false claims. No design jargon. CTA: "Happy to share what we found. No commitment."
+
+**Channel:** Email — brianmcgarry90@gmail.com
+**Launch blocker:** RGI registration status (must be confirmed before GBP claim)
+**Next action if approved:** Mercury sends on Nero go-ahead. No RGI required for outreach — only before GBP setup.
