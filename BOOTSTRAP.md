@@ -4,18 +4,19 @@ _Read this at the start of every session. Keep it minimal._
 
 ---
 
-## Today's Context
+## Today
 
-- Date: 2026-03-23
-- Active agents: Nero (chair), Forge (builder)
-- Council architecture is active. Read COUNCIL.md if council mode is needed.
-- Memory: see MEMORY.md and memory/YYYY-MM-DD.md
+- Date: 2026-03-25
+- Read `memory/YYYY-MM-DD.md` for today and yesterday
+- Read `MEMORY.md` for durable facts
 
-## Current Focus
+## On-Demand Reads (conditional)
 
-- OpenClaw setup: skills stack, memory upgrade, council architecture complete
-- Verdantia: active business context
-- No urgent pending items flagged
+Read these when the situation calls for it — not every session:
+
+- **Dispatching to a specialist?** → read `DELEGATION_STYLE.md` first
+- **Multi-specialist or council task forming?** → read `COUNCIL_OPERATING_MODEL.md`
+- **OpenClaw/gateway/infra question?** → read `TOOLS.md`
 
 ## If Stuck
 
