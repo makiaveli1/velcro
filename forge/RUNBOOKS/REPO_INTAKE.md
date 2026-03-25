@@ -74,7 +74,43 @@ Record:
 - How data flows
 - Where shared logic lives
 
-### 7. Identify risky areas
+### 7. Map conventions and concerns (brownfield projects)
+
+For existing codebases you will be working in, also map:
+
+**Conventions Mapper** — how is the codebase actually written?
+```bash
+# Naming patterns
+grep -r "^[A-Z]" --include="*.py" . | head -5   # class naming
+grep -rn "def " --include="*.py" . | head -10   # function naming
+
+# Import ordering
+head -20 <main-file>
+
+# Error handling patterns
+grep -rn "except" --include="*.py" . | head -5
+```
+
+Record: naming conventions, file organization patterns, error handling style, common abstractions.
+
+**Concerns Mapper** — what are the cross-cutting concerns and fragile areas?
+```bash
+# Config and environment
+grep -rn "os.environ\|getenv\|\.env" --include="*.py" --include="*.js" . | head -10
+
+# Async/concurrency
+grep -rn "async\|await\|Promise\|threading" --include="*.py" --include="*.js" . | head -10
+
+# External API calls
+grep -rn "requests\|fetch\|axios\|httpx" --include="*.py" --include="*.js" . | head -10
+
+# Auth and permissions
+grep -rn "auth\|token\|permission\|jwt\|session" --include="*.py" --include="*.js" . | head -10
+```
+
+Record: where config is managed, where async complexity lives, where external dependencies are called, how auth works.
+
+### 8. Identify risky areas
 
 Be suspicious of:
 - Code with no tests
@@ -90,7 +126,7 @@ npm audit 2>/dev/null || echo "no npm audit"
 gh api repos/<owner>/<repo>/dependency-graph/snkb 2>/dev/null | head -50 || echo "no dependency info"
 ```
 
-### 8. Check CI status
+### 9. Check CI status
 
 ```bash
 gh run list --repo <owner/repo> --limit 5 --json status,conclusion,name
@@ -98,7 +134,7 @@ gh run list --repo <owner/repo> --limit 5 --json status,conclusion,name
 
 Are tests passing? What's the CI setup?
 
-### 9. Check open issues and PRs
+### 10. Check open issues and PRs
 
 ```bash
 gh issue list --repo <owner/repo> --state open --limit 10 --json number,title,labels --jq .
@@ -106,10 +142,10 @@ gh issue list --repo <owner/repo> --state open --limit 10 --json number,title,la
 
 Any relevant architectural decisions or known problems in recent issues?
 
-### 10. Record in repo memory
+### 11. Record in repo memory
 
 After intake, create:
-- `repos/<repo-name>/REPO.md` — filled with steps 1-9
+- `repos/<repo-name>/REPO.md` — filled with steps 1-10
 - `repos/<repo-name>/DECISIONS.md` — empty template (fill as decisions emerge)
 - `repos/<repo-name>/KNOWN_ISSUES.md` — empty template (fill as issues surface)
 
@@ -121,7 +157,9 @@ After intake, you should be able to answer:
 1. What does this repo do?
 2. How do I build and test it?
 3. What is the directory structure?
-4. What are the risky areas?
-5. What is the current CI status?
+4. What are the naming conventions and code organization patterns?
+5. Where are the cross-cutting concerns (config, auth, async, external calls)?
+6. What are the risky areas?
+7. What is the current CI status?
 
 If you cannot answer these after intake, read more before making changes.

@@ -47,7 +47,27 @@ Ask:
 
 For each risk, decide: accept, mitigate, or defer to Nero.
 
-### 5. Propose implementation approach
+### 5. Identify verification mechanisms BEFORE implementing
+
+**This step is not optional for medium or larger tasks.**
+
+For each planned change, identify the command or method you will use to verify it works — before you write any code. This is the Nyquist discipline: every task needs a feedback signal.
+
+Ask per task:
+- What command proves this works?
+- What command proves this doesn't break existing behavior?
+- If no test infrastructure exists, what is the manual verification?
+
+```
+Verification mapping:
+- [ ] task: X → verify with: `npm test -- --grep "X"`
+- [ ] task: Y → verify with: manual curl to endpoint
+- [ ] task: Z → no automated test → flag as gap, manual verify required
+```
+
+Plans without identified verification for non-trivial tasks will be returned for refinement.
+
+### 6. Propose implementation approach
 
 Before touching code, write out:
 1. Which file(s) to change first
@@ -68,32 +88,32 @@ Risk: Medium — adds to API surface, needs test
 Verification: endpoint test with new param
 ```
 
-### 6. Get Nero's sign-off on large changes
+### 7. Get Nero's sign-off on large changes
 
 If the change is >3 files or affects multiple modules, show Nero the plan before implementing. Say:
 - What you're changing
 - Why
 - What could go wrong
 
-### 7. Implement
+### 8. Implement
 
 Implement one coherent step at a time. Do not make 5 unrelated changes at once.
 
-### 8. Verify after each step
+### 9. Verify after each step
 
 After each file/module change:
 - Run the relevant tests
 - Run a manual smoke test if no tests exist
 - Confirm the change behaves as expected
 
-### 9. Final verification
+### 10. Final verification
 
 After all changes:
 - Run the full test suite
 - Check that CI still passes
 - Confirm the implementation matches the original goal
 
-### 10. Record
+### 11. Record
 
 In `repos/<repo>/DECISIONS.md`:
 - What you changed and why
