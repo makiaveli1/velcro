@@ -8,7 +8,7 @@ _Last updated: 2026-03-25 (Discovery Session: Dublin Trades Round 1)_
 
 | Lead Name | Category | Score | Stage | Next Action | Last Activity | Owner |
 |---|---|---|---|---|---|---|
-| Brian McGarry Plumber | Plumber | 44 | LEAD_QUALIFIED | Website quality check + email outreach | 2026-03-25 | Discovery |
+| Brian McGarry Plumber | Plumber | 44 | CONCEPT_CREATED | Mercury: draft pitch; Brian: supply RGI status + testimonials | 2026-03-25 | Discovery |
 | CPK Heating & Plumbing | Plumber | 42 | LEAD_QUALIFIED | Website quality check + contact | 2026-03-25 | Discovery |
 | Larkfield Plumbing Contractors Ltd | Plumber | 41 | LEAD_QUALIFIED | Website quality check + contact | 2026-03-25 | Discovery |
 | Emergency Plumbers Dublin | Plumber | 40 | MONITOR | Website audit + GBP verification | 2026-03-25 | Discovery |
@@ -28,8 +28,9 @@ _Last updated: 2026-03-25 (Discovery Session: Dublin Trades Round 1)_
 | Stage | Count |
 |---|---|
 | LEAD_FOUND | 0 |
-| LEAD_QUALIFIED | 3 |
+| LEAD_QUALIFIED | 2 |
 | BUSINESS_RESEARCHED | 0 |
+| CONCEPT_CREATED | 1 |
 | MONITOR | 9 |
 | WEBSITE_AUDITED / NO_SITE_BRIEF_CREATED | 0 |
 | CONCEPT_DIRECTION_CREATED | 0 |
