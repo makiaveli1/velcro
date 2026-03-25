@@ -252,3 +252,13 @@ The queue empty state uses a `StatePanel` with a muted icon. An illustrated empt
 
 **Total commits today:** 7 (plus the 3 from this morning)
 **Build:** Rust ✅ + TypeScript ✅
+
+---
+
+## ✅ Filter-aware TopStrip counters (ca3ad1f)
+
+- `statusFilter` now threaded into TopStrip
+- When filtered: single prominent counter + active filter chip + "× Clear filter" button
+- When All: all four counters as before
+- Nudge chip (beginner) suppressed when filtered — doesn't make sense in filtered context
+- `totalItems` in TopStrip = filtered inbox count when filtered, else overview total
