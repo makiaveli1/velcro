@@ -277,3 +277,52 @@ Casual mode redesign:
 Design rationale:
 - Split view (standard/power) = efficiency mode: queue + preview visible simultaneously
 - Drawer view (casual) = calm mode: full queue focus, decision drawer when ready to act
+
+---
+
+## ✅ Phase 1 PRD Implementation (98e2f52)
+
+**PRD:** `C:\Users\likwi\Downloads\product_requirements_document.md` (October 26, 2023)
+
+### What's implemented (Phase 1 — UI Design & Frontend):
+
+**Casual Mode:**
+- ✅ Warm gold accent (`--accent: #f0c879`)
+- ✅ Calm and cozy aesthetic
+- ✅ Spacious full-height queue (queue fills full stage, batch canvas removed from stage flow)
+- ✅ 480px decision drawer (slide-in from right, spring animation, backdrop, click-to-dismiss)
+- ✅ One task at a time focus
+
+**Standard Mode:**
+- ✅ Cool mint accent (`--accent: #78f0a1`)
+- ✅ Efficient and functional
+- ✅ Split-screen workbench: queue + batch canvas + inspector all visible simultaneously
+- ✅ Dynamic layout — queue and batch canvas share the stage, inspector is always visible
+
+**Power/Creator Mode:**
+- ✅ Soft blue accent (`--accent: #84cfff`)
+- ✅ Three-column workbench: rail + stage(2-col split) + inspector
+- ✅ Fixed slim rail: 252px (was variable clamp — now fixed per PRD spec)
+- ✅ High-density queue: smaller row heights, compact lane buttons
+- ✅ Batch canvas: file structures, conflict flags (SpecialReviewPanel), version comparison signals
+- ✅ Full Decision Inspector: proof trail, receipt history, version comparison
+- ✅ TopStrip: detailed progress chip + small functional counters
+- ✅ Trust signals: shown in inspector via signals system (setup clue, version, linked family)
+
+**All Modes:**
+- ✅ Mode switching via Settings (one deliberate click — intentional, not casual toggle)
+- ✅ CSS variable-based theming (`data-user-view` attribute)
+- ✅ Keyboard shortcuts (? / Cmd+K)
+- ✅ Confirmation dialogs on destructive actions
+
+### Out of Scope (per PRD):
+- ❌ Proof Sheet full-screen evidence modal — not implemented
+- ❌ Empty queue illustrations (cozy illustrations for Casual) — not implemented
+- ❌ Guided Setup walkthrough screen — not implemented
+- ❌ Backend integration for proof trail data generation — backend signals exist
+- ❌ User preferences mode persistence — already implemented via UiPreferencesContext
+
+### CSS changes (98e2f52):
+- `:root[data-user-view="creator"] .downloads-rail-shell`: fixed 252px
+- `:root[data-user-view="creator"] .downloads-lane-button`: compact padding 0.38rem 0.5rem
+- `:root[data-user-view="creator"] .downloads-lane-button-count`: 0.68rem font
