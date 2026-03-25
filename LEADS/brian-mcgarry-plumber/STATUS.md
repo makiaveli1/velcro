@@ -18,6 +18,7 @@
 | 2026-03-25 | VERIFIED | Initial verification — active business, contact confirmed |
 | 2026-03-25 | BUSINESS_RESEARCHED | Full business research complete — Scout subagent |
 | 2026-03-25 | CONCEPT_CREATED | Concept brief complete — Forge subagent |
+| 2026-03-25 | PITCH_DRAFTED | Pitch draft complete — Mercury subagent |
 
 ---
 
@@ -59,12 +60,30 @@ The concept is honest about what Brian has (11 years, local address, direct phon
 
 ---
 
+## Pitch Draft — Complete
+
+| Field | Value |
+|-------|-------|
+| Pitch draft saved | `LEADS/brian-mcgarry-plumber/PITCH.md` |
+| Draft date | 2026-03-25 |
+| Subject line | "Brian McGarry — a quick observation" |
+| Hook type | Option A — GBP / Local Search Observation |
+| Pitch angle | Audit-led visibility problem |
+| Word count | ~160 words |
+| Status | ⚠️ DRAFT — Awaiting Nero approval |
+
+**Pitch summary:** Email opens with a specific, evidenced observation: "I searched plumber Dublin 12 on Google — the local map pack shows 3 businesses. Brian McGarry wasn't one of them." Frames the gap as a discovery problem, not a website problem. Offers to share the audit — no commitment, no sales call.
+
+**Recommendation:** Ready for queue. Low-pressure, specific, honest. No red flags.
+
+---
+
 ## Next Steps
 
-1. **Mercury:** Draft personalised outreach pitch using CONCEPT_BRIEF.md
-2. **Brian must supply:** RGI status, 3 testimonials, confirmed service list (these are pitch prerequisites)
-3. **GBP:** Forge can support Brian with GBP claim setup — include in pitch as paired deliverable
-4. **Outreach route:** Mobile phone call first (087 618 2500), then email follow-up
+1. **Nero:** Review and approve pitch draft
+2. **Brian (post-approval):** Outreach via email to brianmcgarry90@gmail.com
+3. **Brian must supply (pitch prerequisites):** RGI status, 3 testimonials, confirmed service list
+4. **GBP:** Forge can support Brian with GBP claim setup — paired deliverable with website
 
 ---
 
