@@ -220,3 +220,18 @@ ASSETS/{business-name-slug}/
 - The opportunity gap is stated vaguely without business impact
 - You couldn't write a specific pitch hook from it
 - Forge would still be guessing about the concept direction
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After completing a no-site brief, you MUST complete the following before reporting back:
+
+1. **Update `LEADS/{slug}/STATUS.md`** — log: brief complete, date, key opportunity gap identified, recommendation, and specific reasons for any recommendation
+2. **Update `CRM/INDEX.md`** — update the lead's stage, last activity date, and next action field
+3. **Log rejection/skip reasons** — if recommending downgrade or suppress, state the specific reason in STATUS.md
+4. **Set next action** — who does what next, and under what condition
+
+**"Work done but CRM not updated" means work is not done.**

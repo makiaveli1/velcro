@@ -216,3 +216,18 @@ If the audit finds the website is actually quite good — modern design, functio
 - Document why the site is actually quite good — this is useful information too
 
 **The goal is not to find problems everywhere. The goal is accurate qualification.**
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After completing an audit, you MUST complete the following before reporting back:
+
+1. **Update `LEADS/{slug}/STATUS.md`** — log: audit complete, date, key findings summary, recommendation (ready / needs more research / downgrade / suppress), and specific reasons for any recommendation
+2. **Update `CRM/INDEX.md`** — update the lead's stage, last activity date, and next action field
+3. **Log rejection/skip reasons** — if recommending downgrade or suppress, state the specific reason in STATUS.md
+4. **Set next action** — who does what next, and under what condition
+
+**"Work done but CRM not updated" means work is not done.**

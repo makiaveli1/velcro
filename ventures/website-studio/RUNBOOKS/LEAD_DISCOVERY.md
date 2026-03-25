@@ -177,3 +177,19 @@ When discovery session is done:
 - Update CRM/INDEX.md with new leads
 - Notify Nero of new leads requiring assignment
 - Set MONITOR leads with a review date if appropriate
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After any discovery session or lead action, you MUST complete the following before reporting back:
+
+1. **Create lead folders** — for every qualified lead found, create `LEADS/{slug}/LEAD_RECORD.md`
+2. **Update `CRM/INDEX.md`** — add all new leads with name, category, score, stage, source, and date found
+3. **Log rejected leads** — for every lead reviewed and rejected, note the reason in your session notes (name, score, reason rejected)
+4. **Update each `STATUS.md`** — for each new qualified lead, create STATUS.md with stage LEAD_QUALIFIED, date, and next action
+5. **Set suppression** — any lead that meets suppression criteria must be added to `CRM/SUPPRESSION.md` immediately
+
+**"Work done but CRM not updated" means work is not done.**

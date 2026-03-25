@@ -156,3 +156,18 @@ After each follow-up sequence (won, lost, or no-response), log:
 - Any response patterns worth noting
 
 This data helps us understand what follow-up content works and when we should stop.
+
+---
+
+## CRM Mandatory Update — Non-Negotiable
+
+**CRM updates are not optional. Work is not done until the CRM reflects it.**
+
+After any follow-up action, you MUST complete the following:
+
+1. **Update `LEADS/{slug}/STATUS.md`** — log: follow-up touch number, date sent, content used, response received (if any), and current disposition
+2. **Update `CRM/INDEX.md`** — update the lead's last activity date
+3. **Log suppression immediately** — if a lead opts out or requests removal, suppress immediately in `CRM/SUPPRESSION.md` and update STATUS.md
+4. **Log final disposition** — when a lead reaches WON/LOST/NO_RESPONSE, update STATUS.md and CRM/INDEX.md with the outcome and date
+
+**"Work done but CRM not updated" means work is not done.**
