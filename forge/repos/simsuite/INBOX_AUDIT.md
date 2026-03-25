@@ -262,3 +262,18 @@ The queue empty state uses a `StatePanel` with a muted icon. An illustrated empt
 - When All: all four counters as before
 - Nudge chip (beginner) suppressed when filtered — doesn't make sense in filtered context
 - `totalItems` in TopStrip = filtered inbox count when filtered, else overview total
+
+---
+
+## ✅ Decision Drawer for Casual Mode (715d675)
+
+Casual mode redesign:
+- Batch canvas removed from stage grid → queue fills full height
+- Selecting an item → slide-in drawer from right (480px overlay)
+- Queue stays visible in background for context (backdrop click-to-dismiss)
+- Casual rail wider (22vw, up to 320px)
+- Casual queue rows: 40% more vertical padding, better gaps
+
+Design rationale:
+- Split view (standard/power) = efficiency mode: queue + preview visible simultaneously
+- Drawer view (casual) = calm mode: full queue focus, decision drawer when ready to act
