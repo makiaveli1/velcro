@@ -22,7 +22,7 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 | **Nero** | Chair, final approval gate, orchestration, final judgment |
 | **Scout** | Lead discovery, business research, website audits, no-site briefs, opportunity scoring |
 | **Forge** | Concept briefs, design direction, mockup planning |
-| **Mercury** | Pitch drafts, outreach, follow-up sequences, messaging strategy |
+| **Mercury** | Pitch drafts, outreach drafting, follow-up drafting, messaging strategy. Mercury drafts and prepares — Mercury never deploys, sends, or initiates any external communication without explicit Nero approval. |
 
 **All specialist work routes through Nero. Nero is always the final voice.**
 
@@ -37,6 +37,7 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 | `LEAD_SCORECARD.md` | How leads are scored and qualified |
 | `PIPELINE.md` | 11-stage workflow from lead found to won/lost |
 | `OUTREACH_POLICY.md` | Hard rules on what we do and don't do externally |
+| `CHANNEL_POLICY.md` | Approved channels, contact point standards, risky lead rules |
 | `DESIGN_STANDARD.md` | What Forge must deliver in every concept |
 | `CRM/INDEX.md` | Master lead tracking |
 | `CRM/SUPPRESSION.md` | Do-not-contact list |
@@ -80,11 +81,13 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 ## Key Policies
 
 - **No autonomous outbound** — everything requires explicit Nero approval
+- **Two-gate deployment rule** — Nero approves content AND separately approves deployment; Mercury never sends without explicit deployment go-ahead
 - **No mass outreach** — maximum 5 sends per day, 20 leads added per week
 - **No generic concepts** — concepts must be custom to the business
 - **No suppression violations** — suppression list checked before any send
 - **Quality over quantity** — a single excellent lead is worth more than 50 mediocre ones
 - **Respect over spam** — follow-up limits are hard stops
+- **Channel discipline (Round 1)** — email only, no LinkedIn, no contact forms without explicit approval
 
 ---
 
@@ -117,7 +120,8 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 1. Only start after Forge's concept brief is approved
 2. Use `RUNBOOKS/PITCH_DRAFTING.md` — hooks must be specific
 3. All pitch drafts marked DRAFT — not external until Nero approves
-4. Route ALL responses (positive or negative) to Nero immediately
+4. **Mercury drafts and prepares. Mercury does NOT send, deploy, or initiate any outreach independently — only Nero approves deployment**
+5. Route ALL responses (positive or negative) to Nero immediately
 
 ### Nero
 1. Review queued leads daily
