@@ -1,6 +1,13 @@
-# Lead Status — Brian McGarry Plumber
+---
+stage: APPROVAL_QUEUED
+score: 44
+slug: brian-mcgarry-plumber
+lastUpdated: 2026-03-25
+---
 
-**Current Stage:** LEAD_QUALIFIED
+# Brian McGarry Plumber — Status
+
+**Current Stage:** APPROVAL_QUEUED
 **Score:** 44/100
 **Qualified Date:** 2026-03-25
 **Discovered By:** Discovery Session (Dublin Trades Round 1)
@@ -13,31 +20,31 @@
 |---|---|---|
 | 2026-03-25 | LEAD_FOUND | Discovered via Google search (directory listings) |
 | 2026-03-25 | LEAD_QUALIFIED | Score 44 — qualified for pipeline |
+| 2026-03-25 | BUSINESS_RESEARCHED | Full business research complete |
+| 2026-03-25 | CONCEPT_CREATED | Forge concept brief complete |
+| 2026-03-25 | PITCH_DRAFTED | Mercury pitch draft complete |
+| 2026-03-25 | APPROVAL_QUEUED | Submitted for Nero approval |
 
 ---
 
 ## Next Actions
 
-1. **Verify Google Business Profile** — Search for "Brian McGarry Plumber Dublin" on Google Maps
-2. **Website quality check** — Confirm no website exists (currently no URL found)
-3. **Prepare outreach** — Email brianmcgarry90@gmail.com
+**Awaiting Nero approval for outreach.** Approved pitch: "Brian McGarry — a quick observation" (GBP visibility hook). Channel: email to brianmcgarry90@gmail.com.
 
 ---
 
-## Outreach History
+## Approval Queue Entry
 
-_(none yet)_
+**Submitted for Nero approval:** 2026-03-25
 
----
+**Lead package:**
+- `LEAD_RECORD.md` — score 44, AUDIT-WORTHY
+- `BUSINESS.md` — full research, GBP gap, €3.7k–€15k revenue gap estimate
+- `NO_SITE_BRIEF.md` — combined with business research
+- `CONCEPT_BRIEF.md` — mobile-first, tap-to-call, sole-trader positioning
+- `PITCH.md` — DRAFT, ~160 words, GBP visibility hook
 
-## Approval History
+**Pitch summary:** "I searched 'plumber Dublin 12' on Google — the local map pack shows 3 businesses. Brian McGarry wasn't one of them."
 
-_(none yet)_
-
----
-
-## Key Contact
-
-- **Email:** brianmcgarry90@gmail.com
-- **Phone:** 087 618 2500
-- **Source:** Knocklyon Network (2014), Golden Pages, MyTown.ie, constructionireland.ie, infoisinfo-ie.com
+**Channel:** Email — brianmcgarry90@gmail.com
+**Launch blocker:** RGI registration status (must be confirmed before GBP setup — not required for outreach)

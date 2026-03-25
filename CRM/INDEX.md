@@ -9,9 +9,19 @@
 
 | # | Lead Name | Score | Status | Contact Route | Verified | Outreach Ready |
 |---|-----------|-------|--------|---------------|----------|----------------|
-| 1 | Brian McGarry Plumber | 44 | ✅ VERIFIED | Email (personal Gmail) + Mobile | ✅ | ✅ Yes |
+| 1 | Brian McGarry Plumber | 44 | ✅ BUSINESS_RESEARCHED | Email (personal Gmail) + Mobile | ✅ | ✅ Yes |
 | 2 | CPK Heating & Plumbing | 42 | ⚠️ VERIFIED (concern) | Phone only (2 numbers) | ✅ | ⚠️ Phone only — no email |
 | 3 | Larkfield Plumbing Contractors Ltd | 41 | ✅ VERIFIED | Mobile only (086) | ✅ | ⚠️ Phone only — no email |
+
+---
+
+## Business Research Status
+
+| Lead | Stage | Research Brief |
+|------|-------|----------------|
+| Brian McGarry Plumber | ✅ BUSINESS_RESEARCHED | `LEADS/brian-mcgarry-plumber/BUSINESS.md` |
+| CPK Heating & Plumbing | 🔍 IN PROGRESS | CRO entity verified (active Irish Ltd, CRO #393227) |
+| Larkfield Plumbing Contractors Ltd | 🔍 PENDING | — |
 
 ---
 
