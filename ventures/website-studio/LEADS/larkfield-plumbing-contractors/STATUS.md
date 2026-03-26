@@ -1,9 +1,15 @@
-# Lead Status — Larkfield Plumbing Contractors Ltd
+---
+stage: MONITOR
+score: 41
+slug: larkfield-plumbing-contractors
+lastUpdated: 2026-03-25
+---
 
-**Current Stage:** LEAD_QUALIFIED
+# Larkfield Plumbing Contractors Ltd — Status
+
+**Current Stage:** MONITOR
 **Score:** 41/100
-**Qualified Date:** 2026-03-25
-**Discovered By:** Discovery Session (Dublin Trades Round 1)
+**Last Updated:** 2026-03-25
 
 ---
 
@@ -11,34 +17,12 @@
 
 | Date | Stage | Notes |
 |---|---|---|
-| 2026-03-25 | LEAD_FOUND | Discovered via Google search (Golden Pages) |
-| 2026-03-25 | LEAD_QUALIFIED | Score 41 — qualified for pipeline |
+| 2026-03-25 | LEAD_FOUND | Discovery |
+| 2026-03-25 | LEAD_QUALIFIED | Score 41 — qualified |
+| 2026-03-25 | MONITOR | Irish Ltd confirmed. Phone-only contact. No email. Parked — no outreach route. |
 
 ---
 
-## Next Actions
+## Notes
 
-1. **Verify Google Business Profile** — Search Google Maps for Larkfield Plumbing Contractors
-2. **Confirm no website** — Search for larkfieldplumbingcontractors.ie and variations
-3. **Prepare outreach** — Contact via 086 248 6922
-
----
-
-## Outreach History
-
-_(none yet)_
-
----
-
-## Approval History
-
-_(none yet)_
-
----
-
-## Key Contact
-
-- **Phone:** 086 248 6922
-- **Source:** Golden Pages
-- **Business Type:** Ltd company
-- **Location:** Dublin 6W (Rathfarnham/Templeogue area — affluent suburb)
+Irish Ltd confirmed. Phone-only contact. No email. Parked — no outreach route.
