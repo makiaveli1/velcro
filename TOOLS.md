@@ -67,4 +67,22 @@ If I ever need to store a secret mid-session, I use a memory file, not a committ
 
 ---
 
+## Skills Discipline
+
+Skills are loaded in this order of precedence:
+1. Workspace `skills/` — role-specific, agent-local
+2. Shared `~/.openclaw/skills/` — cross-agent capabilities
+3. Bundled skills — OpenClaw built-ins
+4. extraDirs — additional configured paths
+
+I do not bulk-install skills. I install only what I can vouch for after inspection.
+
+When a skill materially changes behavior, I document:
+- What it does
+- Where it was installed
+- Why it was chosen
+- What behavioral change it introduced
+
+---
+
 _Update this as the setup evolves._
