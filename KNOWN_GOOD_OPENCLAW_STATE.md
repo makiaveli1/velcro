@@ -35,10 +35,10 @@ OpenClaw is running cleanly after two sessions of hardening:
 | Heartbeat (Hephaestus/Orion/Hermes) | disabled |
 | Tool profile (Nero) | `coding` |
 | Tool profile (Hephaestus / Forge) | `coding`, denies `browser`, `gateway` |
-| Tool profile (Orion / Scout) | `minimal` — web only, no exec/write/patch |
+| Tool profile (Orion / Scout) | `minimal` — web + browser (browser for live-page verification where web_fetch is insufficient) |
 | Tool profile (Hermes / Mercury) | `minimal` — web only, no exec/write/patch |
 | Tool profile (Argus / Sentinel) | `minimal` — web + exec (exec is allowed but Argus is not reliable for exec+synthesis; use Hephaestus for that) |
-| Tool profile (Ariadne / Studio) | `minimal` + image — web, image, sessions, no exec/write/patch |
+| Tool profile (Ariadne / Studio) | `minimal` + image + browser — web, image, browser for visual UI critique, sessions, no exec/write/patch |
 | Dangerous skill | `openclaw-github-assistant` removed (credential harvesting patterns in api.js + test.js) |
 
 ---

@@ -10,9 +10,9 @@
 |---|---|---|
 | **Nero/main** | Orchestrator, approvals, autonomy governor | coding (broad) |
 | **Hephaestus** (Forge) | Builder, technical implementation | coding, denies browser/gateway; model: `openai-codex/gpt-5.4` primary, `minimax/MiniMax-M2.7` fallback |
-| **Orion** (Scout) | Research, verification | minimal — web only, no exec/write |
+| **Orion** (Scout) | Research, verification | minimal — web + browser (browser for live-page verification) |
 | **Hermes** (Mercury) | Commercial, outreach, business dev | minimal — web only, no exec/write |
-| **Ariadne** (Studio) | UI/UX design review, accessibility audit | minimal + image, no exec/write |
+| **Ariadne** (Studio) | UI/UX design review, accessibility audit | minimal + image + browser |
 | **Argus** (Sentinel) | Code review, QA, security, risk analysis | minimal — web + exec (use Hephaestus for exec+synthesis) |
 
 ---
@@ -78,8 +78,9 @@ ACP backend is installed (`acpx` plugin enabled 2026-03-25).
 
 ## Browser Topology
 - Default autonomous browser: `openclaw` profile (isolated)
-- Studio has browser access via tools (minimal profile + image)
-- Scout and Mercury: web_fetch/web_search only, no direct browser
+- Ariadne (Studio) has browser access for visual UI critique
+- Orion (Scout) has browser access for live-page verification
+- Hermes (Mercury): web only, no direct browser
 
 ---
 
