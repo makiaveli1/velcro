@@ -8,12 +8,12 @@ _Durable facts, preferences, and decisions worth carrying forward._
 
 ### Council Architecture (2026-03-23)
 - **Nero** is chair, front door, final synthesizer — always
-- **Forge** is permanent builder/engineering agent — instantiated 2026-03-23
-- **Scout** — designed, NOT instantiated — waiting for real research context triggers
+- **Hephaestus (Forge)** is permanent builder/engineering agent — instantiated 2026-03-23
+- **Orion (Scout)** — designed, NOT instantiated — waiting for real research context triggers
 - **Steward** — designed, NOT instantiated — waiting for cron/automation infrastructure triggers
 - Council docs: COUNCIL.md, PROMOTION_RULES.md, DELEGATION_RULES.md, COUNCIL_OPERATING_MODEL.md, FUTURE_AGENTS.md
 
-### Forge (2026-03-23)
+### Hephaestus (Forge) (2026-03-23)
 - Workspace: `/home/likwid/.openclaw/workspace/forge/`
 - Model: `minimax/MiniMax-M2.7` only — no highspeed, no fallbacks
 - Skills: github, openclaw-github-assistant, summarize, skill-vetter (via workspace skills)
@@ -60,8 +60,8 @@ Current status: Brian McGarry is in APPROVAL_QUEUED. Awaiting Likwid/Nero deploy
 ## Pending / Future Work
 
 - Website Studio Round 1 completion: Brian McGarry deployment, response tracking, Round 2 decision
-- ACP/Claude Code wiring — triggers when Forge needs substantial repo-heavy coding work
-- Scout instantiation — triggers when research context spans sessions
+- ACP/Claude Code wiring — triggers when Hephaestus needs substantial repo-heavy coding work
+- Orion instantiation — triggers when research context spans sessions
 - Steward instantiation — triggers when cron/automation infrastructure is active
 - google workspace (gog) — only when Gmail/Calendar becomes part of daily flow
 

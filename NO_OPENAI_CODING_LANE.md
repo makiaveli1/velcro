@@ -23,7 +23,7 @@
 ## The Canonical No-OpenAI Coding Lane
 
 ```
-Forge (implement) → Sentinel (review) → Nero (decide)
+Hephaestus (implement) → Argus (review) → Nero (decide)
 Lobster — for bounded multi-step workflows with approval gates
 ACPX bridge — for persistent CLI sessions when needed
 ```
@@ -32,13 +32,13 @@ ACPX bridge — for persistent CLI sessions when needed
 
 | Situation | Path |
 |---|---|
-| Quick implementation, review needed | Forge → Sentinel → Nero |
-| Multi-step task with approval checkpoints | Forge → Lobster → Sentinel → Nero |
+| Quick implementation, review needed | Hephaestus → Argus → Nero |
+| Multi-step task with approval checkpoints | Hephaestus → Lobster → Argus → Nero |
 | Persistent ACP session | `acpx openclaw` via CLI |
-| Design review | Studio → Sentinel → Nero |
-| Research / verification | Scout → Nero |
+| Design review | Ariadne → Argus → Nero |
+| Research / verification | Orion → Nero |
 
-### When Forge only is enough
+### When Hephaestus only is enough
 - Small, bounded, well-defined tasks
 - Scaffolding / demo code
 - Single-file utilities
@@ -68,19 +68,20 @@ If you want a local free coding model:
 
 ---
 
-## Forge — Builder
+## Hephaestus (Forge) — Builder
 
 **Role:** Implements code, scaffolds utilities, handles technical execution.
 
 **Tools:** Full coding profile via OpenClaw tools (exec, write, edit, apply_patch, web search, sessions)
 
 **Strengths:**
-- MiniMax M2.7 is a strong reasoning model
+- `openai-codex/gpt-5.4` for primary coding work (premium lane)
+- `minimax/MiniMax-M2.7` automatic fallback
 - Can write, review, test, and deliver working code
 - Has access to the full tool suite for implementation work
 
 **Constraints:**
-- No dedicated coding-agent backend (no codex-acp, no copilot)
+- No dedicated coding-agent backend (no codex-acp, no copilot) — Codex OAuth covers the premium lane
 - For very large refactors: use ACPX `openclaw` sessions as a persistent CLI layer
 
 **When to escalate to ACPX bridge:**
@@ -90,27 +91,27 @@ If you want a local free coding model:
 
 ---
 
-## Sentinel — Reviewer
+## Argus (Sentinel) — Reviewer
 
 **Role:** QA, correctness, security risk, regression check.
 
 **Tools:** `web_search`, `web_fetch`, `sessions_list`, `sessions_history`, `sessions_send`, `image`, `exec`
 
-**Exec constraint:** Sentinel has exec access but is **not reliable for exec+synthesis patterns** under its identity context — the model can suppress or misrender tool calls on trivial tasks. Use **Forge** for exec+synthesis. Sentinel should review Forge's output, not produce exec output itself.
+**Exec constraint:** Argus (Sentinel) has exec access but is **not reliable for exec+synthesis patterns** under its identity context — the model can suppress or misrender tool calls on trivial tasks. Use **Hephaestus** for exec+synthesis. Argus should review Hephaestus's output, not produce exec output itself.
 
 **Strengths:**
 - Catches correctness issues, security risks, edge cases
 - Can run tests and validate implementations
-- Reviews both Forge output and Studio design work
+- Reviews both Hephaestus output and Ariadne design work
 
-**What Sentinel reviews:**
+**What Argus reviews:**
 - Code correctness and edge cases
 - Security patterns (injection, secrets, auth)
 - Missing error handling
 - Test coverage gaps
 - Risk blind spots in design decisions
 
-**Delivery note:** Sentinel review text delivers via session announce. If the task is bounded and the review is short, delivery is reliable. For very long reviews, results may be paraphrased by the calling session.
+**Delivery note:** Argus review text delivers via session announce. If the task is bounded and the review is short, delivery is reliable. For very long reviews, results may be paraphrased by the calling session.
 
 ---
 
@@ -149,28 +150,28 @@ If you want a local free coding model:
 
 ---
 
-## Studio — Design Review
+## Ariadne (Studio) — Design Review
 
 **Role:** Visual QA, WCAG accessibility, UI/UX critique.
 
 **Tools:** `web_search`, `web_fetch`, `image`, sessions
 
-**When to involve Studio:**
+**When to involve Ariadne:**
 - Any UI, frontend, or visual design work
 - Screenshot or mockup review
-- Accessibility audit (Studio applies WCAG AA checklist)
+- Accessibility audit (Ariadne applies WCAG AA checklist)
 
-**Studio + Sentinel:** Studio reviews the design, Sentinel reviews Studio's output for gaps and overreach. The split is non-redundant.
+**Ariadne + Argus:** Ariadne reviews the design, Argus reviews Ariadne's output for gaps and overreach. The split is non-redundant.
 
 ---
 
-## Scout — Research
+## Orion (Scout) — Research
 
 **Role:** Web research, verification, fact finding.
 
 **Tools:** `web_search`, `web_fetch`, sessions — read-only posture
 
-**When to involve Scout:**
+**When to involve Orion:**
 - Technical research before implementation
 - Competitive analysis
 - Documentation hunting
@@ -206,36 +207,36 @@ If you want a local free coding model:
 ### Simple task
 ```
 1. Nero scopes the task
-2. Forge implements
-3. Forge self-reviews or asks Sentinel for a quick check
+2. Hephaestus implements
+3. Hephaestus self-reviews or asks Argus for a quick check
 4. Nero approves
 ```
 
 ### Multi-step or approval-gated task
 ```
 1. Nero scopes the task
-2. Forge implements
+2. Hephaestus implements
 3. Lobster pipeline runs approval gate
-4. Sentinel reviews
+4. Argus reviews
 5. Nero approves
 ```
 
 ### Design + code task
 ```
 1. Nero scopes
-2. Studio reviews the visual/design spec
-3. Sentinel reviews Studio's output for gaps
-4. Forge implements
-5. Sentinel reviews implementation
+2. Ariadne reviews the visual/design spec
+3. Argus reviews Ariadne's output for gaps
+4. Hephaestus implements
+5. Argus reviews implementation
 6. Nero approves
 ```
 
 ### Research-heavy task
 ```
-1. Scout researches and verifies
-2. Scout reports findings
+1. Orion researches and verifies
+2. Orion reports findings
 3. Nero decides
-4. Forge implements if coding needed
+4. Hephaestus implements if coding needed
 ```
 
 ---
@@ -244,11 +245,11 @@ If you want a local free coding model:
 
 | File | Purpose |
 |---|---|
-| `~/.openclaw/workspace/forge/SOUL.md` | Forge persona |
-| `~/.openclaw/workspace/sentinel/SOUL.md` | Sentinel persona |
-| `~/.openclaw/workspace/studio/SOUL.md` | Studio persona |
-| `~/.openclaw/workspace/skills/code-review/SKILL.md` | Sentinel's code review rubric |
-| `~/.openclaw/workspace/skills/a11y-review/SKILL.md` | Studio/Sentinel WCAG checklist |
+| `~/.openclaw/workspace/forge/SOUL.md` | Hephaestus persona |
+| `~/.openclaw/workspace/sentinel/SOUL.md` | Argus persona |
+| `~/.openclaw/workspace/studio/SOUL.md` | Ariadne persona |
+| `~/.openclaw/workspace/skills/code-review/SKILL.md` | Argus's code review rubric |
+| `~/.openclaw/workspace/skills/a11y-review/SKILL.md` | Ariadne/Argus WCAG checklist |
 | `~/.openclaw/workspace/END_TO_END_CODING_LANE_PROOF.md` | Last coding lane proof |
 
 ---

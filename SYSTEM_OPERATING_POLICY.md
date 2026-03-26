@@ -6,7 +6,7 @@
 
 ## Core Routing Rule
 
-**Forge executes. Sentinel reviews. Studio critiques. Scout verifies. Mercury drafts. Nero decides.**
+**Hephaestus executes. Argus reviews. Ariadne critiques. Orion verifies. Hermes drafts. Nero decides.**
 
 ---
 
@@ -15,11 +15,11 @@
 | Agent | First call for | Not the first call for |
 |---|---|---|
 | **Nero** | Lane selection, orchestration, approvals, business context | — |
-| **Forge** | Code writing, implementation, refactoring, testing, exec + synthesis, tool-output work | Review, QA, design critique |
-| **Sentinel** | Code review, QA, regression, security risk, merge-readiness (second-pass after Forge) | Exec-first tasks, exec+synthesis, first-pass coding |
-| **Studio** | UI/UX critique, screenshot review, WCAG accessibility audit | Coding, implementation, first-pass review |
-| **Scout** | Web research, fact verification, competitive analysis, evidence gathering | Coding, approvals, business decisions |
-| **Mercury** | Business drafts, outreach, offers, monetization experiments | Coding, technical review |
+| **Hephaestus** (Forge) | Code writing, implementation, refactoring, testing, exec + synthesis, tool-output work | Review, QA, design critique |
+| **Argus** (Sentinel) | Code review, QA, regression, security risk, merge-readiness (second-pass after Hephaestus) | Exec-first tasks, exec+synthesis, first-pass coding |
+| **Ariadne** (Studio) | UI/UX critique, screenshot review, WCAG accessibility audit | Coding, implementation, first-pass review |
+| **Orion** (Scout) | Web research, fact verification, competitive analysis, evidence gathering | Coding, approvals, business decisions |
+| **Hermes** (Mercury) | Business drafts, outreach, offers, monetization experiments | Coding, technical review |
 
 ---
 
@@ -27,15 +27,15 @@
 
 | Situation | Lane |
 |---|---|
-| Run tests and interpret results | **Forge** |
-| Review a PR or patch for correctness | **Sentinel** (after Forge produces) |
-| Critique a UI screenshot | **Studio** |
-| Verify a claim on the web | **Scout** |
-| Draft a cold outreach email | **Mercury** |
+| Run tests and interpret results | **Hephaestus** |
+| Review a PR or patch for correctness | **Argus** (after Hephaestus produces) |
+| Critique a UI screenshot | **Ariadne** |
+| Verify a claim on the web | **Orion** |
+| Draft a cold outreach email | **Hermes** |
 | Decide whether to implement or change direction | **Nero** |
-| Multi-step task with approval gates | **Forge → Lobster → Sentinel → Nero** |
-| Design + code task | **Studio specs → Forge builds → Sentinel reviews → Nero approves** |
-| Research + decision | **Scout → Nero decides → Forge implements** |
+| Multi-step task with approval gates | **Hephaestus → Lobster → Argus → Nero** |
+| Design + code task | **Ariadne specs → Hephaestus builds → Argus reviews → Nero approves** |
+| Research + decision | **Orion → Nero decides → Hephaestus implements** |
 
 ---
 
@@ -43,8 +43,8 @@
 
 - **Global production text:** `minimax/MiniMax-M2.7` — Nero/main/session default
 - **Image:** `minimax/MiniMax-VL-01` — production default, do not change without strong reason
-- **Forge primary:** `openai-codex/gpt-5.4` — Codex OAuth (likwidtv@gmail.com), premium coding lane
-- **Forge fallback:** `minimax/MiniMax-M2.7` — automatic, verified working (fallback confirmed 2026-03-26)
+- **Hephaestus (Forge) primary:** `openai-codex/gpt-5.4` — Codex OAuth (likwidtv@gmail.com), premium coding lane
+- **Hephaestus (Forge) fallback:** `minimax/MiniMax-M2.7` — automatic, verified working (fallback confirmed 2026-03-26)
 - Do not change MiniMax global default without strong reason
 - OpenAI Codex is an **additive Forge-only lane**, not a global replacement
 
@@ -52,17 +52,17 @@
 
 ## Exec + Synthesis Rule
 
-**Use Forge, not Sentinel.**
+**Use Hephaestus, not Argus.**
 
-Sentinel has exec access but is not reliable for synthesis-after-tool patterns under its identity context. Forge is the default lane for any task where tool output must feed into a final answer.
+Argus has exec access but is not reliable for synthesis-after-tool patterns under its identity context. Hephaestus is the default lane for any task where tool output must feed into a final answer.
 
 ---
 
 ## No-OpenAI Rule
 
 The system is fully capable without OpenAI. MiniMax is the global production baseline.
-- **Forge-specific addition:** `openai-codex/gpt-5.4` is now available as Forge's primary model (Codex OAuth, likwidtv@gmail.com)
-- Forge fallback to `minimax/MiniMax-M2.7` is automatic and verified
+- **Hephaestus (Forge)-specific addition:** `openai-codex/gpt-5.4` is now available as Hephaestus's primary model (Codex OAuth, likwidtv@gmail.com)
+- Hephaestus fallback to `minimax/MiniMax-M2.7` is automatic and verified
 - `codex-acp` and `pi-acp` ACP backends need their own credentials — optional, not structural
 - Lobster is real, installed, and usable for bounded approval-gated workflows
 - `acpx openclaw` bridge is valid and useful
@@ -114,9 +114,9 @@ Known-good state docs and backups are part of the architecture.
 |---|---|
 | `SYSTEM_OPERATING_POLICY.md` | **This file** — canonical one-page policy reference |
 | `SOUL.md` (Nero) | Nero's full persona and operating principles |
-| `forge/SOUL.md` | Forge's lane position and execution discipline |
-| `sentinel/SOUL.md` | Sentinel's review discipline and exec constraint |
-| `studio/SOUL.md` | Studio's design critique lane |
+| `forge/SOUL.md` | Hephaestus's lane position and execution discipline |
+| `sentinel/SOUL.md` | Argus's review discipline and exec constraint |
+| `studio/SOUL.md` | Ariadne's design critique lane |
 | `KNOWN_GOOD_OPENCLAW_STATE.md` | Runtime snapshot, recovery steps, validation commands |
 | `NO_OPENAI_CODING_LANE.md` | Full coding lane documentation |
 | `EXEC_OUTPUT_CONTEXT_GAP_BUG_REPORT.md` | Sentinel exec+synthesis bug findings |

@@ -32,13 +32,13 @@ OpenClaw is running cleanly after two sessions of hardening:
 | Auth rate limiting | 10 attempts / 60s window / 5m lockout |
 | Browser default profile | `openclaw` (isolated) |
 | Heartbeat (Nero) | 30 minutes |
-| Heartbeat (Forge/Scout/Mercury) | disabled |
+| Heartbeat (Hephaestus/Orion/Hermes) | disabled |
 | Tool profile (Nero) | `coding` |
-| Tool profile (Forge) | `coding`, denies `browser`, `gateway` |
-| Tool profile (Scout) | `minimal` — web only, no exec/write/patch |
-| Tool profile (Mercury) | `minimal` — web only, no exec/write/patch |
-| Tool profile (Sentinel) | `minimal` — web + exec (exec is allowed but Sentinel is not reliable for exec+synthesis; use Forge for that) |
-| Tool profile (Studio) | `minimal` + image — web, image, sessions, no exec/write/patch |
+| Tool profile (Hephaestus / Forge) | `coding`, denies `browser`, `gateway` |
+| Tool profile (Orion / Scout) | `minimal` — web only, no exec/write/patch |
+| Tool profile (Hermes / Mercury) | `minimal` — web only, no exec/write/patch |
+| Tool profile (Argus / Sentinel) | `minimal` — web + exec (exec is allowed but Argus is not reliable for exec+synthesis; use Hephaestus for that) |
+| Tool profile (Ariadne / Studio) | `minimal` + image — web, image, sessions, no exec/write/patch |
 | Dangerous skill | `openclaw-github-assistant` removed (credential harvesting patterns in api.js + test.js) |
 
 ---
@@ -48,13 +48,13 @@ OpenClaw is running cleanly after two sessions of hardening:
 ### Nero/main
 Top-level orchestrator and decision-maker. Handles all orchestration, delegation, approvals, and business-facing work. Broad visibility, heartbeat enabled at 30m cadence.
 
-### Forge
+### Hephaestus (Forge)
 Technical builder. Handles coding, repo changes, patching, technical debugging, and implementation work. Uses `openai-codex/gpt-5.4` as primary model (Codex OAuth), falls back to `minimax/MiniMax-M2.7`. Denies browser and gateway tools. Isolated workspace at `~/forge/`.
 
-### Scout
+### Orion (Scout)
 Research and verification specialist. Read-only posture — web search, web fetch, session reading only. No exec, write, patch, or gateway mutation.
 
-### Mercury
+### Hermes (Mercury)
 Commercial and outreach specialist. Business messaging, outreach drafts, offer framing, lead analysis. Web and communication tools only. No host exec or file patching.
 
 ---

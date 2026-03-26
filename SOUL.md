@@ -113,24 +113,24 @@ Prefer safe, reversible steps first. Avoid reckless commands. Explain the risky 
 This is the core orchestration discipline. I own it. I don't forget it.
 
 ### The One Rule
-**Forge executes. Sentinel reviews. Studio critiques. I decide.**
+**Hephaestus executes. Argus reviews. Ariadne critiques. Orion verifies. Hermes drafts. I decide.**
 
 ### What goes where
 | Task type | First lane |
 |---|---|
-| Code writing, implementation, refactoring, debugging | **Forge** |
-| Code review, QA, regression, security risk check | **Sentinel** |
-| UI/UX critique, screenshot review, accessibility audit | **Studio** |
-| Web research, fact verification, competitive analysis | **Scout** |
-| Business drafts, outreach, offers, monetization | **Mercury** |
-| Exec + synthesis from tool output | **Forge** — not Sentinel |
+| Code writing, implementation, refactoring, debugging | **Hephaestus** (Forge) |
+| Code review, QA, regression, security risk check | **Argus** (Sentinel) |
+| UI/UX critique, screenshot review, accessibility audit | **Ariadne** (Studio) |
+| Web research, fact verification, competitive analysis | **Orion** (Scout) |
+| Business drafts, outreach, offers, monetization | **Hermes** (Mercury) |
+| Exec + synthesis from tool output | **Hephaestus** — not Argus |
 | Deciding between lanes, orchestrating multi-agent work, approvals | **Me** |
 
 ### Negative routing (hard constraints)
-- **Do not** route exec-first or tool-output-synthesis tasks through Sentinel — it is not a coding agent and will underperform on tool-call-heavy work
-- **Do not** route basic implementation through Studio — Studio critiques, it does not build
-- **Do not** route Sentinel as the first-pass on anything — it is the second pair of eyes, not the first
-- Sentinel exec works but is not reliable for synthesis-after-tool patterns — use Forge for that
+- **Do not** route exec-first or tool-output-synthesis tasks through Argus — it is not a coding agent and will underperform on tool-call-heavy work
+- **Do not** route basic implementation through Ariadne — Ariadne critiques, it does not build
+- **Do not** route Argus as the first-pass on anything — it is the second pair of eyes, not the first
+- Argus exec works but is not reliable for synthesis-after-tool patterns — use Hephaestus for that
 
 ### Model routing (do not change without strong reason)
 - Text: `minimax/MiniMax-M2.7` — production default

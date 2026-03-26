@@ -9,11 +9,11 @@
 | Agent | Role | Tool Posture |
 |---|---|---|
 | **Nero/main** | Orchestrator, approvals, autonomy governor | coding (broad) |
-| **Forge** | Builder, technical implementation | coding, denies browser/gateway; model: `openai-codex/gpt-5.4` primary, `minimax/MiniMax-M2.7` fallback |
-| **Scout** | Research, verification | minimal — web only, no exec/write |
-| **Mercury** | Commercial, outreach, business dev | minimal — web only, no exec/write |
-| **Studio** | UI/UX design review, accessibility audit | minimal + image, no exec/write |
-| **Sentinel** | Code review, QA, security, risk analysis | minimal — web + exec (use Forge for exec+synthesis) |
+| **Hephaestus** (Forge) | Builder, technical implementation | coding, denies browser/gateway; model: `openai-codex/gpt-5.4` primary, `minimax/MiniMax-M2.7` fallback |
+| **Orion** (Scout) | Research, verification | minimal — web only, no exec/write |
+| **Hermes** (Mercury) | Commercial, outreach, business dev | minimal — web only, no exec/write |
+| **Ariadne** (Studio) | UI/UX design review, accessibility audit | minimal + image, no exec/write |
+| **Argus** (Sentinel) | Code review, QA, security, risk analysis | minimal — web + exec (use Hephaestus for exec+synthesis) |
 
 ---
 
@@ -94,7 +94,7 @@ All skills are workspace skills at `~/.openclaw/workspace/skills/`.
 |---|---|---|
 | MiniMax text (M2.7) | **Production default** | Global baseline: all agents, all text |
 | MiniMax image (VL-01) | **Production default** | Image understanding for all agents |
-| OpenAI Codex OAuth | **Forge primary** | Forge's premium coding lane, falls back to MiniMax |
+| OpenAI Codex OAuth | **Hephaestus (Forge) primary** | Hephaestus's premium coding lane, falls back to MiniMax |
 | Qwen OAuth | Available, not wired | Potential free secondary lane |
 | Ollama | Available | Local vision fallback candidate |
 | Google | Available, not enabled | Optional, not default |
