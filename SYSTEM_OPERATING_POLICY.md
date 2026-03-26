@@ -108,6 +108,26 @@ Known-good state docs and backups are part of the architecture.
 
 ---
 
+## Hooks
+
+| Hook | Behavior | Notes |
+|---|---|---|
+| `session-memory` | Saves session context to memory on `/new` or `/reset` | **Real runtime behavior** — restarted sessions retain prior context. Treat as an operational truth. |
+
+---
+
+## External Skills — Capability vs Authority
+
+External skills extend **capability**, not **authority**. Installed skills do not grant:
+- New routing rights beyond the agent's defined lane
+- Review authority that Argus hasn't already been granted
+- Final decision authority
+- First-pass execution rights for specialist agents
+
+Skills can add methods and workflows. The agent's defined role boundaries remain unchanged.
+
+---
+
 ## Related Documents
 
 | Document | What it covers |
