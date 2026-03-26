@@ -6,15 +6,17 @@
 
 ## The Honest Reality
 
-**MiniMax is the only currently configured and working provider.**
-- Text: `minimax/MiniMax-M2.7` — working ✅
+**MiniMax is the global production baseline. OpenAI Codex is an additive Forge-only lane.**
+- Global text: `minimax/MiniMax-M2.7` — Nero/main/session default ✅
 - Image: `minimax/MiniMax-VL-01` — working ✅
-- No OpenAI key — intentionally
+- Forge primary: `openai-codex/gpt-5.4` — Codex OAuth (likwidtv@gmail.com) ✅
+- Forge fallback: `minimax/MiniMax-M2.7` — automatic, verified 2026-03-26 ✅
+- No OpenAI API key — Codex OAuth used instead
 - No Qwen OAuth key — not configured (device code flow, friction)
 - No Google API key — disabled
 - Ollama running locally — but only `embeddinggemma:latest` (embedding model, not useful for coding or chat)
 
-**The native OpenClaw lane is the best available option. It is not a compromise.**
+**The system is fully capable without OpenAI API keys. Codex OAuth is an additive premium lane for Forge, not a structural requirement.**
 
 ---
 
@@ -48,13 +50,14 @@ ACPX bridge — for persistent CLI sessions when needed
 
 | Provider | Status | Role |
 |---|---|---|
-| MiniMax M2.7 + VL-01 | **Production default** | All text and image work |
+| MiniMax M2.7 + VL-01 | **Production default** | Global baseline: all agents, all text and image work |
+| OpenAI Codex OAuth | **Forge primary** | Forge's premium coding lane (`openai-codex/gpt-5.4`), falls back to MiniMax |
 | Qwen OAuth | Available, not wired | Free tier exists but requires device OAuth flow — friction too high for automation |
-| Ollama local | Available, not wired | Only has embedding model — no coding model available. Could run `codellama` or `qwen2.5-coder` locally if GPU VRAM allows, but not configured |
-| OpenAI | Available | Requires API key — not wanted |
+| Ollama local | Available, not wired | Only has embedding model — no coding model available |
+| OpenAI API key | Available | Requires API key — Codex OAuth used instead |
 | Google | Disabled | Not needed |
 
-**Decision:** Keep MiniMax as production default. Do not wire OpenAI, Google, or paid Qwen as defaults.
+**Decision:** Keep MiniMax as global production default. Codex OAuth is an additive Forge-only lane, not a global replacement.
 
 ### If Ollama coding is desired later
 If you want a local free coding model:
@@ -179,12 +182,13 @@ If you want a local free coding model:
 
 | Excluded | Reason |
 |---|---|
-| OpenAI Codex backend | Requires API key — not wanted |
+| OpenAI API key | Codex OAuth used instead — no API key needed |
 | Copilot Proxy | Requires additional setup, not needed |
 | Google provider | No specific need that MiniMax doesn't meet |
 | Qwen paid tier | OAuth friction too high for automation |
 | Local Ollama coding models | Not installed, VRAM not confirmed for large models |
 | Deepgram / media providers | No voice/media workflow currently |
+| Codex as global default | Codex is Forge-only; MiniMax remains global baseline |
 
 ---
 
@@ -265,13 +269,17 @@ openclaw security audit
 
 ## Recommendation
 
-The no-OpenAI lane is already strong. MiniMax M2.7 is the workhorse. Forge, Sentinel, Studio, Scout, and Lobster form a complete capability set.
+Forge now has `openai-codex/gpt-5.4` as its primary model via Codex OAuth. This is a premium additive lane that does not replace MiniMax as the global baseline.
 
-**The single best improvement available without spending money:**
-Install a local Ollama coding model (e.g., `qwen2.5-coder:7b`) if VRAM allows on this MSI machine. That would give a free, local, zero-API-key coding assistant lane for Sentinel to use during reviews, or as a secondary Forge helper.
+**Current state (2026-03-26):**
+- Forge primary: `openai-codex/gpt-5.4` ✅
+- Forge fallback: `minimax/MiniMax-M2.7` (automatic, verified) ✅
+- Sentinel, Studio, Scout, Mercury: MiniMax only ✅
+- No OpenAI API key needed — Codex OAuth used ✅
 
-Until then: the native MiniMax + Forge + Sentinel + Lobster lane is fully functional and does not need an OpenAI key to be effective.
+**The single next improvement available without spending money:**
+Install a local Ollama coding model (e.g., `qwen2.5-coder:7b`) if VRAM allows on the MSI machine. That would give a free, local, zero-API-key secondary lane for Sentinel or Scout.
 
 ---
 
-_This is the canonical no-OpenAI coding lane. Update when provider or tooling changes._
+_This is the canonical no-OpenAI coding lane. Update when provider or tooling changes. Updated 2026-03-26: Codex OAuth added as Forge-specific lane._

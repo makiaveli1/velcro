@@ -1,6 +1,6 @@
 # NEXT STAGE AGENT ARCHITECTURE
 
-> Updated: 2026-03-25
+> Updated: 2026-03-26
 
 ---
 
@@ -9,7 +9,7 @@
 | Agent | Role | Tool Posture |
 |---|---|---|
 | **Nero/main** | Orchestrator, approvals, autonomy governor | coding (broad) |
-| **Forge** | Builder, technical implementation | coding, denies browser/gateway |
+| **Forge** | Builder, technical implementation | coding, denies browser/gateway; model: `openai-codex/gpt-5.4` primary, `minimax/MiniMax-M2.7` fallback |
 | **Scout** | Research, verification | minimal — web only, no exec/write |
 | **Mercury** | Commercial, outreach, business dev | minimal — web only, no exec/write |
 | **Studio** | UI/UX design review, accessibility audit | minimal + image, no exec/write |
@@ -92,13 +92,14 @@ All skills are workspace skills at `~/.openclaw/workspace/skills/`.
 
 | Provider | Status | Role |
 |---|---|---|
-| MiniMax text (M2.7) | **Production default** | Primary text, all agents |
+| MiniMax text (M2.7) | **Production default** | Global baseline: all agents, all text |
 | MiniMax image (VL-01) | **Production default** | Image understanding for all agents |
+| OpenAI Codex OAuth | **Forge primary** | Forge's premium coding lane, falls back to MiniMax |
 | Qwen OAuth | Available, not wired | Potential free secondary lane |
 | Ollama | Available | Local vision fallback candidate |
 | Google | Available, not enabled | Optional, not default |
 
-**Decision:** Keep MiniMax as production default. Do not switch architecture to Google or any paid provider without explicit approval.
+**Decision:** Keep MiniMax as global production default. Codex OAuth is an additive Forge-only lane, not a global replacement. Do not switch architecture to Google or any paid provider without explicit approval.
 
 ---
 

@@ -41,9 +41,12 @@
 
 ## Model Routing
 
-- Text: `minimax/MiniMax-M2.7` — **production default, do not change without strong reason**
-- Image: `minimax/MiniMax-VL-01` — **production default, do not change without strong reason**
-- Do not casually migrate away from MiniMax without explicit proof and tested backup
+- **Global production text:** `minimax/MiniMax-M2.7` — Nero/main/session default
+- **Image:** `minimax/MiniMax-VL-01` — production default, do not change without strong reason
+- **Forge primary:** `openai-codex/gpt-5.4` — Codex OAuth (likwidtv@gmail.com), premium coding lane
+- **Forge fallback:** `minimax/MiniMax-M2.7` — automatic, verified working (fallback confirmed 2026-03-26)
+- Do not change MiniMax global default without strong reason
+- OpenAI Codex is an **additive Forge-only lane**, not a global replacement
 
 ---
 
@@ -57,8 +60,9 @@ Sentinel has exec access but is not reliable for synthesis-after-tool patterns u
 
 ## No-OpenAI Rule
 
-The system is fully capable without OpenAI.
-- MiniMax M2.7 + VL-01 is the production path
+The system is fully capable without OpenAI. MiniMax is the global production baseline.
+- **Forge-specific addition:** `openai-codex/gpt-5.4` is now available as Forge's primary model (Codex OAuth, likwidtv@gmail.com)
+- Forge fallback to `minimax/MiniMax-M2.7` is automatic and verified
 - `codex-acp` and `pi-acp` ACP backends need their own credentials — optional, not structural
 - Lobster is real, installed, and usable for bounded approval-gated workflows
 - `acpx openclaw` bridge is valid and useful

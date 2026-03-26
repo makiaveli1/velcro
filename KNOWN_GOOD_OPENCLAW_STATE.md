@@ -21,7 +21,9 @@ OpenClaw is running cleanly after two sessions of hardening:
 
 | Setting | Value |
 |---|---|
-| Primary text model | `minimax/MiniMax-M2.7` |
+| Primary text model | `minimax/MiniMax-M2.7` (global baseline — Nero/main/default) |
+| Forge primary model | `openai-codex/gpt-5.4` (Codex OAuth, likwidtv@gmail.com) |
+| Forge fallback | `minimax/MiniMax-M2.7` (automatic, verified 2026-03-26) |
 | Image model | `minimax/MiniMax-VL-01` |
 | Image understanding | ✅ confirmed working |
 | Gateway bind | `auto` → local loopback only |
@@ -47,7 +49,7 @@ OpenClaw is running cleanly after two sessions of hardening:
 Top-level orchestrator and decision-maker. Handles all orchestration, delegation, approvals, and business-facing work. Broad visibility, heartbeat enabled at 30m cadence.
 
 ### Forge
-Technical builder. Handles coding, repo changes, patching, technical debugging, and implementation work. Has explicit image model routing. Denies browser and gateway tools. Isolated workspace at `~/forge/`.
+Technical builder. Handles coding, repo changes, patching, technical debugging, and implementation work. Uses `openai-codex/gpt-5.4` as primary model (Codex OAuth), falls back to `minimax/MiniMax-M2.7`. Denies browser and gateway tools. Isolated workspace at `~/forge/`.
 
 ### Scout
 Research and verification specialist. Read-only posture — web search, web fetch, session reading only. No exec, write, patch, or gateway mutation.
