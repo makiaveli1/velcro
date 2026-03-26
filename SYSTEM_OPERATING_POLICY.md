@@ -43,10 +43,20 @@
 
 - **Global production text:** `minimax/MiniMax-M2.7` — Nero/main/session default
 - **Image:** `minimax/MiniMax-VL-01` — production default, do not change without strong reason
+- **Nero/main explicit override:** `minimax/MiniMax-M2.7` primary, `openai-codex/gpt-5.4` fallback (Codex OAuth, verified 2026-03-26)
 - **Hephaestus (Forge) primary:** `openai-codex/gpt-5.4` — Codex OAuth (likwidtv@gmail.com), premium coding lane
 - **Hephaestus (Forge) fallback:** `minimax/MiniMax-M2.7` — automatic, verified working (fallback confirmed 2026-03-26)
 - Do not change MiniMax global default without strong reason
-- OpenAI Codex is an **additive Forge-only lane**, not a global replacement
+- OpenAI Codex is an **additive per-agent lane**, not a global replacement
+
+## Browser Capability
+
+Nero owns browser-backed final verification.
+
+- Managed `openclaw` browser profile for verification, screenshots, live-page inspection
+- Use browser when live-page state is more reliable than web search alone
+- Do not use browser theatrically — use it when the question genuinely requires live inspection
+- Canvas: intentionally disabled. No nodes paired. Canvas stays off unless node health is proven
 
 ---
 
@@ -60,9 +70,9 @@ Argus has exec access but is not reliable for synthesis-after-tool patterns unde
 
 ## No-OpenAI Rule
 
-The system is fully capable without OpenAI. MiniMax is the global production baseline.
-- **Hephaestus (Forge)-specific addition:** `openai-codex/gpt-5.4` is now available as Hephaestus's primary model (Codex OAuth, likwidtv@gmail.com)
-- Hephaestus fallback to `minimax/MiniMax-M2.7` is automatic and verified
+The system is fully capable without OpenAI. MiniMax is the global production backbone.
+- **Nero/main:** Codex OAuth available as explicit fallback (`openai-codex/gpt-5.4`)
+- **Hephaestus:** Codex OAuth as primary coding model, MiniMax as automatic fallback
 - `codex-acp` and `pi-acp` ACP backends need their own credentials — optional, not structural
 - Lobster is real, installed, and usable for bounded approval-gated workflows
 - `acpx openclaw` bridge is valid and useful

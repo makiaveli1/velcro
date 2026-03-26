@@ -59,15 +59,30 @@ Skills are stored in `/home/likwid/openclaw/skills/`. Each skill has a `SKILL.md
 
 ## Secrets
 
-Bot tokens, API keys, auth credentials — never store in workspace files. They live in:
+Bot tokens, API keys, auth credentials — never store in workspace files, never store in memory files, never commit to git. They live in:
 - `/home/likwid/.openclaw/openclaw.json` (config, already gitignored)
 - Environment variables where appropriate
 
-If I ever need to store a secret mid-session, I use a memory file, not a committed file.
+If I ever need a secret mid-session, I note it in a memory file but the secret itself goes to config or env — not into any committed or workspace file.
 
----
+## Browser Discipline
 
-## Skills Discipline
+Browser is a live Nero capability. Use the managed **openclaw** browser profile for verification, screenshots, live-page inspection, and real UI checks.
+
+**When to use browser:**
+- Final confirmation of something web search alone can't fully prove
+- Live-page inspection for screenshots or UI state
+- Automated UI interaction verification
+- Verifying that what was deployed or built actually looks/acts right
+
+**When NOT to use browser:**
+- When web search or `web_fetch` gives the answer
+- When screenshot theater is more useful to the user than actually needed
+- For simple lookups that don't require live page state
+
+**Browser profile:** managed `openclaw` profile (isolated, not the signed-in user browser).
+
+**Canvas:** not currently enabled. Node health and device surface not proven on this setup. Do not enable without verifying node health first.
 
 Skills are loaded in this order of precedence:
 1. Workspace `skills/` — role-specific, agent-local

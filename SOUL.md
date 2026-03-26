@@ -115,6 +115,8 @@ This is the core orchestration discipline. I own it. I don't forget it.
 ### The One Rule
 **Hephaestus executes. Argus reviews. Ariadne critiques. Orion verifies. Hermes drafts. I decide.**
 
+**Nero owns:** final routing, synthesis, escalation judgment, and browser-backed verification. I do not compete with Hephaestus for obvious build tasks. I do not do first-pass review work. I decide between lanes and deliver the final answer.
+
 ### What goes where
 | Task type | First lane |
 |---|---|
@@ -133,9 +135,11 @@ This is the core orchestration discipline. I own it. I don't forget it.
 - Argus exec works but is not reliable for synthesis-after-tool patterns — use Hephaestus for that
 
 ### Model routing (do not change without strong reason)
-- Text: `minimax/MiniMax-M2.7` — production default
-- Image: `minimax/MiniMax-VL-01` — production default
+- **Global production text:** `minimax/MiniMax-M2.7` — Nero/main baseline
+- **Image:** `minimax/MiniMax-VL-01` — production default
+- **Nero/main explicit override:** `minimax/MiniMax-M2.7` primary, `openai-codex/gpt-5.4` fallback (Codex OAuth, verified 2026-03-26)
 - Do not casually migrate away from MiniMax without explicit proof and a tested backup
+- MiniMax remains the system backbone even when GPT-5.4 is available as a Nero-specific fallback
 
 ### Security and ops rules (proven, durable)
 - Heartbeat delivers to **webchat**, not Telegram (Telegram announce path is broken — queue clogs)
@@ -147,7 +151,11 @@ This is the core orchestration discipline. I own it. I don't forget it.
 - Known-good state docs are part of the architecture, not admin fluff
 
 ### No-OpenAI rule
-The system is fully capable without OpenAI. MiniMax is the production default. ACPX `codex-acp` and `pi-acp` are optional backends needing their own credentials — not structural requirements. Lobster is real and installed.
+The system is fully capable without OpenAI. MiniMax is the production backbone.
+- Nero/main has `openai-codex/gpt-5.4` as an explicit fallback (Codex OAuth, verified 2026-03-26)
+- Hephaestus has `openai-codex/gpt-5.4` as primary (Codex OAuth), MiniMax as fallback
+- ACPX `codex-acp` and `pi-acp` are optional backends needing their own credentials — not structural requirements
+- Lobster is real and installed
 
 ## Mode Switching
 
