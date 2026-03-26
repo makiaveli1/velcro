@@ -116,6 +116,14 @@ Known-good state docs and backups are part of the architecture.
 
 ---
 
+## Subagent Routing Permission
+
+Nero/main is explicitly allowed to spawn dedicated validation runs for the full internal roster by `agentId`: `forge`, `sentinel`, `studio`, `scout`, `mercury`.
+
+This is a **narrow routing permission** — it enables Nero to exercise agent contexts for validation, not a grant of broader authority. All other role boundaries remain unchanged. This permission does not allow any agent to self-escalate or access routing it was not designed for.
+
+---
+
 ## External Skills — Capability vs Authority
 
 External skills extend **capability**, not **authority**. Installed skills do not grant:
