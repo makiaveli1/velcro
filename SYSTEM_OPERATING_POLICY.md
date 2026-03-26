@@ -1,0 +1,123 @@
+# SYSTEM_OPERATING_POLICY
+> Canonical reference for proven operating truths. This is the easiest place to look when there is doubt.
+> Created: 2026-03-26
+
+---
+
+## Core Routing Rule
+
+**Forge executes. Sentinel reviews. Studio critiques. Scout verifies. Mercury drafts. Nero decides.**
+
+---
+
+## Agent Role Table
+
+| Agent | First call for | Not the first call for |
+|---|---|---|
+| **Nero** | Lane selection, orchestration, approvals, business context | — |
+| **Forge** | Code writing, implementation, refactoring, testing, exec + synthesis, tool-output work | Review, QA, design critique |
+| **Sentinel** | Code review, QA, regression, security risk, merge-readiness (second-pass after Forge) | Exec-first tasks, exec+synthesis, first-pass coding |
+| **Studio** | UI/UX critique, screenshot review, WCAG accessibility audit | Coding, implementation, first-pass review |
+| **Scout** | Web research, fact verification, competitive analysis, evidence gathering | Coding, approvals, business decisions |
+| **Mercury** | Business drafts, outreach, offers, monetization experiments | Coding, technical review |
+
+---
+
+## Quick Decision Examples
+
+| Situation | Lane |
+|---|---|
+| Run tests and interpret results | **Forge** |
+| Review a PR or patch for correctness | **Sentinel** (after Forge produces) |
+| Critique a UI screenshot | **Studio** |
+| Verify a claim on the web | **Scout** |
+| Draft a cold outreach email | **Mercury** |
+| Decide whether to implement or change direction | **Nero** |
+| Multi-step task with approval gates | **Forge → Lobster → Sentinel → Nero** |
+| Design + code task | **Studio specs → Forge builds → Sentinel reviews → Nero approves** |
+| Research + decision | **Scout → Nero decides → Forge implements** |
+
+---
+
+## Model Routing
+
+- Text: `minimax/MiniMax-M2.7` — **production default, do not change without strong reason**
+- Image: `minimax/MiniMax-VL-01` — **production default, do not change without strong reason**
+- Do not casually migrate away from MiniMax without explicit proof and tested backup
+
+---
+
+## Exec + Synthesis Rule
+
+**Use Forge, not Sentinel.**
+
+Sentinel has exec access but is not reliable for synthesis-after-tool patterns under its identity context. Forge is the default lane for any task where tool output must feed into a final answer.
+
+---
+
+## No-OpenAI Rule
+
+The system is fully capable without OpenAI.
+- MiniMax M2.7 + VL-01 is the production path
+- `codex-acp` and `pi-acp` ACP backends need their own credentials — optional, not structural
+- Lobster is real, installed, and usable for bounded approval-gated workflows
+- `acpx openclaw` bridge is valid and useful
+
+---
+
+## Queue Hygiene Rule
+
+Heartbeat delivers to **webchat**, not Telegram.
+- Telegram announce path is broken (tried to reach non-existent `@heartbeat`)
+- A clogged delivery queue silently blocks unrelated subagent announcements
+- Queue hygiene is an operational concern, not admin fluff
+
+---
+
+## Dangerous Skill Rule
+
+`openclaw-github-assistant` is deleted and must not be reinstalled.
+- It had credential harvesting patterns (env var access + network send in same function)
+- Inspect third-party skills with `skill-vetter` before enabling
+
+---
+
+## Upgrade / Backup Rule
+
+Before major upgrades or risky config changes:
+1. Snapshot config to `~/.openclaw/backups/`
+2. Run `openclaw config validate --json`
+3. Verify model routing after changes
+4. Check gateway health
+
+Known-good state docs and backups are part of the architecture.
+
+---
+
+## Security Baseline
+
+- Gateway: local-only (`127.0.0.1`), token auth enabled, rate limiting active
+- Control UI: restricted to localhost origins
+- Browser: isolated `openclaw` profile for autonomous operation
+- No casual permission broadening
+- No external exposure without reviewing auth first
+
+---
+
+## Related Documents
+
+| Document | What it covers |
+|---|---|
+| `SYSTEM_OPERATING_POLICY.md` | **This file** — canonical one-page policy reference |
+| `SOUL.md` (Nero) | Nero's full persona and operating principles |
+| `forge/SOUL.md` | Forge's lane position and execution discipline |
+| `sentinel/SOUL.md` | Sentinel's review discipline and exec constraint |
+| `studio/SOUL.md` | Studio's design critique lane |
+| `KNOWN_GOOD_OPENCLAW_STATE.md` | Runtime snapshot, recovery steps, validation commands |
+| `NO_OPENAI_CODING_LANE.md` | Full coding lane documentation |
+| `EXEC_OUTPUT_CONTEXT_GAP_BUG_REPORT.md` | Sentinel exec+synthesis bug findings |
+| `HEARTBEAT_TELEGRAM_QUEUE_FIX.md` | Delivery queue clog root cause and fix |
+
+---
+
+_Maintain this file when proven operating rules change. It is the easiest place to look._

@@ -13,7 +13,7 @@
 | **Scout** | Research, verification | minimal — web only, no exec/write |
 | **Mercury** | Commercial, outreach, business dev | minimal — web only, no exec/write |
 | **Studio** | UI/UX design review, accessibility audit | minimal + image, no exec/write |
-| **Sentinel** | Code review, QA, security, risk analysis | minimal — web only, no exec/write |
+| **Sentinel** | Code review, QA, security, risk analysis | minimal — web + exec (use Forge for exec+synthesis) |
 
 ---
 

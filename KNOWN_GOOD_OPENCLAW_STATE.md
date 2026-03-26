@@ -35,6 +35,8 @@ OpenClaw is running cleanly after two sessions of hardening:
 | Tool profile (Forge) | `coding`, denies `browser`, `gateway` |
 | Tool profile (Scout) | `minimal` — web only, no exec/write/patch |
 | Tool profile (Mercury) | `minimal` — web only, no exec/write/patch |
+| Tool profile (Sentinel) | `minimal` — web + exec (exec is allowed but Sentinel is not reliable for exec+synthesis; use Forge for that) |
+| Tool profile (Studio) | `minimal` + image — web, image, sessions, no exec/write/patch |
 | Dangerous skill | `openclaw-github-assistant` removed (credential harvesting patterns in api.js + test.js) |
 
 ---

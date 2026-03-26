@@ -91,7 +91,9 @@ If you want a local free coding model:
 
 **Role:** QA, correctness, security risk, regression check.
 
-**Tools (updated 2026-03-26):** `web_search`, `web_fetch`, `sessions_list`, `sessions_history`, `sessions_send`, `image`, `exec`
+**Tools:** `web_search`, `web_fetch`, `sessions_list`, `sessions_history`, `sessions_send`, `image`, `exec`
+
+**Exec constraint:** Sentinel has exec access but is **not reliable for exec+synthesis patterns** under its identity context — the model can suppress or misrender tool calls on trivial tasks. Use **Forge** for exec+synthesis. Sentinel should review Forge's output, not produce exec output itself.
 
 **Strengths:**
 - Catches correctness issues, security risks, edge cases
