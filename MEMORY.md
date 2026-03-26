@@ -8,8 +8,8 @@ _Durable facts, preferences, and decisions worth carrying forward._
 
 ### Council Architecture (2026-03-23)
 - **Nero** is chair, front door, final synthesizer — always
-- **Hephaestus (Forge)** is permanent builder/engineering agent — instantiated 2026-03-23
-- **Orion (Scout)** — designed, NOT instantiated — waiting for real research context triggers
+- **Hephaestus (Forge)** — permanent builder/engineering agent — instantiated 2026-03-23; model: `openai-codex/gpt-5.4` primary, `minimax/MiniMax-M2.7` fallback
+- **Orion (Scout)** — designed, instantiated 2026-03-26 — browser-enabled for live-page verification
 - **Steward** — designed, NOT instantiated — waiting for cron/automation infrastructure triggers
 - Council docs: COUNCIL.md, PROMOTION_RULES.md, DELEGATION_RULES.md, COUNCIL_OPERATING_MODEL.md, FUTURE_AGENTS.md
 
@@ -32,7 +32,7 @@ Current status: Brian McGarry is in APPROVAL_QUEUED. Awaiting Likwid/Nero deploy
 ### Skills
 - Shared managed dir: `~/.openclaw/skills/` — symlinks rejected by OpenClaw security (workspace root constraint); use copy approach
 - Skills copied to `~/.openclaw/skills/`: summarize, skill-vetter
-- Skills in workspace `skills/`: github, openclaw-github-assistant, agent-builder, automation-workflows, office, openclaw-security-audit, task-experience-logger, session-logs, find-skills-skill, skill-creator, healthcheck, node-connect, tmux, weather
+- Skills in workspace `skills/`: github, ~~openclaw-github-assistant~~ (DELETED — credential harvesting patterns), agent-builder, automation-workflows, office, openclaw-security-audit, task-experience-logger, session-logs, find-skills-skill, skill-creator, healthcheck, node-connect, tmux, weather
 
 ### GitHub
 - `gh` CLI v2.45.0 installed and authenticated
