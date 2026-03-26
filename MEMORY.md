@@ -20,6 +20,15 @@ _Durable facts, preferences, and decisions worth carrying forward._
 - Reports to Nero only; Nero is final voice
 - ACP NOT wired — escalation path for future
 
+### Website Studio (Verdantia Lead Gen)
+
+A full lead generation + website concept studio system has been built inside OpenClaw. See:
+- `memory/2026-03-26-website-studio-build.md` — full system build log
+- `ventures/website-studio/` — all system files
+- CRM cockpit: `cd ventures/website-studio/CRM/cockpit && node server.js` → localhost:3099
+
+Current status: Brian McGarry is in APPROVAL_QUEUED. Awaiting Likwid/Nero deployment approval. Larkfield and CPK parked (phone-only contacts, email-only policy).
+
 ### Skills
 - Shared managed dir: `~/.openclaw/skills/` — symlinks rejected by OpenClaw security (workspace root constraint); use copy approach
 - Skills copied to `~/.openclaw/skills/`: summarize, skill-vetter
@@ -50,6 +59,7 @@ _Durable facts, preferences, and decisions worth carrying forward._
 
 ## Pending / Future Work
 
+- Website Studio Round 1 completion: Brian McGarry deployment, response tracking, Round 2 decision
 - ACP/Claude Code wiring — triggers when Forge needs substantial repo-heavy coding work
 - Scout instantiation — triggers when research context spans sessions
 - Steward instantiation — triggers when cron/automation infrastructure is active
