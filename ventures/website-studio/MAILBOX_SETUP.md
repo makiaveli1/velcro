@@ -5,7 +5,7 @@ _`studio@verdantia.it` — shared mailbox for outbound outreach_
 
 ## Purpose
 
-Email outreach via the Website Studio system uses the shared mailbox `studio@verdantia.it` sent through **Microsoft Graph API** (not Gmail, not individual user mailbox).
+Email outreach via the Website Studio system uses the shared mailbox `studio@verdantia.it` sent through **Microsoft Graph API** (not Gmail, not individual user mailbox). The shared mailbox is pre-existing; this checklist covers the remaining setup.
 
 **Outbound is hard-blocked until every item on this checklist is complete.** No outreach is sent, test or otherwise, until the checklist is fully satisfied.
 
@@ -25,51 +25,159 @@ This status does not change until Nero personally verifies and signs off.
 
 ## Pre-Flight Checklist
 
-Complete every item before any outreach is sent.
-
-### 1. Mailbox Exists
-- [ ] `studio@verdantia.it` exists in Microsoft 365 / Exchange Online
-- [ ] Verified by logging into [admin.microsoft.com](https://admin.microsoft.com) → Teams & groups → Shared mailboxes
-- **Evidence:** Screenshot of mailbox in M365 admin portal
+### 1. Mailbox Exists ✅ (Pre-Confirmed)
+- [x] `studio@verdantia.it` shared mailbox exists in Microsoft 365 / Exchange Online
+- [x] Verified by checking [admin.microsoft.com](https://admin.microsoft.com) → Teams & groups → Shared mailboxes
+- **Note:** This item is pre-confirmed. The mailbox exists. Setup begins from this point.
 
 ### 2. Full Access Permission Granted
 - [ ] A licensed M365 user account has **Full Access** permission to `studio@verdantia.it`
 - [ ] This is the account whose credentials are used for Graph API authentication
-- **Evidence:** Screenshot of mailbox permissions in M365 admin showing Full Access grant
+- **Evidence:** Screenshot of mailbox permissions in M365 admin showing Full Access grant to the user account
 
 ### 3. Send As Permission Granted
 - [ ] The same user account has **Send As** permission on `studio@verdantia.it`
-- [ ] This allows the API to send FROM `studio@verdantia.it` without using delegated send
-- **Evidence:** Screenshot of Send As permissions in M365 Exchange admin
+- [ ] This is distinct from Full Access — both must be granted separately
+- [ ] In M365 Exchange Admin: recipient permissions → send as
+- **Evidence:** Screenshot of Send As permissions in Exchange admin showing grant to the user account
 
-### 4. Send As Verified (Manual Test)
-- [ ] Logged into Outlook (OWA or desktop) as the licensed user
-- [ ] Successfully sent a test email from `studio@verdantia.it` to a personal address
-- [ ] The email shows `studio@verdantia.it` as the From address — NOT the user's personal address
-- **Evidence:** Test email received at personal inbox, From field confirmed as `studio@verdantia.it`
+### 4. Send As Verified (Manual OWA Test)
+- [ ] Logged into Outlook on the web (OWA) as the licensed user
+- [ ] Opened the shared mailbox: in OWA, right-click the folder pane → Open another mailbox → enter `studio@verdantia.it`
+- [ ] Sent a test email from `studio@verdantia.it` to a personal address (e.g. Gmail or personal Outlook)
+- [ ] The email received shows `studio@verdantia.it` as the From address — NOT the user's personal address
+- [ ] The sent email appears in the shared mailbox's Sent Items folder (not the user's own Sent Items)
+- **Evidence:** Test email received at personal inbox; From field confirmed as `studio@verdantia.it`
 
-### 5. Graph API Path Confirmed
-- [ ] Azure app registered with `Mail.Send` permission on Microsoft Graph
-- [ ] App has been consented to by the tenant admin
-- [ ] `clientId`, `tenantId`, and `clientSecret` stored in `CRM/config/graph.json`
-- [ ] Token acquisition tested successfully (`node -e "require('./adapters/graph').setupInteractive()"`)
-- [ ] **Note:** Shared-mailbox Send As via Graph requires specific permission configuration — see Appendix A below
-- **Evidence:** API test call to `POST /me/sendMail` using `studio@verdantia.it` as From succeeds with HTTP 202
+### 5. Azure App Registered (Graph API)
+- [ ] Azure AD app registered in the tenant
+- [ ] Redirect URI configured (device code flow — `http://localhost` is sufficient)
+- [ ] **Correct permission:** `Mail.Send.Shared` — Delegated (not `Mail.Send`)
+- [ ] `offline_access` also granted for token refresh
+- [ ] Permissions consented to by a tenant admin
+- **Evidence:** Screenshot of Graph API permissions showing `Mail.Send.Shared` under Delegated
 
-### 6. DNS / Domain Verification
+### 6. Graph Credentials Stored
+- [ ] `clientId`, `tenantId` stored in `CRM/config/graph.json`
+- [ ] Token acquisition tested: `node -e "require('./adapters/graph').setupInteractive()"`
+- [ ] Token saved to `CRM/config/graph_token.json`
+- [ ] Test call: `POST /me/sendMail` with `from: studio@verdantia.it` returns HTTP 202
+- **Evidence:** Successful API response from the test call above
+
+### 7. Sent Items Path Confirmed
+- [ ] Understand the Sent Items behavior for the chosen sending method (see below)
+- [ ] Test sent item appears where expected after the Graph API test call
+- [ ] A process exists to retrieve sent outreach if needed
+- **Recommendation:** See the **Sent Items Decision** section below — this is a deliberate architectural choice
+
+### 8. DNS / Domain Verification
 - [ ] `verdantia.it` domain is verified in Microsoft 365
-- [ ] SPF, DKIM, and DMARC records are configured for the domain
-- [ ] `studio@verdantia.it` can receive replies (not bounced)
+- [ ] SPF, DKIM, and DMARC records are configured correctly
+- [ ] `studio@verdantia.it` can receive replies (not hard-bounced on inbound)
 
-### 7. Outreach Template Verified
-- [ ] A test pitch has been drafted using `studio@verdantia.it` as From
-- [ ] Test email passes spam score checks (use [mail-tester.com](https://www.mail-tester.com) or similar)
+### 9. Outreach Template Verified
+- [ ] A real pitch draft sent via the Graph API test call above
+- [ ] Test email passes a spam score check ([mail-tester.com](https://www.mail-tester.com) or similar)
 - [ ] From/Reply-To is correctly set to `studio@verdantia.it`
+- [ ] Signature is accurate: name, role, `studio@verdantia.it`
 
-### 8. Nero Sign-Off
-- [ ] Nero has reviewed all evidence above
-- [ ] Nero has explicitly written "Outbound approved" in this document
-- [ ] Date of approval recorded below
+### 10. Nero Sign-Off
+- [ ] Nero has reviewed all evidence items above
+- [ ] Nero has explicitly written "Outbound approved: YES" in the sign-off block below
+- [ ] Date of approval recorded
+
+---
+
+## Sent Items Decision
+
+When sending via Graph API as a shared mailbox, sent items handling is a deliberate choice.
+
+### How it works
+
+| Sending approach | Where sent item is saved |
+|---|---|
+| Graph `/me/sendMail` as user (no special config) | User's own Sent Items — **not** the shared mailbox |
+| Graph with `saveToSentItems: true` parameter | User's own Sent Items (parameter does not redirect to shared mailbox) |
+| Write to shared mailbox Sent Items directly after send | Shared mailbox Sent Items — correct location |
+
+### The issue
+
+The Graph `/me/sendMail` endpoint always writes to the **authenticated user's Sent Items folder**, even when sending as a shared mailbox via the `from` field. There is no native Graph parameter to redirect sent items to the shared mailbox's folder.
+
+For Website Studio, this means outreach sent "from" `studio@verdantia.it` would have sent items land in the **user's Sent Items**, not in the shared mailbox. This creates a traceability gap: outreach history is siloed in the individual account.
+
+### Recommendation for Website Studio: User Sent Items with a CRM copy
+
+**Use the user account's Sent Items as the record of sent outreach, and maintain a CRM copy as the authoritative log.**
+
+Rationale:
+- The CRM already tracks outreach sends via `email_drafts` table and `interactions` table — these are the primary record
+- Sent items in a shared mailbox are primarily useful for multi-person access, not solo operation
+- Adding `MailboxSettings.ReadWrite` to change Sent Items behavior adds unnecessary scope for v1
+- The CRM interaction log is more searchable and structured than hunting through mailbox folders
+
+**If the shared mailbox Sent Items is preferred** (e.g., if multiple people need access to sent outreach without a shared CRM): after each send via Graph, make a secondary `PATCH /me/mailFolders/{id}/messages/{id}` call to copy the sent item to the shared mailbox's Sent Items folder. This requires `MailboxSettings.ReadWrite` permission. Raise as a future enhancement.
+
+### Decision recorded here:
+
+```
+SENT ITEMS APPROACH: User Sent Items + CRM copy (v1)
+Shared mailbox Sent Items sync: Not implemented in v1
+Reviewed: _______________
+```
+
+---
+
+## Graph API: Correct Permission Model
+
+### The mistake to avoid
+
+`Mail.Send` (Delegated) alone does **not** allow sending as a shared mailbox. `Mail.Send` allows a user to send from their own mailbox. To send *as* a shared mailbox, the correct permission is:
+
+### `Mail.Send.Shared` (Delegated)
+
+This is the specific delegated permission that authorizes sending on behalf of a shared mailbox the user has been granted access to.
+
+**Required combination for shared mailbox sending:**
+
+```
+1. Azure AD app registered
+2. Delegated permissions:
+   - Mail.Send.Shared     ← allows sending AS the shared mailbox (from field)
+   - offline_access       ← allows token refresh without re-authentication
+3. The user account must ALSO have:
+   - Full Access permission to the shared mailbox (Exchange-level, not Graph)
+   - Send As permission to the shared mailbox (Exchange-level, not Graph)
+```
+
+**The Exchange-level permissions (Full Access + Send As) are administered in M365/Exchange Admin, not in Azure AD. Both are required.**
+
+### App permission vs. delegated permission
+
+| Type | What it means | Use case |
+|---|---|---|
+| **Delegated** | App acts on behalf of a signed-in user | Website Studio: use this |
+| **Application** | App acts as itself (no user) | Requires app-only auth; more complex |
+
+Website Studio uses **Delegated** permissions. The user authenticates interactively (device code flow); the app sends on their behalf with the shared mailbox identity.
+
+### Endpoint and payload
+
+```
+POST https://graph.microsoft.com/v1.0/me/sendMail
+
+{
+  "message": {
+    "from": { "address": "studio@verdantia.it" },
+    "toRecipients": [{ "emailAddress": { "address": "recipient@example.com" } }],
+    "subject": "...",
+    "body": { "contentType": "HTML", "content": "..." }
+  },
+  "saveToSentItems": false   ← always false; CRM is the record
+}
+```
+
+**Note on `saveToSentItems`:** Even when set to `true`, this saves to the user's Sent Items, not the shared mailbox. For v1, always set to `false` and rely on the CRM as the sent item record.
 
 ---
 
@@ -77,6 +185,7 @@ Complete every item before any outreach is sent.
 
 ```
 Outbound approved: NO
+Sent Items approach: User Sent Items + CRM copy (v1)
 Approved by: ___________________
 Date: ___________________________
 Notes: _________________________
@@ -92,9 +201,11 @@ Notes: _________________________
 | Test sends to real recipients | 🔴 Blocked |
 | Mercury draft deployment | 🔴 Blocked |
 | Round 1 first outreach | 🔴 Blocked |
-| Mailbox existence check | 🔴 Pending |
-| Send As permission test | 🔴 Pending |
-| Graph API token acquisition | 🔴 Pending |
+| Full Access permission | 🔴 Pending |
+| Send As permission (Exchange) | 🔴 Pending |
+| Manual Send As test (OWA) | 🔴 Pending |
+| Azure app `Mail.Send.Shared` permission | 🔴 Pending |
+| Graph API token + test send | 🔴 Pending |
 | First real send | 🔴 Blocked |
 
 ---
@@ -104,32 +215,10 @@ Notes: _________________________
 Once all items are checked and Nero has signed off:
 
 1. Update the sign-off section above with date and name
-2. Update OUTREACH_POLICY.md: remove or update the outbound block note
-3. Notify that Round 1 outreach is cleared to begin
-4. First send should be to a controlled test address before any real leads
-
----
-
-## Appendix A — Microsoft Graph: Sending As a Shared Mailbox
-
-When sending via Microsoft Graph as a shared mailbox, the API call must use the shared mailbox's SMTP address as the `from` property. The authenticated app identity must have **Send As** permission on the shared mailbox.
-
-**Key requirements:**
-1. The Azure AD app needs `Mail.Send` permission (not `Mail.ReadWrite` — read is separate)
-2. The app needs `Delegated` token type with `Mail.Send` scope, OR `Application` token type with `Mail.Send` application permission
-3. For shared mailbox Send As: the `from` field in the Graph payload must be the shared mailbox SMTP address
-4. The app must be consented to by a tenant admin
-
-**Relevant Graph endpoint:**
-```
-POST https://graph.microsoft.com/v1.0/me/sendMail
-```
-With `from` field set to `studio@verdantia.it`.
-
-**If Graph shared-mailbox sending is not available** in the current tenant configuration:
-- Use a licensed user mailbox as the sending identity
-- Update this checklist and OUTREACH_POLICY.md to reflect the actual sending identity
-- Do not attempt to work around the limitation with impersonation without legal/IT approval
+2. Outreach is cleared to begin
+3. First send: test to a controlled personal address, confirm delivery and From header
+4. Monitor for 3–5 sends, confirm Sent Items / CRM logging is accurate
+5. Update OUTREACH_POLICY.md if any policy language references changed as a result of this setup
 
 ---
 
@@ -137,8 +226,8 @@ With `from` field set to `studio@verdantia.it`.
 
 **Gmail API is not used for this system.** All outbound email uses Microsoft Graph API against the `studio@verdantia.it` shared mailbox.
 
-If at any point Graph is not available or is rate-limited, outreach pauses — not fallback to personal Gmail or another method.
+If Graph is unavailable or rate-limited at any point: outreach pauses. No fallback to personal Gmail, SMTP relay, or other sending methods without explicit Nero approval and documentation update.
 
 ---
 
-_Last updated: 2026-03-27 — Nero / Website Studio system_
+_Last updated: 2026-03-27 (evening patch) — Nero / Website Studio system_
