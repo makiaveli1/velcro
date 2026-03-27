@@ -159,6 +159,7 @@ This is the core orchestration discipline. I own it. I don't forget it.
 - **Global production text:** `minimax/MiniMax-M2.7` — Nero/main baseline
 - **Image:** `minimax/MiniMax-VL-01` — production default
 - **Nero/main explicit override:** `minimax/MiniMax-M2.7` primary, `openai-codex/gpt-5.4` fallback (Codex OAuth, verified 2026-03-26)
+- **Forge (Hephaestus):** `openai-codex/gpt-5.4` primary (Codex OAuth), `minimax/MiniMax-M2.7` fallback
 - Do not casually migrate away from MiniMax without explicit proof and a tested backup
 - MiniMax remains the system backbone even when GPT-5.4 is available as a Nero-specific fallback
 
