@@ -21,7 +21,7 @@ This means even a fully approved pitch requires a separate explicit go-ahead fro
 **Rationale:**
 - Trades businesses (plumbers, electricians) are consumer-facing, not B2B — LinkedIn is not the natural discovery channel
 - Email is the standard professional contact channel for small businesses
-- We have a working Gmail API infrastructure from the Verdantia outreach work
+- We have a shared mailbox (`studio@verdantia.it`) provisioned for outbound via Microsoft Graph
 - Email is documentable, reviewable, and reversible
 - Web contact forms are low-value for cold outreach and require manual submission
 - Starting with one channel reduces risk and simplifies learning
@@ -132,6 +132,7 @@ Use a web contact form **only if:**
 3. **Contact forms are a fallback only — Nero approval required before use.**
 4. **Every send requires a separate explicit Nero deployment approval.**
 5. **Suppression is checked manually before Mercury executes any send.**
+6. **Email sending is blocked until `studio@verdantia.it` passes the Mailbox Readiness Checklist (see `MAILBOX_SETUP.md`).**
 
 ---
 

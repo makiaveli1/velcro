@@ -32,13 +32,19 @@ A lead enters the approval queue when:
 
 ## What Nero Reviews — Complete Checklist
 
-### 1. Pipeline Integrity
+### 1. Mailbox Readiness
+- [ ] `studio@verdantia.it` has passed the full Mailbox Readiness Checklist (`MAILBOX_SETUP.md`)
+- [ ] Nero has signed off in `MAILBOX_SETUP.md` — "Outbound approved: YES"
+- [ ] Graph API Send As path is confirmed working with a test send
+- **Outbound cannot proceed without this regardless of lead quality**
+
+### 2. Pipeline Integrity
 - [ ] All required stages are complete and documented in STATUS.md
 - [ ] No stages were skipped
 - [ ] Every stage has the required artifact
 - [ ] Stage history is accurate and dated
 
-### 2. Lead Quality
+### 3. Lead Quality
 - [ ] Score ≥ 56 (PITCH-WORTHY) OR there's compelling qualitative justification for override
 - [ ] Business is legitimate and operational (verified evidence in BUSINESS.md)
 - [ ] Not on suppression list (check SUPPRESSION.md)
@@ -47,7 +53,7 @@ A lead enters the approval queue when:
 - [ ] Business category is in our target market list
 - [ ] Business is in our target geography
 
-### 3. Research Quality
+### 4. Research Quality
 - [ ] BUSINESS.md contains specific, evidenced findings — not generic observations
 - [ ] Audit or no-site brief identifies SPECIFIC gaps (not "the design is old")
 - [ ] Each gap is tied to a business consequence
@@ -55,7 +61,7 @@ A lead enters the approval queue when:
 - [ ] Review content is quoted (not just "they have good reviews")
 - [ ] Mercury/Forge has enough to work with — research isn't thin
 
-### 4. Concept Quality
+### 5. Concept Quality
 - [ ] CONCEPT_BRIEF.md is complete
 - [ ] Design language is SPECIFIC — not "modern, professional, clean"
 - [ ] Colour palette is described with mood and rationale, not just hex codes
@@ -67,7 +73,7 @@ A lead enters the approval queue when:
 - [ ] Content requirements are realistic for what the client can supply
 - [ ] Forge has self-certified quality on the sign-off checklist
 
-### 5. Pitch Quality
+### 6. Pitch Quality
 - [ ] Opening hook is SPECIFIC and evidenced — not a template opener
 - [ ] Hook references something real from the research
 - [ ] No insults about the business or their current state
@@ -80,7 +86,7 @@ A lead enters the approval queue when:
 - [ ] Mercury has self-certified on the pitch quality checklist
 - [ ] Nothing in this pitch would embarrass us if forwarded
 
-### 6. Outreach Appropriateness
+### 7. Outreach Appropriateness
 - [ ] Chosen channel is appropriate for this business type and context
 - [ ] Timing is appropriate (not a bad time of day/week to send)
 - [ ] Follow-up plan is defined and reasonable
