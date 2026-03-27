@@ -8,6 +8,8 @@ const messaging = require('./adapters/messaging');
 const discovery = require('./services/discovery');
 const scoring = require('./services/scoring');
 const daily = require('./services/daily');
+const summaries = require('./services/summaries');
+const drafts = require('./services/drafts');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3100);
@@ -750,102 +752,12 @@ app.get('/api/meetings/:id', handleRoute((req, res) => {
   });
 }));
 
-app.get('/api/drafts', handleRoute((req, res) => {
-  let sql = `SELECT email_drafts.*, contacts.name AS contact_name, contacts.email AS contact_email
-             FROM email_drafts
-             LEFT JOIN contacts ON contacts.id = email_drafts.contact_id
-             WHERE 1 = 1`;
-  const params = [];
-
-  if (req.query.status) {
-    sql += ' AND email_drafts.status = ?';
-    params.push(req.query.status);
-  }
-
-  sql += ' ORDER BY email_drafts.proposed_at DESC';
-  const items = db.all(sql, params);
-  res.json({ items, count: items.length });
-}));
-
-app.post('/api/drafts/:id/approve', handleRoute((req, res) => {
-  ensureRecord('email_drafts', req.params.id, 'Draft');
-
-  if (!DRAFT_APPROVAL_ENABLED) {
-    throw createHttpError(403, 'Draft approval is disabled. Set CRM_ENABLE_DRAFT_APPROVAL=true to enable it.');
-  }
-
-  db.run(
-    'UPDATE email_drafts SET status = ?, approved_at = ?, approved_by = ? WHERE id = ?',
-    ['approved', nowIso(), normalizeNullable(req.body?.approved_by) || 'system', req.params.id]
-  );
-
-  res.json(db.getOne('SELECT * FROM email_drafts WHERE id = ?', [req.params.id]));
-}));
-
-app.post('/api/drafts/:id/reject', handleRoute((req, res) => {
-  ensureRecord('email_drafts', req.params.id, 'Draft');
-
-  db.run('UPDATE email_drafts SET status = ? WHERE id = ?', ['rejected', req.params.id]);
-  res.json(db.getOne('SELECT * FROM email_drafts WHERE id = ?', [req.params.id]));
-}));
 
 app.get('/api/dashboard', handleRoute((req, res) => {
   res.json(getDashboardData());
 }));
 
-app.post('/api/query', handleRoute((req, res) => {
-  const query = normalizeNullable(req.body?.query);
-  if (!query) {
-    throw createHttpError(400, 'query is required');
-  }
 
-  const parsed = llm.parseQuery(query);
-  let data = null;
-  let response = parsed.response;
-
-  if (parsed.intent === 'search_contacts') {
-    const searchTerm = parsed.params.search || query;
-    const matches = db.all(
-      `SELECT *
-       FROM contacts
-       WHERE name LIKE ? OR email LIKE ? OR company LIKE ?
-       ORDER BY updated_at DESC
-       LIMIT 10`,
-      [`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`]
-    );
-    data = { matches };
-    response = `Found ${matches.length} matching contact(s).`;
-  } else if (parsed.intent === 'followups_due') {
-    const followups = db.all(
-      `SELECT *
-       FROM follow_ups
-       WHERE status IN ('pending', 'open', 'snoozed')
-       ORDER BY due_date ASC
-       LIMIT 10`
-    );
-    data = { followups };
-    response = `Found ${followups.length} follow-up item(s).`;
-  } else if (parsed.intent === 'discovery_queue') {
-    const pending = db.getOne(
-      'SELECT COUNT(*) AS total FROM discovery_review WHERE status = ?',
-      ['pending']
-    )?.total || 0;
-    data = { pending };
-    response = `Discovery queue has ${pending} pending item(s).`;
-  } else if (parsed.intent === 'dashboard_overview') {
-    data = getDashboardData();
-    response = 'Returned the current dashboard overview.';
-  }
-
-  res.json({
-    query,
-    intent: parsed.intent,
-    entities: parsed.entities,
-    params: parsed.params,
-    response,
-    data,
-  });
-}));
 
 // ── Graph / Discovery ─────────────────────────────────────────────────────────
 
@@ -953,6 +865,186 @@ app.post('/api/test-message', asyncHandler(async (req, res) => {
   if (!text) return res.status(400).json({ error: 'text is required' });
   const result = await messaging.sendToWebchat(text);
   res.json(result);
+}));
+
+// ── Summaries ─────────────────────────────────────────────────────────────────
+
+// POST /api/summaries/:contactId — generate/regenerate contact summary
+app.post('/api/summaries/:contactId', asyncHandler(async (req, res) => {
+  const { contactId } = req.params;
+  const summary = await summaries.generateSummary(contactId);
+  res.json(summary);
+}));
+
+// GET /api/summaries/:contactId — get latest summary
+app.get('/api/summaries/:contactId', asyncHandler(async (req, res) => {
+  const { contactId } = req.params;
+  const summary = summaries.getSummary(contactId);
+  if (!summary) return res.status(404).json({ error: 'No summary found' });
+  res.json(summary);
+}));
+
+// POST /api/summaries/regenerate-stale — batch regenerate old summaries
+app.post('/api/summaries/regenerate-stale', asyncHandler(async (req, res) => {
+  const result = await summaries.regenerateStaleSummaries();
+  res.json(result);
+}));
+
+// ── Email Drafts ───────────────────────────────────────────────────────────────
+
+// POST /api/drafts — generate a new draft
+app.post('/api/drafts', asyncHandler(async (req, res) => {
+  const { contact_id, follow_up_reason, tone, thread_ref, include_thread } = req.body;
+  if (!contact_id) return res.status(400).json({ error: 'contact_id is required' });
+
+  const validTone = drafts.validateTone(tone || 'professional');
+  const draft = await drafts.generateDraft(contact_id, {
+    followUpReason: follow_up_reason,
+    tone: validTone,
+    threadRef: thread_ref,
+    includeThread: include_thread,
+  });
+
+  res.status(201).json(draft);
+}));
+
+// GET /api/drafts — list drafts
+app.get('/api/drafts', asyncHandler(async (req, res) => {
+  const { status, contact_id } = req.query;
+  let sql = `SELECT d.*, c.name as contact_name, c.email as contact_email
+             FROM email_drafts d
+             LEFT JOIN contacts c ON d.contact_id = c.id
+             WHERE 1=1`;
+  const params = [];
+  if (status) { sql += ` AND d.status = ?`; params.push(status); }
+  if (contact_id) { sql += ` AND d.contact_id = ?`; params.push(contact_id); }
+  sql += ` ORDER BY d.proposed_at DESC LIMIT 50`;
+  const draftRows = db.all(sql, params);
+  const pending = drafts.pendingCount();
+  res.json({ drafts: draftRows, pendingApproval: pending });
+}));
+
+// POST /api/drafts/:id/approve — approve draft (creates in email client)
+app.post('/api/drafts/:id/approve', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const draft = db.getOne(`SELECT * FROM email_drafts WHERE id = ?`, [id]);
+  if (!draft) return res.status(404).json({ error: 'Draft not found' });
+  if (draft.status !== 'proposed') return res.status(409).json({ error: `Draft already ${draft.status}` });
+
+  // Safety: require explicit approval (enforced here — no silent auto-approve)
+  const approved = drafts.approveDraft(id, 'user');
+  res.json({ ...approved, _notice: 'Draft approved. Open your email client to create and send.' });
+}));
+
+// POST /api/drafts/:id/reject — discard draft
+app.post('/api/drafts/:id/reject', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = drafts.rejectDraft(id);
+    res.json(result);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+}));
+
+// GET /api/drafts/tones — valid tone options
+app.get('/api/drafts/tones', (req, res) => {
+  res.json({ tones: drafts.VALID_TONES });
+});
+
+// ── NL Query (upgraded) ───────────────────────────────────────────────────────
+
+// POST /api/query — natural language query (now with LLM if configured)
+app.post('/api/query', asyncHandler(async (req, res) => {
+  const { query } = req.body;
+  if (!query) return res.status(400).json({ error: 'query is required' });
+
+  const parsed = await llm.parseQuery(query);
+  let results = [];
+  let response = null;
+
+  switch (parsed.intent) {
+    case 'search_contacts':
+      results = db.all(
+        `SELECT id, name, email, company, relationship_score, last_touched_at
+         FROM contacts WHERE suppressed = 0 AND (name LIKE ? OR email LIKE ? OR company LIKE ?)
+         LIMIT 10`,
+        [`%${parsed.entities?.name || ''}%`, `%${parsed.entities?.name || ''}%`, `%${parsed.entities?.company || ''}%`]
+      );
+      response = parsed.response_hint || `${results.length} contact(s) found`;
+      break;
+
+    case 'about_contact': {
+      const name = parsed.entities?.name;
+      if (name) {
+        const contact = db.getOne(
+          `SELECT * FROM contacts WHERE suppressed = 0 AND (name LIKE ? OR email LIKE ?) LIMIT 1`,
+          [`%${name}%`, `%${name}%`]
+        );
+        if (contact) {
+          const summary = summaries.getSummary(contact.id);
+          const followUps = db.all(`SELECT * FROM follow_ups WHERE contact_id = ? AND status = 'pending' ORDER BY due_date ASC`, [contact.id]);
+          response = parsed.response_hint || `Showing ${contact.name}'s dossier`;
+          results = [{ ...contact, summary, follow_ups: followUps }];
+        } else {
+          response = `No contact found matching "${name}"`;
+        }
+      }
+      break;
+    }
+
+    case 'followup_list':
+      results = db.all(
+        `SELECT fu.*, c.name as contact_name, c.email as contact_email
+         FROM follow_ups fu LEFT JOIN contacts c ON fu.contact_id = c.id
+         WHERE fu.status = 'pending' ORDER BY fu.due_date ASC LIMIT 20`
+      );
+      response = parsed.response_hint || `${results.length} pending follow-up(s)`;
+      break;
+
+    case 'who_needs_attention':
+      results = scoring.getContactsNeedingAttention().map(c => ({
+        ...c,
+        nudge: scoring.generateNudge(c),
+      }));
+      response = parsed.response_hint || `${results.length} contact(s) need attention`;
+      break;
+
+    case 'stats': {
+      const total = db.get(`SELECT COUNT(*) as c FROM contacts WHERE suppressed = 0`)?.c || 0;
+      const newWeek = db.get(`SELECT COUNT(*) as c FROM contacts WHERE created_at >= datetime('now', '-7 days')`)?.c || 0;
+      const pendingDrafts = drafts.pendingCount();
+      const discoveryQueue = db.get(`SELECT COUNT(*) as c FROM discovery_review WHERE status = 'pending'`)?.c || 0;
+      results = { total, newThisWeek: newWeek, pendingDrafts, discoveryQueue };
+      response = parsed.response_hint || `CRM stats retrieved`;
+      break;
+    }
+
+    case 'discovery_queue':
+      results = db.all(`SELECT * FROM discovery_review WHERE status = 'pending' ORDER BY signal_count DESC LIMIT 20`);
+      response = parsed.response_hint || `${results.length} pending in discovery queue`;
+      break;
+
+    case 'weekly_summary':
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const newContacts = db.get(`SELECT COUNT(*) as c FROM contacts WHERE created_at >= ?`, [weekAgo])?.c || 0;
+      const newInteractions = db.get(`SELECT COUNT(*) as c FROM interactions WHERE created_at >= ?`, [weekAgo])?.c || 0;
+      results = { newContacts, newInteractions };
+      response = `This week: ${newContacts} new contacts, ${newInteractions} interactions`;
+      break;
+
+    default:
+      // Keyword fallback
+      results = db.all(
+        `SELECT id, name, email, company, relationship_score FROM contacts
+         WHERE suppressed = 0 AND (name LIKE ? OR company LIKE ?)
+         LIMIT 5`,
+        [`%${query}%`, `%${query}%`]
+      );
+      response = `${results.length} result(s) for "${query}"`;
+    }
+
+    res.json({ query, parsed, results, response, count: Array.isArray(results) ? results.length : 1 });
 }));
 
 app.use((req, res) => {

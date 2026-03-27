@@ -6,7 +6,7 @@ const { db, uuid } = require('../db/database');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const MY_EMAIL_DOMAIN = process.env.MY_EMAIL_DOMAIN || null; // e.g. 'verdantia.ie'
+const MY_EMAIL_DOMAIN = process.env.MY_EMAIL_DOMAIN || null; // e.g. 'verdantia.it'
 const AUTO_ADD_THRESHOLD = 50;
 const SKIP_DOMAINS = new Set([
   'noreply.com', 'no-reply.com', 'noreply.ie', 'no-reply.ie',
