@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
-import { Inbox } from "lucide-react";
+import { Inbox, ChevronDown } from "lucide-react";
 import { m } from "motion/react";
 import { StatePanel } from "../../components/StatePanel";
 import {
@@ -9,6 +10,91 @@ import {
 } from "../../lib/motion";
 import type { DownloadQueueLane, UserView } from "../../lib/types";
 import { downloadsLaneHint, downloadsLaneLabel } from "./downloadsDisplay";
+import type { FileManifestEntry, FilePriority } from "./DownloadsQueuePanel";
+
+/** Maps priority to CSS class for the indicator dot */
+function priorityClass(priority: FilePriority): string {
+  switch (priority) {
+    case "primary":  return "manifest-priority-primary";
+    case "new":     return "manifest-priority-new";
+    case "modified": return "manifest-priority-modified";
+    case "standard": return "manifest-priority-standard";
+  }
+}
+
+/** Tracks which priority groups are expanded in the manifest */
+type ManifestExpanded = Record<FilePriority, boolean>;
+
+/** Creator-only structured file manifest with collapsible priority groups */
+function CreatorFileManifest({ manifest }: { manifest: FileManifestEntry[] }) {
+  // Group entries by priority
+  const groups: Record<FilePriority, FileManifestEntry[]> = {
+    primary:  [],
+    new:      [],
+    modified: [],
+    standard: [],
+  };
+  for (const entry of manifest) {
+    groups[entry.priority].push(entry);
+  }
+
+  // All groups start collapsed; standard starts expanded for Creator (want to see it)
+  const [expanded, setExpanded] = useState<ManifestExpanded>({
+    primary:  false,
+    new:      false,
+    modified: false,
+    standard: true,
+  });
+
+  function toggleGroup(priority: FilePriority) {
+    setExpanded((prev) => ({ ...prev, [priority]: !prev[priority] }));
+  }
+
+  return (
+    <div className="creator-file-manifest">
+      {/* Priority groups (primary → new → modified → standard) — each independently collapsible */}
+      {((["primary", "new", "modified", "standard"] as FilePriority[]).map((priority) => {
+        const entries = groups[priority];
+        if (entries.length === 0) return null;
+        const isExpanded = expanded[priority];
+        const hasMore = entries.length > 1;
+
+        return (
+          <div key={priority} className="creator-manifest-group-row">
+            <button
+              type="button"
+              className="creator-manifest-group-toggle"
+              onClick={() => hasMore ? toggleGroup(priority) : undefined}
+              disabled={!hasMore}
+              aria-expanded={isExpanded}
+            >
+              <span className={`manifest-dot ${priorityClass(priority)}`} />
+              <span className="manifest-filename">{entries[0].filename}</span>
+              {hasMore && (
+                <span className="manifest-more">
+                  {isExpanded ? "▲" : `+${entries.length - 1}`}
+                </span>
+              )}
+            </button>
+            {/* Expanded: show remaining files in this group */}
+            {isExpanded && entries.length > 1 && (
+              <div className="creator-manifest-sub-list">
+                {entries.slice(1).map((entry) => (
+                  <div key={entry.filename} className="creator-manifest-group creator-manifest-sub-entry">
+                    <span className={`manifest-dot ${priorityClass(entry.priority)}`} />
+                    <span className="manifest-filename manifest-filename-sub">
+                      {entry.filename}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }))}
+    </div>
+  );
+}
 
 export interface DownloadsQueueRowModel {
   id: number;
@@ -25,6 +111,16 @@ export interface DownloadsQueueRowModel {
   sourcePath: string;
   /** Short per-item explanation — shown inline on Seasoned queue cards in "waiting_on_you" lane */
   waitingReason?: string | null;
+  /** Creator-only: structured file manifest with priority groupings */
+  fileManifest?: FileManifestEntry[] | null;
+}
+
+/** Priority level for files within a Creator queue card manifest */
+export type FilePriority = "primary" | "new" | "modified" | "standard";
+
+export interface FileManifestEntry {
+  filename: string;
+  priority: FilePriority;
 }
 
 /** How much detail to show in a queue item row */
@@ -59,6 +155,8 @@ export function DownloadsQueuePanel({
   const showSamples = depth === "full";
   /** Seasoned (standard) cards: show per-item waiting reason inline */
   const showWaitingReason = depth === "standard";
+  /** Creator (full) cards: show structured file manifest with priority groupings */
+  const showFileManifest = depth === "full";
   return (
     <div className="panel-card downloads-queue-panel workbench-panel">
       <div className="panel-heading">
@@ -104,7 +202,11 @@ export function DownloadsQueuePanel({
                             {row.waitingReason}
                           </div>
                         ) : null}
-                        {showSamples && row.samples ? (
+                        {showFileManifest && row.fileManifest && row.fileManifest.length > 0 ? (
+                          <CreatorFileManifest manifest={row.fileManifest} />
+                        ) : null}
+                        {/* In Creator, samples are surfaced via the manifest with priority context — no need to duplicate */}
+                        {showSamples && row.samples && !showFileManifest ? (
                           <div className="downloads-item-samples downloads-item-samples-muted">
                             {row.samples}
                           </div>

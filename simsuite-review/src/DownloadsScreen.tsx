@@ -74,6 +74,7 @@ import {
   DownloadsQueuePanel,
   type DownloadsQueueRowModel,
   type QueueRowDepth,
+  type FileManifestEntry,
 } from "./downloads/DownloadsQueuePanel";
 import { DownloadsSetupDialog } from "./downloads/DownloadsSetupDialog";
 import { DownloadsTopStrip } from "./downloads/DownloadsTopStrip";
@@ -1105,6 +1106,8 @@ export function DownloadsScreen({
         item.queueLane === "waiting_on_you" && item.queueSummary
           ? item.queueSummary
           : null,
+      /* Creator-only structured file manifest — inferred from filename patterns */
+      fileManifest: buildFileManifest(item.sampleFiles),
     };
   });
   const batchCanvasPreviewItems = previewSuggestions.length
@@ -3736,6 +3739,64 @@ function fallbackQueueSummary(item: DownloadsInboxItem) {
         ? "Safe files are ready, and the unsure ones will stay behind for review."
         : "This batch is ready for a safe hand-off.";
   }
+}
+
+/** Infers file priority from filename patterns.
+ * This is a heuristic — primary/new/modified are best-effort without backend data.
+ * Standard files are everything else and shown collapsed by default in Creator. */
+function buildFileManifest(
+  sampleFiles: string[],
+): FileManifestEntry[] | undefined {
+  if (!sampleFiles.length) return undefined;
+  return sampleFiles.map((filename) => ({
+    filename,
+    priority: inferFilePriority(filename),
+  }));
+}
+
+function inferFilePriority(filename: string): FileManifestEntry["priority"] {
+  const lower = filename.toLowerCase();
+
+  // Primary: script entry points and core mod files
+  if (
+    lower.includes("script") ||
+    lower.includes("/tuning") ||
+    lower.includes("/mesh") ||
+    lower.includes("/ltsp") ||
+    lower.includes("_core") ||
+    lower.includes("_main") ||
+    lower.includes("_master") ||
+    lower.endsWith("_core.ts4script") ||
+    lower.endsWith("_main.ts4script") ||
+    lower.endsWith(".ts4script")
+  ) {
+    return "primary";
+  }
+
+  // New: current-year versions, update markers, new release indicators
+  if (
+    lower.includes("2026") ||
+    lower.includes("_new") ||
+    lower.includes("_v2026") ||
+    lower.includes("_update") ||
+    lower.includes("_fresh")
+  ) {
+    return "new";
+  }
+
+  // Modified: revision markers, version bumps, edits
+  if (
+    lower.includes("_rev") ||
+    lower.includes("_mod") ||
+    lower.includes("_v2") ||
+    lower.includes("_v3") ||
+    lower.includes("_edit") ||
+    lower.includes("_alt")
+  ) {
+    return "modified";
+  }
+
+  return "standard";
 }
 
 function queueLaneLabel(lane: DownloadQueueLane, userView: UserView) {

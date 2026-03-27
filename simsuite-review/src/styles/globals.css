@@ -5368,6 +5368,105 @@ h2,
   margin-top: 0.18rem;
 }
 
+/* Creator-only structured file manifest — shown inside queue cards in full-depth mode */
+.creator-file-manifest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  margin-top: 0.3rem;
+}
+
+/* Each priority group is a collapsible row with a toggle button */
+.creator-manifest-group-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-manifest-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.05rem 0;
+  width: 100%;
+  text-align: left;
+  font-size: 0;
+  color: inherit;
+}
+
+.creator-manifest-group-toggle:disabled {
+  cursor: default;
+}
+
+/* When a group has multiple files, the button takes on the text size so the dot + filename + count are visible */
+.creator-manifest-group-toggle:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Visible size only when the toggle is active (has multiple files) */
+.creator-manifest-group-toggle:not(:disabled) .manifest-filename,
+.creator-manifest-group-toggle:not(:disabled) .manifest-more {
+  font-size: 0.66rem;
+}
+
+/* Single-entry groups: compact inline display */
+.creator-manifest-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  padding-left: 0.25rem;
+}
+
+/* Expanded sub-list for multiple files in a group */
+.creator-manifest-sub-list {
+  display: flex;
+  flex-direction: column;
+  padding-left: 1rem;
+  gap: 0.06rem;
+}
+
+.creator-manifest-sub-entry {
+  opacity: 0.85;
+}
+
+/* Priority dot indicators */
+.manifest-dot {
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.manifest-priority-primary  { background: var(--gold); }
+.manifest-priority-new     { background: var(--green); }
+.manifest-priority-modified { background: var(--amber); }
+.manifest-priority-standard { background: var(--text-dim); opacity: 0.5; }
+
+.manifest-filename {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.66rem;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manifest-filename-sub {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+}
+
+.manifest-more {
+  color: var(--text-soft);
+  font-size: 0.62rem;
+  font-weight: 600;
+  margin-left: 0.1rem;
+}
+
 .downloads-item-meta {
   display: flex;
   flex-wrap: wrap;
