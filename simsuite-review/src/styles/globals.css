@@ -4919,6 +4919,14 @@ h2,
   gap: 0.35rem;
 }
 
+.downloads-rail-empty-lanes {
+  margin: 0;
+  padding: 0.5rem 0.58rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
 .downloads-lane-button {
   display: grid;
   gap: 0.24rem;
@@ -5008,15 +5016,6 @@ h2,
   gap: 0.34rem;
 }
 
-.downloads-stage-status {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.downloads-stage-status .ghost-chip,
-.downloads-stage-metrics .health-chip {
-  background: transparent;
 }
 
 .downloads-queue-subcopy {
@@ -5399,27 +5398,6 @@ h2,
   border-top: 1px solid var(--line);
 }
 
-.downloads-lane-header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.downloads-lane-header > div {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.downloads-lane-header strong {
-  font-size: 0.78rem;
-}
-
-.downloads-lane-header span {
-  color: var(--text-soft);
-  font-size: 0.72rem;
-  line-height: 1.35;
 }
 
 .downloads-lane-list,
@@ -7292,10 +7270,6 @@ h2,
 
   .downloads-control-grid {
     grid-template-columns: 1fr;
-  }
-
-  .downloads-stage-status {
-    justify-content: flex-start;
   }
 
   .downloads-action-dialog-grid {

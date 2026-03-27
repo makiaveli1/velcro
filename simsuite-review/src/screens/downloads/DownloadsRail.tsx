@@ -81,8 +81,18 @@ export function DownloadsRail({
 
       <div className="downloads-rail-section">
         <div className="section-label">Queue lanes</div>
-        <div className="downloads-lane-picker" role="list" aria-label="Downloads lanes">
-          {DOWNLOADS_LANE_SUMMARY_ORDER.filter((lane) => laneCounts[lane] > 0).map((lane) => {
+        {(() => {
+          const visibleLanes = DOWNLOADS_LANE_SUMMARY_ORDER.filter((lane) => laneCounts[lane] > 0);
+          if (visibleLanes.length === 0) {
+            return (
+              <p className="downloads-rail-empty-lanes">
+                No items in any lane yet.
+              </p>
+            );
+          }
+          return (
+            <div className="downloads-lane-picker" role="list" aria-label="Downloads queue lanes">
+              {visibleLanes.map((lane) => {
             const isActive = lane === activeLane;
             return (
               <button
@@ -107,7 +117,9 @@ export function DownloadsRail({
               </button>
             );
           })}
-        </div>
+          </div>
+          );
+        })()}
       </div>
 
       <div className="downloads-rail-section">
