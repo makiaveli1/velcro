@@ -32,11 +32,21 @@ Current status: Brian McGarry is in APPROVAL_QUEUED. Awaiting Likwid/Nero deploy
 ### skills.sh Integration (2026-03-27)
 skills.sh is a Vercel Labs registry for AI agent skills. Installed via `npx skills add <owner/repo@skill>`.
 Skills CLI installs to `.agents/skills/<name>/` with symlinks in `skills/` — both usable by OpenClaw.
-Installed from skills.sh:
+
+**Installed from skills.sh:**
 - `mvanhorn/last30days-skill@last30days` — deep research across Reddit/X/YouTube/TikTok/HN/Polymarket; 🟡 MEDIUM risk (Snyk npm deps); requires SCRAPECREATORS_API_KEY for full functionality; free sources (HN, Polymarket, YouTube/yt-dlp) work without key
-- `jk-0001/skills@business-plan` — business plan writing for solopreneurs; 🟢 LOW risk; Security: Safe/0 alerts
+- `jk-0001/skills@business-plan` — business plan writing for solopreneurs; 🟢 LOW risk
 - `jk-0001/skills@financial-planning` — P&L, cashflow, financial planning for solopreneurs; 🟢 LOW risk
 - `shubhamsaboo/awesome-llm-apps@meeting-notes` — structured meeting notes template; 🟢 LOW risk
+- `shajith003/awesome-claude-skills@ui-design` — single-file HTML/Tailwind UI mockups (Linear/Stripe aesthetic); 🟢 LOW risk
+- `luongnv89/skills@frontend-design` — production-grade frontend with design thinking + style guide; 🟢 LOW risk
+- `wshobson/agents@wcag-audit-patterns` — WCAG 2.2 audits with remediation guidance; 🟡 MEDIUM risk
+
+**Per-agent skill routing (symlinked into each agent's workspace/skills/):**
+- Forge (Hephaestus): ui-design, frontend-design, wcag-audit-patterns
+- Scout (Orion): last30days, business-plan
+- Mercury (Hermes): business-plan, financial-planning, meeting-notes
+- Studio (Ariadne): ui-design, frontend-design, wcag-audit-patterns
 
 ### Skills
 - Shared managed dir: `~/.openclaw/skills/` — symlinks rejected by OpenClaw security (workspace root constraint); use copy approach
