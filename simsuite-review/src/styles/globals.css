@@ -4788,6 +4788,8 @@ h2,
 .downloads-rail-shell {
   width: clamp(252px, 18vw, 286px);
   min-width: 0;
+  /* Dim sidebar so the queue area earns visual attention — infrastructure recedes */
+  background: var(--surface-2);
 }
 
 .downloads-workbench .panel-card,
@@ -4957,7 +4959,6 @@ h2,
 
 .downloads-lane-button-count {
   padding: 0.16rem 0.34rem;
-  border: 1px solid var(--line);
   color: var(--text-soft);
   font-size: 0.72rem;
 }
