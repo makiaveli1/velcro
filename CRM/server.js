@@ -3,6 +3,11 @@ const cors = require('cors');
 
 const { db, uuid } = require('./db/database');
 const llm = require('./adapters/llm');
+const graph = require('./adapters/graph');
+const messaging = require('./adapters/messaging');
+const discovery = require('./services/discovery');
+const scoring = require('./services/scoring');
+const daily = require('./services/daily');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3100);
@@ -33,6 +38,10 @@ function handleRoute(handler) {
   };
 }
 
+
+function asyncHandler(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
 function toInteger(value, defaultValue) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : defaultValue;
@@ -836,6 +845,114 @@ app.post('/api/query', handleRoute((req, res) => {
     response,
     data,
   });
+}));
+
+// ── Graph / Discovery ─────────────────────────────────────────────────────────
+
+// GET /api/graph/status
+app.get('/api/graph/status', asyncHandler(async (req, res) => {
+  const status = await graph.getStatus();
+  res.json(status);
+}));
+
+// POST /api/graph/run-discovery — trigger a discovery scan
+app.post('/api/graph/run-discovery', asyncHandler(async (req, res) => {
+  const { daysBack = 1 } = req.body;
+  const result = await discovery.runDiscovery({ daysBack });
+  res.json(result);
+}));
+
+// POST /api/discovery/seed — seed mock discovery data (dev only)
+app.post('/api/discovery/seed', asyncHandler(async (req, res) => {
+  const result = await discovery.seedMockDiscovery();
+  res.json(result);
+}));
+
+// GET /api/scoring/breakdown/:contactId — detailed score breakdown
+app.get('/api/scoring/breakdown/:contactId', asyncHandler(async (req, res) => {
+  const breakdown = scoring.getScoreBreakdown(req.params.contactId);
+  if (!breakdown) return res.status(404).json({ error: 'Contact not found' });
+  res.json(breakdown);
+}));
+
+// POST /api/scoring/recalculate — recalculate all contact scores
+app.post('/api/scoring/recalculate', asyncHandler(async (req, res) => {
+  const result = scoring.scoreAllContacts();
+  res.json({ success: true, ...result });
+}));
+
+// GET /api/attention — contacts needing attention with nudges
+app.get('/api/attention', asyncHandler(async (req, res) => {
+  const contacts = scoring.getContactsNeedingAttention();
+  const withNudges = contacts.map(c => ({
+    ...c,
+    nudge: scoring.generateNudge(c),
+  }));
+  res.json({ contacts: withNudges, total: withNudges.length });
+}));
+
+// ── Daily Digest ──────────────────────────────────────────────────────────────
+
+// POST /api/daily/run — run the full daily digest
+app.post('/api/daily/run', asyncHandler(async (req, res) => {
+  const { dryRun = false } = req.body;
+  const digest = await daily.runDailyDigest({ dryRun });
+  res.json(digest);
+}));
+
+// GET /api/daily/quick — quick digest without Graph API calls
+app.get('/api/daily/quick', asyncHandler(async (req, res) => {
+  const digest = daily.quickDigest();
+  res.json(digest);
+}));
+
+// ── Config ───────────────────────────────────────────────────────────────────
+
+// GET /api/config — get CRM config summary
+app.get('/api/config', asyncHandler(async (req, res) => {
+  const autoAdd = discovery.getAutoAddStatus();
+  const graphStatus = await graph.getStatus();
+  const msgStatus = await messaging.getStatus();
+  const draftEnabled = process.env.CRM_ENABLE_DRAFT_APPROVAL === 'true';
+
+  res.json({
+    discovery: {
+      autoAddMode: autoAdd,
+      threshold: discovery.AUTO_ADD_THRESHOLD,
+    },
+    graph: {
+      configured: graphStatus.hasConfig,
+      authenticated: graphStatus.authenticated,
+      message: graphStatus.message,
+    },
+    messaging: {
+      reachable: msgStatus.reachable,
+    },
+    emailDrafts: {
+      approvalRequired: true,
+      enabled: draftEnabled,
+    },
+  });
+}));
+
+// PUT /api/config/autoadd — enable/disable auto-add mode
+app.put('/api/config/autoadd', asyncHandler(async (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled must be a boolean' });
+  }
+  const result = await discovery.setAutoAddMode(enabled);
+  res.json(result);
+}));
+
+// ── Messaging ─────────────────────────────────────────────────────────────────
+
+// POST /api/test-message — send a test message to webchat
+app.post('/api/test-message', asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'text is required' });
+  const result = await messaging.sendToWebchat(text);
+  res.json(result);
 }));
 
 app.use((req, res) => {

@@ -1,0 +1,5 @@
+{
+  "clientId": "YOUR_AZURE_APP_CLIENT_ID",
+  "tenantId": "YOUR_AZURE_TENANT_ID",
+  "//": "See SETUP.md for full instructions on creating the Azure app registration"
+}
