@@ -42,11 +42,15 @@ Skills CLI installs to `.agents/skills/<name>/` with symlinks in `skills/` — b
 - `luongnv89/skills@frontend-design` — production-grade frontend with design thinking + style guide; 🟢 LOW risk
 - `wshobson/agents@wcag-audit-patterns` — WCAG 2.2 audits with remediation guidance; 🟡 MEDIUM risk
 
-**Per-agent skill routing (symlinked into each agent's workspace/skills/):**
-- Forge (Hephaestus): ui-design, frontend-design, wcag-audit-patterns
-- Scout (Orion): last30days, business-plan
-- Mercury (Hermes): business-plan, financial-planning, meeting-notes
-- Studio (Ariadne): ui-design, frontend-design, wcag-audit-patterns
+**Per-agent skill routing:**
+- Specialist agents access skills via `skills.load.extraDirs` pointing to `~/.openclaw/workspace/.agents/skills` — no per-agent symlinks needed
+- All skills.sh skills load globally and are available to all agents (including specialists)
+- Per-agent symlinks removed; global load supersedes per-agent routing
+
+**skills.sh resolved issues (2026-03-27):**
+- `extraDirs` in `skills.load` correctly routes all 7 installed skills to all agents
+- 3 stale skill-installer agents removed from config
+- JSON trailing-comma bug fixed (was blocking `extraDirs` from loading)
 
 ### Skills
 - Shared managed dir: `~/.openclaw/skills/` — symlinks rejected by OpenClaw security (workspace root constraint); use copy approach
