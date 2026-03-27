@@ -55,7 +55,13 @@ This status does not change until Nero personally verifies and signs off.
 - [ ] **Correct permission:** `Mail.Send.Shared` — Delegated (not `Mail.Send`)
 - [ ] `offline_access` also granted for token refresh
 - [ ] Permissions consented to by a tenant admin
-- **Evidence:** Screenshot of Graph API permissions showing `Mail.Send.Shared` under Delegated
+- **Evidence:**
+  - App name: `Verdantia CRM`
+  - Client ID: `89f55189-c396-4444-b4fe-b03301c26d68`
+  - Tenant ID: `8669ffe2-3fed-463c-a64b-eff1dd4a34c8`
+  - Object ID: `6d56d72e-bc69-4eea-bf25-13975188124b`
+  - Permissions configured: `Mail.Send.Shared`, `Mail.Read`, `Calendars.Read`, `offline_access` (Delegated)
+  - Status: ⚠️ **Permissions not yet granted — admin consent pending**
 
 ### 6. Graph Credentials Stored
 - [ ] `clientId`, `tenantId` stored in `CRM/config/graph.json`
@@ -204,7 +210,7 @@ Notes: _________________________
 | Full Access permission | 🔴 Pending |
 | Send As permission (Exchange) | 🔴 Pending |
 | Manual Send As test (OWA) | 🔴 Pending |
-| Azure app `Mail.Send.Shared` permission | 🔴 Pending |
+| Azure app `Mail.Send.Shared` permission | ✅ Registered — consent pending |
 | Graph API token + test send | 🔴 Pending |
 | First real send | 🔴 Blocked |
 

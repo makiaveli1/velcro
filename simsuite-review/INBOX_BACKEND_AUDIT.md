@@ -533,3 +533,21 @@ The core conflict/comparison engine is solid. The queue lane model is correct. T
 **Estimated total effort:** 3–5 days of Rust backend work.
 
 **After backend hardening is complete:** Re-evaluate ConflictEvidenceDisplay for broader Creator rollout, then consider shared `VersionResolution` service if Library conflict detection is planned.
+
+---
+
+## Correction (2026-03-27): Issue #4 — specialDecision Refresh
+
+**CONCERN WITHDRAWN — verified in live code.**
+
+`refresh_download_item_status` only updates `status`, but `specialDecision` is NOT persisted in the DB — it is recomputed at query time by `hydrate_download_item()` → `build_special_mod_decision_cached()`, which runs on every `list_download_items_internal()`. After any action:
+1. `apply_special_review_fix` calls `reconcile_special_mod_family` → updates `special_mod_family_state`
+2. Calls `refresh_download_item_status` → updates `status`
+3. Emits workspace domain refresh → triggers `list_download_items_internal`
+4. `hydrate_download_item` recomputes `specialDecision` with updated family state
+
+**The chain is correct.** Queue lane stays consistent.
+
+**Real gap (not originally listed):** No passive external change detection. If the Mods folder changes outside SimSuite (another tool), the watcher only picks it up on the next poll cycle — there is no real-time file system event for the Mods folder, only for Downloads.
+
+**Action item updated:** Remove "specialDecision re-evaluation on explicit refresh" from P1 hardening. Replace with: add a "Mods folder change" event or at minimum ensure polling is frequent enough for the user's use case.

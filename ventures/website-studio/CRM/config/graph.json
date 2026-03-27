@@ -1,0 +1,7 @@
+{
+  "clientId": "89f55189-c396-4444-b4fe-b03301c26d68",
+  "tenantId": "8669ffe2-3fed-463c-a64b-eff1dd4a34c8",
+  "appName": "Verdantia CRM",
+  "objectId": "6d56d72e-bc69-4eea-bf25-13975188124b",
+  "//": "App registered: 2026-03-27. Permissions: Mail.Send.Shared, Mail.Read, Calendars.Read, offline_access (Delegated)"
+}
