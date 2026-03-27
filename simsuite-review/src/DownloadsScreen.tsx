@@ -73,6 +73,7 @@ import { DownloadsProofSheet } from "./downloads/DownloadsProofSheet";
 import {
   DownloadsQueuePanel,
   type DownloadsQueueRowModel,
+  type QueueRowDepth,
 } from "./downloads/DownloadsQueuePanel";
 import { DownloadsSetupDialog } from "./downloads/DownloadsSetupDialog";
 import { DownloadsTopStrip } from "./downloads/DownloadsTopStrip";
@@ -1047,6 +1048,11 @@ export function DownloadsScreen({
         ? selectedReviewPlan?.reviewFiles.length ?? selectedResolvedItem?.reviewFileCount ?? 0
       : selectedPreview?.reviewCount ?? selectedResolvedItem?.reviewFileCount ?? 0;
   const unchangedCount = alignedCount(selectedPreview);
+
+  /** Queue card progressive disclosure depth — matches user view density contract */
+  const queueDepth: QueueRowDepth =
+    userView === "beginner" ? "compact" : userView === "power" ? "full" : "standard";
+
   const activeQueueRows: DownloadsQueueRowModel[] = activeLaneItems.map((item) => {
     const primaryBadge = primaryInboxStateBadge(item, userView);
     const rawBadges = [
@@ -1453,6 +1459,7 @@ export function DownloadsScreen({
                 rows={activeQueueRows}
                 isLoading={isLoadingInbox}
                 hasItems={Boolean(inbox?.items.length)}
+                depth={queueDepth}
                 onSelect={(itemId) => {
                   setStatusMessage(null);
                   setSelectedItemId(itemId);
@@ -1642,6 +1649,8 @@ export function DownloadsScreen({
                       )
                     : null
                 }
+                isEmpty={decisionBadges.length === 0 && visibleInspectorSignals.length === 0}
+                isLoadingDecision={isLoadingSelection}
               />
             ) : (
               <StatePanel

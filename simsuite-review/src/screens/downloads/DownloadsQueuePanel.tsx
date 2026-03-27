@@ -25,12 +25,17 @@ export interface DownloadsQueueRowModel {
   sourcePath: string;
 }
 
+/** How much detail to show in a queue item row */
+export type QueueRowDepth = "compact" | "standard" | "full";
+
 interface DownloadsQueuePanelProps {
   lane: DownloadQueueLane;
   userView: UserView;
   rows: DownloadsQueueRowModel[];
   isLoading: boolean;
   hasItems: boolean;
+  /** Controls progressive disclosure depth of queue item cards */
+  depth?: QueueRowDepth;
   onSelect: (id: number) => void;
   footer?: ReactNode;
 }
@@ -41,9 +46,15 @@ export function DownloadsQueuePanel({
   rows,
   isLoading,
   hasItems,
+  depth = "standard",
   onSelect,
   footer,
 }: DownloadsQueuePanelProps) {
+  const showBadges = depth !== "compact";
+  /** Compact mode: show a single reduced tone indicator, not full badges */
+  const showReducedIndicator = depth === "compact";
+  const showMeta = depth !== "compact";
+  const showSamples = depth === "full";
   return (
     <div className="panel-card downloads-queue-panel workbench-panel">
       <div className="panel-heading">
@@ -82,25 +93,35 @@ export function DownloadsQueuePanel({
                     >
                       <div className="downloads-item-main">
                         <strong>{row.title}</strong>
-                        <span>{row.meta}</span>
+                        {showMeta ? <span>{row.meta}</span> : null}
                         <div className="downloads-item-samples">{row.summary}</div>
-                        {row.samples ? (
+                        {showSamples && row.samples ? (
                           <div className="downloads-item-samples downloads-item-samples-muted">
                             {row.samples}
                           </div>
                         ) : null}
                       </div>
 
-                      <div className="downloads-item-meta">
-                        {row.badges.map((badge) => (
+                      {showReducedIndicator && row.badges.length > 0 ? (
+                        <div className="downloads-item-meta">
                           <span
-                            key={`${row.id}-${badge.label}`}
-                            className={`confidence-badge ${badge.tone}`}
+                            className={`confidence-badge ${row.badges[0].tone} downloads-item-reduced-badge`}
                           >
-                            {badge.label}
+                            {row.badges[0].label}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      ) : showBadges ? (
+                        <div className="downloads-item-meta">
+                          {row.badges.map((badge) => (
+                            <span
+                              key={`${row.id}-${badge.label}`}
+                              className={`confidence-badge ${badge.tone}`}
+                            >
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </m.button>
                   ))}
                 </m.div>

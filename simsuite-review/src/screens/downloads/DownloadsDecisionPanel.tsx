@@ -38,6 +38,10 @@ interface DownloadsDecisionPanelProps {
   onOpenProof: () => void;
   proofSummary: string;
   idleNote?: string | null;
+  /** Collapses the panel to a single-line summary when there is no meaningful decision content */
+  isEmpty?: boolean;
+  /** Guard: prevent empty-state collapse before decision data has been computed */
+  isLoadingDecision?: boolean;
 }
 
 export function DownloadsDecisionPanel({
@@ -58,135 +62,159 @@ export function DownloadsDecisionPanel({
   onOpenProof,
   proofSummary,
   idleNote,
+  isEmpty = false,
+  isLoadingDecision = false,
 }: DownloadsDecisionPanelProps) {
+  /* Never collapse to empty state while data is still being computed */
+  const showCollapsed = !isLoadingDecision && isEmpty;
   return (
     <div className="downloads-decision-panel">
-      <m.div
-        className="downloads-decision-header"
-        layout
-        transition={downloadsSelectionTransition}
-      >
-        <div className="downloads-decision-copy">
-          <p className="eyebrow">
-            {userView === "beginner" ? "Selected batch" : "Selected inbox item"}
-          </p>
-          <h2>{title}</h2>
-          <p className="workspace-toolbar-copy">{summary}</p>
-        </div>
-
-        <div className="downloads-decision-badges">
+      {showCollapsed ? (
+        /* Collapsed empty state — single line, accessible, keyboard-safe */
+        <div
+          className="downloads-decision-empty"
+          role="status"
+          aria-live="polite"
+          aria-label="Decision panel — no content"
+        >
+          <span className="downloads-decision-empty-title">{title}</span>
           <span className="ghost-chip">{laneLabel}</span>
-          {badges.map((badge) => (
-            <span
-              key={`${title}-${badge.label}`}
-              className={`confidence-badge ${badge.tone}`}
-            >
-              {badge.label}
-            </span>
-          ))}
+          <span className="downloads-decision-empty-note">
+            {userView === "beginner"
+              ? "Nothing needs a decision here yet."
+              : "No decision content for this item."}
+          </span>
         </div>
-      </m.div>
-
-      {signals.length ? (
-        <div className="downloads-signal-strip">
-          {signals.map((signal) => (
-            <div
-              key={signal.id}
-              className={`downloads-signal-card downloads-signal-card-${signal.tone}`}
-            >
-              <span className="downloads-signal-label">{signal.label}</span>
-              <strong>{signal.title}</strong>
-              <span>{signal.body}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <m.section
-        className="downloads-next-step-card downloads-decision-card"
-        layout
-        transition={downloadsSelectionTransition}
-      >
-        <AnimatePresence mode="wait" initial={false}>
+      ) : (
+        <>
           <m.div
-            key={`${title}-${nextStepTitle ?? "idle"}`}
-            className="downloads-next-step-copy"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            className="downloads-decision-header"
+            layout
             transition={downloadsSelectionTransition}
           >
-            <p className="eyebrow">
-              {userView === "beginner" ? "Safe next step" : "Next move"}
-            </p>
-            <strong className="downloads-next-step-title">
-              {nextStepTitle ?? "Pick a batch to continue"}
-            </strong>
-            <p className="downloads-next-step-description">
-              {nextStepDescription ??
-                "The calmest next move appears here once a batch is selected."}
-            </p>
-          </m.div>
-        </AnimatePresence>
+            <div className="downloads-decision-copy">
+              <p className="eyebrow">
+                {userView === "beginner" ? "Selected batch" : "Selected inbox item"}
+              </p>
+              <h2>{title}</h2>
+              <p className="workspace-toolbar-copy">{summary}</p>
+            </div>
 
-        <div className="downloads-next-step-actions">
-          {primaryActionLabel && onPrimaryAction ? (
-            <m.button
-              type="button"
-              className="primary-action"
-              onClick={onPrimaryAction}
-              disabled={primaryActionDisabled}
-              whileHover={primaryActionDisabled ? undefined : hoverLift}
-              whileTap={primaryActionDisabled ? undefined : tapPress}
-            >
-              <Workflow size={14} strokeWidth={2} />
-              {primaryActionLabel}
-            </m.button>
+            <div className="downloads-decision-badges">
+              <span className="ghost-chip">{laneLabel}</span>
+              {badges.map((badge) => (
+                <span
+                  key={`${title}-${badge.label}`}
+                  className={`confidence-badge ${badge.tone}`}
+                >
+                  {badge.label}
+                </span>
+              ))}
+            </div>
+          </m.div>
+
+          {signals.length ? (
+            <div className="downloads-signal-strip">
+              {signals.map((signal) => (
+                <div
+                  key={signal.id}
+                  className={`downloads-signal-card downloads-signal-card-${signal.tone}`}
+                >
+                  <span className="downloads-signal-label">{signal.label}</span>
+                  <strong>{signal.title}</strong>
+                  <span>{signal.body}</span>
+                </div>
+              ))}
+            </div>
           ) : null}
 
-          <m.button
-            type="button"
-            className="secondary-action"
-            onClick={onSecondaryAction}
-            disabled={secondaryActionDisabled}
-            whileHover={secondaryActionDisabled ? undefined : hoverLift}
-            whileTap={secondaryActionDisabled ? undefined : tapPress}
+          <m.section
+            className="downloads-next-step-card downloads-decision-card"
+            layout
+            transition={downloadsSelectionTransition}
           >
-            {secondaryActionLabel}
-          </m.button>
-        </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={`${title}-${nextStepTitle ?? "idle"}`}
+                className="downloads-next-step-copy"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={downloadsSelectionTransition}
+              >
+                <p className="eyebrow">
+                  {userView === "beginner" ? "Safe next step" : "Next move"}
+                </p>
+                <strong className="downloads-next-step-title">
+                  {nextStepTitle ?? "Pick a batch to continue"}
+                </strong>
+                <p className="downloads-next-step-description">
+                  {nextStepDescription ??
+                    "The calmest next move appears here once a batch is selected."}
+                </p>
+              </m.div>
+            </AnimatePresence>
 
-        {idleNote ? <div className="downloads-inspector-note">{idleNote}</div> : null}
-      </m.section>
+            <div className="downloads-next-step-actions">
+              {primaryActionLabel && onPrimaryAction ? (
+                <m.button
+                  type="button"
+                  className="primary-action"
+                  onClick={onPrimaryAction}
+                  disabled={primaryActionDisabled}
+                  whileHover={primaryActionDisabled ? undefined : hoverLift}
+                  whileTap={primaryActionDisabled ? undefined : tapPress}
+                >
+                  <Workflow size={14} strokeWidth={2} />
+                  {primaryActionLabel}
+                </m.button>
+              ) : null}
 
-      <m.section
-        className="downloads-decision-proof"
-        layout
-        transition={downloadsSelectionTransition}
-      >
-        <div className="downloads-decision-proof-copy">
-          <p className="eyebrow">
-            {userView === "beginner" ? "Need the full story?" : "Proof on demand"}
-          </p>
-          <strong>
-            {userView === "power"
-              ? "Open the full receipt trail"
-              : "Open the calmer proof sheet"}
-          </strong>
-          <p>{proofSummary}</p>
-        </div>
+              <m.button
+                type="button"
+                className="secondary-action"
+                onClick={onSecondaryAction}
+                disabled={secondaryActionDisabled}
+                whileHover={secondaryActionDisabled ? undefined : hoverLift}
+                whileTap={secondaryActionDisabled ? undefined : tapPress}
+              >
+                {secondaryActionLabel}
+              </m.button>
+            </div>
 
-        <m.button
-          type="button"
-          className="secondary-action"
-          onClick={onOpenProof}
-          whileHover={hoverLift}
-          whileTap={tapPress}
-        >
-          <Eye size={14} strokeWidth={2} />
-          Open proof
-        </m.button>
-      </m.section>
+            {idleNote ? <div className="downloads-inspector-note">{idleNote}</div> : null}
+          </m.section>
+
+          <m.section
+            className="downloads-decision-proof"
+            layout
+            transition={downloadsSelectionTransition}
+          >
+            <div className="downloads-decision-proof-copy">
+              <p className="eyebrow">
+                {userView === "beginner" ? "Need the full story?" : "Proof on demand"}
+              </p>
+              <strong>
+                {userView === "power"
+                  ? "Open the full receipt trail"
+                  : "Open the calmer proof sheet"}
+              </strong>
+              <p>{proofSummary}</p>
+            </div>
+
+            <m.button
+              type="button"
+              className="secondary-action"
+              onClick={onOpenProof}
+              whileHover={hoverLift}
+              whileTap={tapPress}
+            >
+              <Eye size={14} strokeWidth={2} />
+              Open proof
+            </m.button>
+          </m.section>
+        </>
+      )}
     </div>
   );
 }

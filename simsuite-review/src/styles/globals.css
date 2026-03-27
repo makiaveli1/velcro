@@ -4887,6 +4887,17 @@ h2,
   gap: 0.42rem;
 }
 
+/* Ghost chips in the rail are informational metadata — borders add noise without function */
+.downloads-rail-shell .ghost-chip {
+  border-color: transparent;
+}
+
+/* Compact card reduced badge — single tone indicator for Casual view */
+.downloads-item-reduced-badge {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.3rem;
+}
+
 .downloads-search-input {
   display: flex;
   align-items: center;
@@ -5326,6 +5337,26 @@ h2,
   display: grid;
   gap: 0.65rem;
   min-height: 0;
+}
+
+.downloads-decision-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.downloads-decision-empty-title {
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.downloads-decision-empty-note {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-left: auto;
 }
 
 .downloads-decision-header {
