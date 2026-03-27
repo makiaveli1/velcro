@@ -464,7 +464,7 @@ function generateMockDiscovery() {
     { email: 'james.k@freelance.dev', name: 'James K.', source: 'calendar_attendee', signal_count: 3, signal_quality: 'medium', meeting_ref: 'mock-meeting-1', last_seen: new Date().toISOString() },
     { email: 'fiona.kane@kaneventdesign.com', name: 'Fiona Kane', source: 'email_sender', signal_count: 2, signal_quality: 'medium', thread_ref: 'mock-thread-2', last_seen: new Date().toISOString() },
     { email: 'noreply@newsletter.ie', name: 'Newsletter', source: 'email_sender', signal_count: 12, signal_quality: 'low', thread_ref: 'mock-thread-3', last_seen: new Date().toISOString() },
-    { email: 'internal@verdantia.ie', name: 'Internal', source: 'email_sender', signal_count: 20, signal_quality: 'low', thread_ref: 'mock-thread-4', last_seen: new Date().toISOString() },
+    { email: 'internal@verdantia.it', name: 'Internal', source: 'email_sender', signal_count: 20, signal_quality: 'low', thread_ref: 'mock-thread-4', last_seen: new Date().toISOString() },
   ];
   return contacts;
 }
