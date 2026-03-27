@@ -91,10 +91,10 @@ async function getDeviceCode(config) {
  * Step 2: Poll for token using device code
  * Returns { access_token, refresh_token, expires_in }
  */
-async function pollForToken(deviceCode, intervalMs = 5000) {
+async function pollForToken(deviceCode, config, intervalMs = 5000) {
   const params = new url.URLSearchParams({
     grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-    client_id: process.env.GRAPH_CLIENT_ID,
+    client_id: config.clientId,
     device_code: deviceCode,
   });
 
@@ -104,7 +104,7 @@ async function pollForToken(deviceCode, intervalMs = 5000) {
     const res = await httpRequest({
       protocol: 'https:',
       hostname: 'login.microsoftonline.com',
-      path: `/${process.env.GRAPH_TENANT_ID}/oauth2/v2.0/token`,
+      path: `/${config.tenantId}/oauth2/v2.0/token`,
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     }, params.toString());
@@ -411,7 +411,7 @@ async function setupInteractive() {
   console.log(`║                                                           ║`);
   console.log('╚══════════════════════════════════════════════════════════╝\n');
 
-  const token = await pollForToken(dc.device_code, dc.interval * 1000 || 5000);
+  const token = await pollForToken(dc.device_code, config, dc.interval * 1000 || 5000);
   console.log('[graph] Authentication successful!');
   console.log(`[graph] Token acquired. Expires in ${Math.round((token.expires_at - Date.now()) / 60000)} minutes.`);
   return token;
