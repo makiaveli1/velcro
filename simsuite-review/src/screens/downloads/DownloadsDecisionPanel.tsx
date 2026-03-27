@@ -42,6 +42,10 @@ interface DownloadsDecisionPanelProps {
   isEmpty?: boolean;
   /** Guard: prevent empty-state collapse before decision data has been computed */
   isLoadingDecision?: boolean;
+  /** Backend-computed version comparison — read only, displayed in Creator conflict evidence */
+  versionResolution?: VersionResolution | null;
+  /** Backend-computed special decision — read only, displayed in Creator conflict evidence */
+  specialDecision?: SpecialModDecision | null;
 }
 
 export function DownloadsDecisionPanel({
@@ -64,6 +68,8 @@ export function DownloadsDecisionPanel({
   idleNote,
   isEmpty = false,
   isLoadingDecision = false,
+  versionResolution = null,
+  specialDecision = null,
 }: DownloadsDecisionPanelProps) {
   /* Never collapse to empty state while data is still being computed */
   const showCollapsed = !isLoadingDecision && isEmpty;

@@ -1661,6 +1661,8 @@ export function DownloadsScreen({
                 }
                 isEmpty={decisionBadges.length === 0 && visibleInspectorSignals.length === 0}
                 isLoadingDecision={isLoadingSelection}
+                versionResolution={selectedVersionResolution}
+                specialDecision={selectedSpecialDecision}
               />
             ) : (
               <StatePanel
@@ -3894,7 +3896,7 @@ function friendlyDependencyState(status: string) {
     case "missing":
       return "Missing";
     case "conflict":
-      return "Conflict found";
+      return "Needs review";
     default:
       return status.replace(/[_-]+/g, " ");
   }
