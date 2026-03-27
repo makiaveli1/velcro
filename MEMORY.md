@@ -29,10 +29,19 @@ A full lead generation + website concept studio system has been built inside Ope
 
 Current status: Brian McGarry is in APPROVAL_QUEUED. Awaiting Likwid/Nero deployment approval. Larkfield and CPK parked (phone-only contacts, email-only policy).
 
+### skills.sh Integration (2026-03-27)
+skills.sh is a Vercel Labs registry for AI agent skills. Installed via `npx skills add <owner/repo@skill>`.
+Skills CLI installs to `.agents/skills/<name>/` with symlinks in `skills/` — both usable by OpenClaw.
+Installed from skills.sh:
+- `mvanhorn/last30days-skill@last30days` — deep research across Reddit/X/YouTube/TikTok/HN/Polymarket; 🟡 MEDIUM risk (Snyk npm deps); requires SCRAPECREATORS_API_KEY for full functionality; free sources (HN, Polymarket, YouTube/yt-dlp) work without key
+- `jk-0001/skills@business-plan` — business plan writing for solopreneurs; 🟢 LOW risk; Security: Safe/0 alerts
+- `jk-0001/skills@financial-planning` — P&L, cashflow, financial planning for solopreneurs; 🟢 LOW risk
+- `shubhamsaboo/awesome-llm-apps@meeting-notes` — structured meeting notes template; 🟢 LOW risk
+
 ### Skills
 - Shared managed dir: `~/.openclaw/skills/` — symlinks rejected by OpenClaw security (workspace root constraint); use copy approach
 - Skills copied to `~/.openclaw/skills/`: summarize, skill-vetter
-- Skills in workspace `skills/`: github, ~~openclaw-github-assistant~~ (DELETED — credential harvesting patterns), agent-builder, automation-workflows, office, openclaw-security-audit, task-experience-logger, session-logs, find-skills-skill, skill-creator, healthcheck, node-connect, tmux, weather
+- Skills in workspace `skills/`: github, ~~openclaw-github-assistant~~ (DELETED — credential harvesting patterns), agent-builder, automation-workflows, office, openclaw-security-audit, task-experience-logger, session-logs, find-skills-skill, skill-creator, healthcheck, node-connect, tmux, weather, plus skills.sh installs above
 
 ### GitHub
 - `gh` CLI v2.45.0 installed and authenticated
