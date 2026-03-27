@@ -85,6 +85,7 @@ import {
   capRowBadges,
   fallbackDownloadsLane,
   pickInitialDownloadsLane,
+  downloadsLaneHint,
   viewModeDownloadsFlags,
 } from "./downloads/downloadsDisplay";
 
@@ -1099,6 +1100,11 @@ export function DownloadsScreen({
       tone: inboxItemTone(item),
       selected: selectedItemId === item.id,
       sourcePath: item.sourcePath,
+      /* Per-item waiting reason — shown inline for Seasoned users in "waiting_on_you" lane */
+      waitingReason:
+        item.queueLane === "waiting_on_you" && item.queueSummary
+          ? item.queueSummary
+          : null,
     };
   });
   const batchCanvasPreviewItems = previewSuggestions.length
@@ -1347,6 +1353,7 @@ export function DownloadsScreen({
         isRefreshing={isRefreshing}
         isLoading={isLoadingInbox}
         reviewActionLabel={reviewLabel(userView)}
+        userView={userView}
         onRefresh={() => void handleRefresh()}
         onOpenReview={() => onNavigate("review")}
       />

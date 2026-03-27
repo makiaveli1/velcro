@@ -4,6 +4,8 @@
 
 **No outbound communication of any kind is sent without explicit written approval from Nero.**
 
+**Email cannot be sent until `studio@verdantia.it` passes the full Mailbox Readiness Checklist in `MAILBOX_SETUP.md`.** Outreach is hard-blocked until that checklist is fully satisfied.
+
 **Mercury drafts. Mercury prepares. Mercury does NOT send anything without explicit, separate Nero approval to deploy.**
 
 This applies to:
@@ -42,7 +44,7 @@ These do NOT require approval because they are internal research and preparation
 
 | Channel | Status | Notes |
 |---|---|---|
-| Email (via Gmail API) | ✅ Allowed with Nero content approval + deployment approval | Must use approved content with business-specific details |
+| Email (via Microsoft Graph — `studio@verdantia.it`) | ✅ Allowed with Nero approval + mailbox readiness checklist complete | Must use `studio@verdantia.it` shared mailbox via Graph API |
 | LinkedIn | ✅ Allowed with Nero content approval + deployment approval | Only for B2B contexts; no InMail spam |
 | Web contact form (if existing) | ✅ Allowed with approval | Only if already public on their site |
 | Twitter/X DMs | ❌ Not used | Not a primary outreach channel |
@@ -158,6 +160,9 @@ Businesses on the suppression list are never contacted, regardless of score or q
 ## Nero's Approval Checklist
 
 Before approving any lead for outreach, Nero confirms:
+
+- [ ] **Mailbox Readiness Checklist is complete** (see `MAILBOX_SETUP.md`) — email cannot be sent until this is done
+- [ ] All pipeline stages are complete and artifacts are present
 
 - [ ] All pipeline stages are complete and artifacts are present
 - [ ] The pitch is specific to this business — not generic template language

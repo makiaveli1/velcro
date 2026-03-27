@@ -23,6 +23,8 @@ export interface DownloadsQueueRowModel {
   tone: "good" | "medium" | "low" | "neutral";
   selected: boolean;
   sourcePath: string;
+  /** Short per-item explanation — shown inline on Seasoned queue cards in "waiting_on_you" lane */
+  waitingReason?: string | null;
 }
 
 /** How much detail to show in a queue item row */
@@ -55,6 +57,8 @@ export function DownloadsQueuePanel({
   const showReducedIndicator = depth === "compact";
   const showMeta = depth !== "compact";
   const showSamples = depth === "full";
+  /** Seasoned (standard) cards: show per-item waiting reason inline */
+  const showWaitingReason = depth === "standard";
   return (
     <div className="panel-card downloads-queue-panel workbench-panel">
       <div className="panel-heading">
@@ -95,6 +99,11 @@ export function DownloadsQueuePanel({
                         <strong>{row.title}</strong>
                         {showMeta ? <span>{row.meta}</span> : null}
                         <div className="downloads-item-samples">{row.summary}</div>
+                        {showWaitingReason && row.waitingReason ? (
+                          <div className="downloads-item-waiting-reason">
+                            {row.waitingReason}
+                          </div>
+                        ) : null}
                         {showSamples && row.samples ? (
                           <div className="downloads-item-samples downloads-item-samples-muted">
                             {row.samples}

@@ -1,4 +1,5 @@
 import { RefreshCw, ShieldAlert } from "lucide-react";
+import type { UserView } from "../../lib/types";
 
 interface DownloadsTopStripProps {
   statusMessage: string | null;
@@ -11,6 +12,8 @@ interface DownloadsTopStripProps {
   isRefreshing: boolean;
   isLoading: boolean;
   reviewActionLabel: string;
+  /** Controls pill density: "power" keeps all chips; "beginner"/"standard" get compact + hover drawer */
+  userView: UserView;
   onRefresh: () => void;
   onOpenReview: () => void;
 }
@@ -26,9 +29,13 @@ export function DownloadsTopStrip({
   isRefreshing,
   isLoading,
   reviewActionLabel,
+  userView,
   onRefresh,
   onOpenReview,
 }: DownloadsTopStripProps) {
+  /* Creator: show full 4-chip status — they want system transparency */
+  const showFullPills = userView === "power";
+
   return (
     <div className="slim-strip downloads-top-strip">
       <div className="slim-strip-group">
@@ -36,10 +43,11 @@ export function DownloadsTopStrip({
           <span className="health-chip is-warn">{statusMessage}</span>
         ) : errorMessage ? (
           <span className="health-chip is-danger">{errorMessage}</span>
-        ) : (
+        ) : showFullPills ? (
+          /* Creator: all four status pills always visible */
           <>
             <span className="health-chip is-good">
-              <span className="health-chip-dot"></span>
+              <span className="health-chip-dot" />
               {totalItems.toLocaleString()} items
             </span>
             <span className="health-chip">{readyCount.toLocaleString()} ready</span>
@@ -50,6 +58,29 @@ export function DownloadsTopStrip({
               {blockedCount.toLocaleString()} blocked
             </span>
           </>
+        ) : (
+          /* Casual / Seasoned: compact summary pill — full breakdown on hover/focus */
+          <div
+            className="status-summary-trigger"
+            tabIndex={0}
+            aria-label={`${totalItems} total items: ${readyCount} ready, ${waitingCount} waiting, ${blockedCount} blocked. Click or tab to expand.`}
+            role="button"
+          >
+            <span className="health-chip is-good">
+              <span className="health-chip-dot" />
+              {totalItems.toLocaleString()} items
+            </span>
+            {/* Tooltip drawer — shown on hover or focus-within (keyboard accessible) */}
+            <div className="status-summary-tooltip" aria-hidden="true">
+              <span className="health-chip">{readyCount.toLocaleString()} ready</span>
+              <span className={`health-chip${waitingCount > 0 ? " is-warn" : ""}`}>
+                {waitingCount.toLocaleString()} waiting
+              </span>
+              <span className={`health-chip${blockedCount > 0 ? " is-danger" : ""}`}>
+                {blockedCount.toLocaleString()} blocked
+              </span>
+            </div>
+          </div>
         )}
       </div>
 

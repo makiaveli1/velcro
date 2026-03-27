@@ -934,6 +934,54 @@ h2,
   gap: 0.25rem;
 }
 
+/* Status summary trigger — compact pill for Casual/Seasoned that expands on hover/focus */
+.status-summary-trigger {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Tooltip drawer: hidden by default, shown on hover or keyboard focus */
+.status-summary-trigger .status-summary-tooltip {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+  border-radius: 2px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.12s ease;
+}
+
+/* Show tooltip on hover or keyboard focus */
+.status-summary-trigger:hover .status-summary-tooltip,
+.status-summary-trigger:focus-within .status-summary-tooltip {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Touch devices: hover is sticky after first tap — suppress hover-triggered tooltip.
+   Users get the full summary via the trigger's aria-label instead. */
+@media (hover: none), (pointer: coarse) {
+  .status-summary-trigger .status-summary-tooltip {
+    display: none;
+  }
+}
+
+/* Focus ring on keyboard nav — subtle, not distracting */
+.status-summary-trigger:focus-visible .health-chip {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+
 /* Desktop-First Workbench: Command Board */
 .command-board {
   display: grid;
@@ -5311,6 +5359,15 @@ h2,
   font-size: 0.69rem;
 }
 
+/* Seasoned inline explanation: short, scannable reason why an item is waiting */
+.downloads-item-waiting-reason {
+  color: var(--amber);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 0.18rem;
+}
+
 .downloads-item-meta {
   display: flex;
   flex-wrap: wrap;
@@ -5348,15 +5405,26 @@ h2,
   font-size: 0.78rem;
 }
 
+/* Title takes remaining space; truncates cleanly so chip+note stay tight on the right */
 .downloads-decision-empty-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
   color: var(--text-soft);
 }
 
+/* Note stays tight to the chip — they form the context+state pair, not the title */
 .downloads-decision-empty-note {
   color: var(--text-dim);
   font-size: 0.75rem;
-  margin-left: auto;
+  flex-shrink: 0;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .downloads-decision-header {

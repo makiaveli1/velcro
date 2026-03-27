@@ -38,6 +38,7 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 | `PIPELINE.md` | 11-stage workflow from lead found to won/lost |
 | `OUTREACH_POLICY.md` | Hard rules on what we do and don't do externally |
 | `CHANNEL_POLICY.md` | Approved channels, contact point standards, risky lead rules |
+| `MAILBOX_SETUP.md` | Shared mailbox readiness checklist — outbound is blocked until checklist is complete |
 | `DESIGN_STANDARD.md` | What Forge must deliver in every concept |
 | `CRM/INDEX.md` | Master lead tracking |
 | `CRM/SUPPRESSION.md` | Do-not-contact list |
@@ -88,6 +89,7 @@ Nothing goes out without approval. Nothing goes out without being specific. Noth
 - **Quality over quantity** — a single excellent lead is worth more than 50 mediocre ones
 - **Respect over spam** — follow-up limits are hard stops
 - **Channel discipline (Round 1)** — email only, no LinkedIn, no contact forms without explicit approval
+- **Outbound blocked until mailbox ready** — email cannot be sent until `studio@verdantia.it` passes the Mailbox Readiness Checklist in `MAILBOX_SETUP.md`
 
 ---
 
