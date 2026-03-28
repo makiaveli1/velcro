@@ -13,6 +13,86 @@ const daily = require('./services/daily');
 const summaries = require('./services/summaries');
 const drafts = require('./services/drafts');
 
+// ── Shared Outbound Readiness ────────────────────────────────────────────────
+
+// System-level gates that block deployment regardless of human approval
+async function getSystemReadiness() {
+  const blockers = [];
+  const warnings = [];
+
+  // 1. Mailbox readiness — check Graph token validity
+  let mailboxReady = false;
+  try {
+    const token = graph.getAccessToken();
+    if (token) {
+      const tokenPath = path.join(__dirname, 'config', 'graph_token.json');
+      if (fs.existsSync(tokenPath)) {
+        const tok = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+        const expiresAt = tok.expires_at;
+        const nowMs = Date.now();
+        const expired = expiresAt > 1e12 ? nowMs > expiresAt : nowMs > expiresAt * 1000;
+        mailboxReady = !expired;
+      }
+    }
+  } catch (_) {
+    mailboxReady = false;
+  }
+  if (!mailboxReady) blockers.push('mailbox');
+
+  // 2. Policy readiness — always blocked until outreach policy is defined
+  blockers.push('policy');
+
+  return { mailboxReady, policyReady: false, blockers, warnings };
+}
+
+function getLeadBlockers(leadDir) {
+  const blockers = [];
+  const warnings = [];
+
+  // Check suppression file
+  const suppressPath = path.join(leadDir, 'SUPPRESSED.md');
+  if (fs.existsSync(suppressPath)) {
+    blockers.push('suppression');
+    return { blockers, warnings };
+  }
+
+  // Check freshness — if pitch was created > 14 days ago, flag freshness warning
+  const pitchPath = path.join(leadDir, 'PITCH.md');
+  if (fs.existsSync(pitchPath)) {
+    const pitchStat = fs.statSync(pitchPath);
+    const pitchAgeDays = (Date.now() - new Date(pitchStat.mtime).getTime()) / (1000 * 60 * 60 * 24);
+    if (pitchAgeDays > 14) {
+      warnings.push(`Pitch is ${Math.floor(pitchAgeDays)} days old — search/listings data may be stale. Verify current state before sending.`);
+    }
+  }
+
+  return { blockers, warnings };
+}
+
+async function getQueueReadiness() {
+  const system = await getSystemReadiness();
+  return {
+    mailboxReady: system.mailboxReady,
+    policyReady: system.policyReady,
+    systemBlockers: system.blockers,
+    systemWarnings: system.warnings,
+  };
+}
+
+// ── Timeline writeback helper ─────────────────────────────────────────────────
+function appendTimeline(leadDir, entry) {
+  const timelinePath = path.join(leadDir, 'TIMELINE.md');
+  const header = `## ${entry.timestamp}\n**Action:** ${entry.action}\n**Actor:** ${entry.actor}\n`;
+  const fromLine = entry.from ? `\n**From:** ${entry.from}\n` : '\n';
+  const notes = entry.notes ? `\n**Notes:** ${entry.notes}\n` : '\n';
+  const block = `${header}${fromLine}${notes}\n`;
+  if (fs.existsSync(timelinePath)) {
+    fs.appendFileSync(timelinePath, block, 'utf8');
+  } else {
+    fs.writeFileSync(timelinePath, `# ${entry.leadName} — Outbound Timeline\n\n${block}`, 'utf8');
+  }
+}
+
 const LEADS_DIR = path.resolve(__dirname, '../LEADS');
 
 const app = express();
@@ -958,10 +1038,20 @@ app.get('/api/drafts/tones', (req, res) => {
 
 // ── Outbound Queue ───────────────────────────────────────────────────────────
 
+// GET /api/outbound/readiness — system-level send gates
+app.get('/api/outbound/readiness', asyncHandler(async (req, res) => {
+  const result = await getQueueReadiness();
+  res.json(result);
+}));
+
 // GET /api/outbound/queue — scan LEADS/ for leads with PITCH.md
-app.get('/api/outbound/queue', handleRoute((req, res) => {
+app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
   const items = [];
   if (!fs.existsSync(LEADS_DIR)) return res.json({ items: [], count: 0 });
+
+  // Get system-level readiness once for all items
+  const readiness = await getQueueReadiness();
+  const { mailboxReady, policyReady } = readiness;
 
   const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
     fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
@@ -980,21 +1070,70 @@ app.get('/api/outbound/queue', handleRoute((req, res) => {
       const stageMatch = statusContent.match(/\*\*Current Stage:\*\*\s*(\S+)/);
       const scoreMatch = statusContent.match(/\*\*Score:\*\*\s*(\d+)/);
       const updatedMatch = statusContent.match(/lastUpdated:\s*(\S+)/);
-      if (stageMatch) stage = stageMatch[1].replace(/,/g, '');
+      if (stageMatch) stage = stageMatch[1].replace(/,/g, '').toLowerCase().replace(/[_\s-]+/g, '_');
       if (scoreMatch) score = Number(scoreMatch[1]);
       if (updatedMatch) lastUpdated = updatedMatch[1];
     }
 
-    // Read OUTREACH.json for outreachStage
+    // Read OUTREACH.json — migrate old schema on read, initialize new-schema default if no file
     const outreachPath = path.join(leadDir, 'OUTREACH.json');
-    let outreachStage = stage; // fallback to STATUS.md stage
+    let outreachStage = stage;
     let sentAt = null;
+    let contentApproval = null;
+    let contentApprovedBy = null;
+    let contentApprovedAt = null;
+    let deploymentApproval = null;
+    let deploymentApprovedBy = null;
+    let deploymentApprovedAt = null;
+    let deploymentBlockedBy = [];
+    let warnings = [];
+    let lastAction = null;
+    let lastActionAt = null;
+
     if (fs.existsSync(outreachPath)) {
       try {
         const outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+
+        // Backward-compat migration for old schema (only set if not already present)
+        if (outreach.outreachStage === 'approved') {
+          if (outreach.contentApproval == null) outreach.contentApproval = 'approved';
+          if (outreach.deploymentApproval == null) outreach.deploymentApproval = 'pending';
+          outreach.outreachStage = 'content_approved';
+        } else if (outreach.outreachStage === 'approval_queued') {
+          if (outreach.contentApproval == null) outreach.contentApproval = 'pending';
+          outreach.outreachStage = 'awaiting_content_approval';
+        }
+        // 'sent', 'rejected' etc. — keep as terminal, no migration needed
+
         outreachStage = outreach.outreachStage || stage;
         sentAt = outreach.sentAt || null;
+        contentApproval = outreach.contentApproval || null;
+        contentApprovedBy = outreach.contentApprovedBy || null;
+        contentApprovedAt = outreach.contentApprovedAt || null;
+        deploymentApproval = outreach.deploymentApproval || null;
+        deploymentApprovedBy = outreach.deploymentApprovedBy || null;
+        deploymentApprovedAt = outreach.deploymentApprovedAt || null;
+        deploymentBlockedBy = Array.isArray(outreach.deploymentBlockedBy) ? outreach.deploymentBlockedBy : [];
+        warnings = Array.isArray(outreach.warnings) ? outreach.warnings : [];
+        lastAction = outreach.lastAction || null;
+        lastActionAt = outreach.lastActionAt || null;
       } catch (_) {}
+    } else {
+      // No OUTREACH.json — initialize new-schema defaults from STATUS.md stage
+      const s = stage || 'unknown';
+      if (s === 'approved') {
+        outreachStage = 'content_approved';
+        contentApproval = 'approved';
+      } else if (s === 'approval_queued' || s === 'awaiting_content_approval') {
+        outreachStage = 'awaiting_content_approval';
+        contentApproval = 'pending';
+      } else if (['sent', 'failed', 'suppressed', 'rejected'].includes(s)) {
+        outreachStage = s;
+      } else {
+        outreachStage = 'draft_ready';
+        contentApproval = null;
+      }
+      deploymentApproval = null;
     }
 
     // Read LEAD_RECORD.md for email
@@ -1016,7 +1155,6 @@ app.get('/api/outbound/queue', handleRoute((req, res) => {
     if (hookMatch) hookType = hookMatch[1].trim();
 
     // Extract ## Email Draft section
-    // Structure: ## Email Draft, **To:**, **Subject:**, ---, [body], ---, ## Pitch Notes
     const emailDraftIdx = pitchContent.indexOf('## Email Draft');
     if (emailDraftIdx >= 0) {
       const afterDraft = pitchContent.substring(emailDraftIdx);
@@ -1031,31 +1169,73 @@ app.get('/api/outbound/queue', handleRoute((req, res) => {
       }
     }
 
+    // Brian-specific warning: check for St. Brendan's or Walkinstown in pitch body
+    if (dir === 'brian-mcgarry-plumber') {
+      if (pitchContent.includes("St. Brendan's") || pitchContent.includes('Walkinstown')) {
+        if (!warnings.find(w => w.includes("St. Brendan's") || w.includes('Walkinstown'))) {
+          warnings.push("Pitch contains address reference (St. Brendan's Crescent, Walkinstown) — verify this is intentional and accurate before sending.");
+        }
+      }
+    }
+
     const name = dir.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    // Per-lead blockers + merge with system blockers
+    const { blockers: leadBlockers, warnings: leadWarnings } = getLeadBlockers(leadDir);
+    const itemBlockers = [...leadBlockers];
+    const itemWarnings = [...warnings, ...leadWarnings];
+
+    // Determine sendReadiness — merge system blockers with per-lead blockers
+    const allBlockers = [...readiness.systemBlockers, ...itemBlockers];
+    const sendReady = (
+      contentApproval === 'approved' &&
+      deploymentApproval === 'approved' &&
+      allBlockers.length === 0
+    );
+    const sendBlockedReason = sendReady ? null : (allBlockers[0] || null);
 
     items.push({
       id: dir,
       name,
       company: name,
       score: score,
-      outreachStage,
-      pitch: { subject, preview, hookType, wordCount, body: emailBody },
       email,
+      outreachStage,
+      contentApproval,
+      contentApprovedBy,
+      contentApprovedAt,
+      deploymentApproval,
+      deploymentApprovedBy,
+      deploymentApprovedAt,
+      deploymentBlockedBy: allBlockers,
+      warnings: itemWarnings,
+      pitch: { subject, preview, hookType, wordCount, body: emailBody },
       lastUpdated,
       sentAt,
+      lastAction,
+      lastActionAt,
+      mailboxReady,
+      policyReady,
+      sendReady,
+      sendBlockedReason,
     });
   }
 
-  res.json({ items, count: items.length });
+  res.json({ items, count: items.length, mailboxReady, policyReady });
 }));
 
-// POST /api/outbound/leads/:id/transition — approve/reject/send
+// POST /api/outbound/leads/:id/transition — two-gate approve/send/suppress
 app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { action } = req.body;
 
-  if (!['approve', 'reject', 'send'].includes(action)) {
-    return res.status(400).json({ error: `Unknown action: ${action}. Must be approve, reject, or send.` });
+  const VALID_ACTIONS = [
+    'content_approve', 'content_revoke',
+    'deploy_approve', 'deploy_revoke',
+    'send', 'suppress', 'unsuppress', 'reactivate'
+  ];
+  if (!VALID_ACTIONS.includes(action)) {
+    return res.status(400).json({ error: `Unknown action: ${action}. Valid: ${VALID_ACTIONS.join(', ')}` });
   }
 
   const leadDir = path.join(LEADS_DIR, id);
@@ -1069,28 +1249,125 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
     try { outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8')); } catch (_) {}
   }
 
-  // Terminal state guard
-  if (outreach.outreachStage === 'sent' || outreach.outreachStage === 'rejected') {
-    return res.status(409).json({ error: `Lead is already in terminal state: ${outreach.outreachStage}` });
+  // Migrate old schema on read
+  if (outreach.outreachStage === 'approved') {
+    outreach.contentApproval = 'approved';
+    outreach.deploymentApproval = 'pending';
+    outreach.outreachStage = 'content_approved';
+  } else if (outreach.outreachStage === 'approval_queued') {
+    outreach.contentApproval = 'pending';
+    outreach.outreachStage = 'awaiting_content_approval';
   }
 
+  const currentStage = outreach.outreachStage || 'draft_ready';
+  const TERMINAL_STATES = ['sent', 'failed', 'suppressed', 'rejected'];
+
+  // Terminal state guard (except reactivate/unsuppress which can re-enter)
+  if (TERMINAL_STATES.includes(currentStage) && !['reactivate', 'unsuppress'].includes(action)) {
+    return res.status(409).json({ error: `Lead is in terminal state: ${currentStage}. Action '${action}' is not permitted.` });
+  }
+
+  const timestamp = nowIso();
+  const ACTOR = 'Nero';
+
+  // Helper: write OUTREACH.json + timeline entry
+  function writeOutreach(updates, timelineEntry) {
+    Object.assign(outreach, updates);
+    fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
+    appendTimeline(leadDir, { leadName: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), ...timelineEntry });
+    return { ...outreach };
+  }
+
+  // ── content_approve ─────────────────────────────────────────────────────────
+  if (action === 'content_approve') {
+    const from = outreach.outreachStage || 'awaiting_content_approval';
+    const result = writeOutreach({
+      contentApproval: 'approved',
+      contentApprovedBy: ACTOR,
+      contentApprovedAt: timestamp,
+      outreachStage: 'content_approved',
+      lastAction: 'content_approved',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'content_approved', actor: ACTOR, from, notes: 'Pitch reviewed and approved.' });
+    return res.json(result);
+  }
+
+  // ── content_revoke ───────────────────────────────────────────────────────────
+  if (action === 'content_revoke') {
+    const from = outreach.outreachStage || 'content_approved';
+    const result = writeOutreach({
+      contentApproval: 'revoked',
+      outreachStage: 'rejected',
+      lastAction: 'content_rejected',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'content_rejected', actor: ACTOR, from, notes: 'Pitch revoked.' });
+    return res.json(result);
+  }
+
+  // ── deploy_approve ──────────────────────────────────────────────────────────
+  if (action === 'deploy_approve') {
+    const from = outreach.outreachStage || 'content_approved';
+    // Determine next stage based on system gates
+    const readiness = await getQueueReadiness();
+    const { blockers: leadBlockers } = getLeadBlockers(leadDir);
+    const allBlockers = [...readiness.systemBlockers, ...leadBlockers];
+    const nextStage = allBlockers.length === 0 ? 'awaiting_send' : 'send_blocked';
+    const result = writeOutreach({
+      deploymentApproval: 'approved',
+      deploymentApprovedBy: ACTOR,
+      deploymentApprovedAt: timestamp,
+      outreachStage: nextStage,
+      lastAction: 'deploy_approved',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'deploy_approved', actor: ACTOR, from, notes: `Deployment approved. Next stage: ${nextStage}.` });
+    return res.json(result);
+  }
+
+  // ── deploy_revoke ───────────────────────────────────────────────────────────
+  if (action === 'deploy_revoke') {
+    const from = outreach.outreachStage || 'awaiting_send';
+    const result = writeOutreach({
+      deploymentApproval: 'revoked',
+      outreachStage: 'content_approved',
+      lastAction: 'deploy_revoked',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'deploy_revoked', actor: ACTOR, from, notes: 'Deployment approval revoked.' });
+    return res.json(result);
+  }
+
+  // ── send ────────────────────────────────────────────────────────────────────
   if (action === 'send') {
+    // Send gate: check all system + lead blockers
+    const readiness = await getQueueReadiness();
+    const { blockers: leadBlockers, warnings: leadWarnings } = getLeadBlockers(leadDir);
+    const allBlockers = [...readiness.systemBlockers, ...leadBlockers];
+
+    if (allBlockers.length > 0) {
+      return res.status(409).json({
+        error: 'Cannot send — deployment blocked',
+        blockedBy: allBlockers,
+        warnings: leadWarnings,
+      });
+    }
+    if (outreach.deploymentApproval !== 'approved') {
+      return res.status(409).json({ error: 'Deployment not approved' });
+    }
+
     const pitchPath = path.join(leadDir, 'PITCH.md');
     if (!fs.existsSync(pitchPath)) {
       return res.status(404).json({ error: 'PITCH.md not found' });
     }
     const pitchContent = fs.readFileSync(pitchPath, 'utf8');
 
-    // Extract subject from frontmatter
+    // Extract subject
     const subjectMatch = pitchContent.match(/\*\*Subject:\*\*\s*(.+)/);
     const subject = subjectMatch ? subjectMatch[1].trim() : id;
 
-    // Extract recipient from **To:** line in ## Email Draft
+    // Extract recipient
     const toMatch = pitchContent.match(/\*\*To:\*\*\s*(\S+@\S+)/);
-    const recipient = toMatch ? toMatch[1].trim() : outreach.email || '';
+    const recipient = toMatch ? toMatch[1].trim() : '';
 
-    // Extract email body from ## Email Draft section
-    // Structure: ## Email Draft, **To:**, **Subject:**, ---, [body], ---, ## Pitch Notes
+    // Extract email body
     const rawBody = (() => {
       const emailDraftIdx = pitchContent.indexOf('## Email Draft');
       if (emailDraftIdx < 0) return '';
@@ -1102,7 +1379,6 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
       return (nextDashIdx >= 0 ? afterFirstDash.substring(0, nextDashIdx) : afterFirstDash).trim();
     })();
 
-    // Simple markdown-to-HTML: wrap paragraphs, convert newlines
     const htmlContent = simpleMarkdownToHtml(rawBody);
 
     try {
@@ -1132,22 +1408,55 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
       return res.status(500).json({ error: `Graph API error: ${graphErr.message}` });
     }
 
-    // Write OUTREACH.json with sent state
-    outreach.outreachStage = 'sent';
-    outreach.lastAction = 'send';
-    outreach.lastActionAt = nowIso();
-    outreach.sentAt = nowIso();
-    fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
-    return res.json(outreach);
+    const from = outreach.outreachStage;
+    const result = writeOutreach({
+      outreachStage: 'sent',
+      lastAction: 'send',
+      lastActionAt: timestamp,
+      sentAt: timestamp,
+    }, { timestamp, action: 'sent', actor: ACTOR, from, notes: `Email sent to ${recipient}.` });
+    return res.json(result);
   }
 
-  // approve or reject
-  outreach.outreachStage = action === 'approve' ? 'approved' : 'rejected';
-  outreach.lastAction = action;
-  outreach.lastActionAt = nowIso();
-  if (action === 'approve') outreach.sentAt = null;
-  fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
-  res.json(outreach);
+  // ── suppress ─────────────────────────────────────────────────────────────────
+  if (action === 'suppress') {
+    const from = outreach.outreachStage || 'unknown';
+    // Touch the SUPPRESSED.md file
+    const suppressPath = path.join(leadDir, 'SUPPRESSED.md');
+    fs.writeFileSync(suppressPath, `# Suppressed\n\n**Suppressed by:** ${ACTOR}\n**At:** ${timestamp}\n\n`, 'utf8');
+    const result = writeOutreach({
+      outreachStage: 'suppressed',
+      lastAction: 'suppress',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'suppressed', actor: ACTOR, from, notes: 'Manually suppressed.' });
+    return res.json(result);
+  }
+
+  // ── unsuppress ───────────────────────────────────────────────────────────────
+  if (action === 'unsuppress') {
+    const suppressPath = path.join(leadDir, 'SUPPRESSED.md');
+    if (fs.existsSync(suppressPath)) fs.unlinkSync(suppressPath);
+    const from = outreach.outreachStage;
+    const result = writeOutreach({
+      outreachStage: outreach.contentApproval === 'approved' ? 'content_approved' : 'awaiting_content_approval',
+      lastAction: 'unsuppressed',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'unsuppressed', actor: ACTOR, from, notes: 'Suppression removed.' });
+    return res.json(result);
+  }
+
+  // ── reactivate ───────────────────────────────────────────────────────────────
+  if (action === 'reactivate') {
+    const from = outreach.outreachStage || 'unknown';
+    const result = writeOutreach({
+      contentApproval: 'pending',
+      deploymentApproval: 'pending',
+      outreachStage: 'awaiting_content_approval',
+      lastAction: 'reactivated',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'reactivated', actor: ACTOR, from, notes: 'Reactivated for content review.' });
+    return res.json(result);
+  }
 }));
 
 // Simple markdown-to-HTML converter for email bodies
