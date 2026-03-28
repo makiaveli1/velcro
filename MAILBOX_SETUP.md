@@ -50,25 +50,30 @@ This status does not change until Nero personally verifies and signs off.
 - **Evidence:** Test email received at personal inbox; From field confirmed as `studio@verdantia.it`
 
 ### 5. Azure App Registered (Graph API)
-- [ ] Azure AD app registered in the tenant
-- [ ] Redirect URI configured (device code flow — `http://localhost` is sufficient)
-- [ ] **Correct permission:** `Mail.Send.Shared` — Delegated (not `Mail.Send`)
-- [ ] `offline_access` also granted for token refresh
-- [ ] Permissions consented to by a tenant admin
+- [x] Azure AD app registered in the tenant
+- [x] Redirect URI configured (device code flow — `http://localhost` is sufficient)
+- [x] **Correct permission:** `Mail.Send.Shared` — Delegated (not `Mail.Send`)
+- [x] `offline_access` also granted for token refresh
+- [x] Permissions consented to by a tenant admin
 - **Evidence:**
   - App name: `Verdantia CRM`
   - Client ID: `89f55189-c396-4444-b4fe-b03301c26d68`
   - Tenant ID: `8669ffe2-3fed-463c-a64b-eff1dd4a34c8`
   - Object ID: `6d56d72e-bc69-4eea-bf25-13975188124b`
-  - Permissions configured: `Mail.Send.Shared`, `Mail.Read`, `Calendars.Read`, `offline_access` (Delegated)
-  - Status: ⚠️ **Permissions not yet granted — admin consent pending**
+  - Permissions: `Mail.Send.Shared`, `Mail.Read`, `Calendars.Read`, `offline_access` (Delegated)
+  - ✅ All permissions consented and granted
 
 ### 6. Graph Credentials Stored
-- [ ] `clientId`, `tenantId` stored in `CRM/config/graph.json`
-- [ ] Token acquisition tested: `node -e "require('./adapters/graph').setupInteractive()"`
-- [ ] Token saved to `CRM/config/graph_token.json`
+- [x] `clientId`, `tenantId` stored in `CRM/config/graph.json`
+- [x] Token acquisition tested: device code flow completed successfully
+- [x] Token saved to `CRM/config/graph_token.json` — expires 2026-03-28 01:32 GMT
 - [ ] Test call: `POST /me/sendMail` with `from: studio@verdantia.it` returns HTTP 202
-- **Evidence:** Successful API response from the test call above
+  - ⚠️ **Send As permission from Exchange Admin must be confirmed before this will work**
+- **Evidence:**
+  - Authenticated as: `oluwagbemi@verdantia.it` (confirmed via `/me` endpoint)
+  - Messages accessible: ✅
+  - Calendar accessible: ✅
+  - Token expires: 01:32 GMT
 
 ### 7. Sent Items Path Confirmed
 - [ ] Understand the Sent Items behavior for the chosen sending method (see below)
@@ -203,16 +208,16 @@ Notes: _________________________
 
 | Action | Status |
 |---|---|
-| Any outreach send via Graph API | 🔴 Blocked |
+| Any outreach send via Graph API | 🔴 Blocked — Exchange Send As not API-verified yet |
 | Test sends to real recipients | 🔴 Blocked |
 | Mercury draft deployment | 🔴 Blocked |
 | Round 1 first outreach | 🔴 Blocked |
-| Full Access permission | 🔴 Pending |
-| Send As permission (Exchange) | 🔴 Pending |
-| Manual Send As test (OWA) | 🔴 Pending |
-| Azure app `Mail.Send.Shared` permission | ✅ Registered — consent pending |
-| Graph API token + test send | 🔴 Pending |
-| First real send | 🔴 Blocked |
+| Full Access permission (Exchange) | ✅ User confirmed done |
+| Send As permission (Exchange) | ✅ User confirmed done |
+| Manual Send As test (OWA) | 🔴 Pending — user to verify |
+| Azure app `Mail.Send.Shared` | ✅ Granted |
+| Graph token acquired | ✅ Expires 2026-03-28 01:32 GMT |
+| Send As API test | 🔴 Blocked — needs Exchange confirmation |
 
 ---
 
