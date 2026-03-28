@@ -109,3 +109,11 @@ export const apiTestMessage = () =>
 // ── Interactions ─────────────────────────────────────────
 export const apiCreateInteraction = (contactId, data) =>
   request(`/contacts/${contactId}/interactions`, { method: 'POST', body: JSON.stringify(data) });
+
+// ── Outbound Queue ───────────────────────────────────────
+export const apiOutboundQueue = () => request('/outbound/queue');
+export const apiOutboundTransition = (id, action) =>
+  request(`/outbound/leads/${id}/transition`, {
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  });

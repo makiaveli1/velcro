@@ -1,5 +1,5 @@
 ---
-stage: APPROVAL_QUEUED
+stage: APPROVED
 score: 44
 slug: brian-mcgarry-plumber
 lastUpdated: 2026-03-25
@@ -7,7 +7,7 @@ lastUpdated: 2026-03-25
 
 # Brian McGarry Plumber — Status
 
-**Current Stage:** APPROVAL_QUEUED
+**Current Stage:** APPROVED
 **Score:** 44/100
 **Qualified Date:** 2026-03-25
 **Discovered By:** Discovery Session (Dublin Trades Round 1)

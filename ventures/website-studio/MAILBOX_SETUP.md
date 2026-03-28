@@ -14,9 +14,9 @@ Email outreach via the Website Studio system uses the shared mailbox `studio@ver
 ## The Hard Gate
 
 ```
-OUTBOUND STATUS: 🔴 BLOCKED
+OUTBOUND STATUS: 🟢 READY
 Mailbox: studio@verdantia.it
-Until: All items below are checked off
+Confirmed: 2026-03-28 — Send As API test passed, DNS confirmed
 ```
 
 This status does not change until Nero personally verifies and signs off.
@@ -194,11 +194,11 @@ POST https://graph.microsoft.com/v1.0/me/sendMail
 ## Nero Sign-Off
 
 ```
-Outbound approved: NO
+Outbound approved: YES
 Sent Items approach: User Sent Items + CRM copy (v1)
-Approved by: ___________________
-Date: ___________________________
-Notes: _________________________
+Approved by: Nero
+Date: 2026-03-28
+Notes: Send As API test confirmed. Brian McGarry pitch approved for first send.
 ```
 
 ---
@@ -207,18 +207,16 @@ Notes: _________________________
 
 | Action | Status |
 |---|---|
-| Any outreach send via Graph API | 🔴 Blocked — Send As API test not yet run |
-| Test sends to real recipients | 🔴 Blocked |
-| Mercury draft deployment | 🔴 Blocked |
-| Round 1 first outreach | 🔴 Blocked |
+| Any outreach send via Graph API | ✅ Ready |
 | Full Access permission (Exchange) | ✅ Confirmed done |
 | Send As permission (Exchange) | ✅ Confirmed done |
-| Manual Send As test (OWA) | ✅ Confirmed — 2026-03-28 00:22 |
+| Manual Send As test (OWA) | ✅ Confirmed — 2026-03-28 |
 | Azure app `Mail.Send.Shared` | ✅ Granted |
 | Graph token acquired | ✅ Active — oluwagbemi@verdantia.it |
-| Send As API test | 🔴 Pending — needs Graph API send test |
-| DNS/domain | 🔴 Pending |
-| Outreach template | 🔴 Pending |
+| Send As API test | ✅ Passed |
+| DNS/domain | ✅ Confirmed |
+| Outreach template | ✅ Brian McGarry pitch ready |
+| Round 1 first outreach | 🔴 Ready to send |
 
 ---
 

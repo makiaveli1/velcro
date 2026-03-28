@@ -36,6 +36,13 @@ const DraftsIcon = () => (
   </svg>
 );
 
+const OutboundIcon = () => (
+  <svg className="sidebar-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg className="sidebar-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -69,6 +76,7 @@ export default function Sidebar({ currentPath, open, onClose }) {
     { path: '/contacts', label: 'Contacts', icon: <ContactsIcon /> },
     { path: '/followups', label: 'Follow-ups', icon: <FollowUpsIcon />, badge: followUpCount, badgeAlert: true },
     { path: '/drafts', label: 'Drafts', icon: <DraftsIcon /> },
+    { path: '/outbound', label: 'Outbound', icon: <OutboundIcon /> },
     { path: '/settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
@@ -99,7 +107,7 @@ export default function Sidebar({ currentPath, open, onClose }) {
         <nav className="sidebar-nav">
           <div className="sidebar-section">
             <div className="sidebar-section-label">Workspace</div>
-            {nav.slice(0, 5).map(item => (
+            {nav.slice(0, 6).map(item => (
               <NavLink
                 key={item.path}
                 to={item.path}

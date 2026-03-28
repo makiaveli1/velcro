@@ -9,6 +9,7 @@ import ContactDossier from './pages/ContactDossier';
 import FollowUps from './pages/FollowUps';
 import Drafts from './pages/Drafts';
 import Settings from './pages/Settings';
+import OutboundQueue from './pages/OutboundQueue';
 
 // ── Toast Context ─────────────────────────────────────────
 export const ToastContext = createContext(null);
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="contacts/:id" element={<ErrorBoundary><ContactDossier /></ErrorBoundary>} />
             <Route path="followups" element={<ErrorBoundary><FollowUps /></ErrorBoundary>} />
             <Route path="drafts" element={<ErrorBoundary><Drafts /></ErrorBoundary>} />
+            <Route path="outbound" element={<ErrorBoundary><OutboundQueue /></ErrorBoundary>} />
             <Route path="settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
