@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+
+// ── Shared constants ────────────────────────────────────────────────────────────
+const PRIORITY_INT = { critical: 1, high: 2, normal: 3, low: 4 };
 const path = require('path');
 
 const { db, uuid } = require('./db/database');
@@ -399,7 +402,9 @@ app.post('/api/contacts', handleRoute((req, res) => {
       name.trim(),
       company?.name || companyName,
       normalizeNullable(req.body.role) || null,
-      toInteger(req.body.priority, 2),
+      typeof req.body.priority === 'string'
+        ? (PRIORITY_INT[req.body.priority] ?? 2)
+        : toInteger(req.body.priority, 2),
       toInteger(req.body.relationship_score, 50),
       normalizeNullable(req.body.source) || 'manual',
       normalizeNullable(req.body.discovery_method) || null,
