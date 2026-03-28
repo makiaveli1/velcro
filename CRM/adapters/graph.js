@@ -84,7 +84,15 @@ async function getDeviceCode(config) {
   }, params.toString());
 
   if (res.status !== 200) throw new Error(`Device code error: ${JSON.stringify(res.body)}`);
-  return res.body; // { device_code, user_code, verification_uri, ... }
+  // Normalize snake_case Azure response to camelCase for internal use
+  const body = res.body;
+  return {
+    device_code: body.device_code,
+    user_code: body.user_code,
+    verification_uri: body.verification_uri,
+    interval: body.interval,
+    expires_in: body.expires_in,
+  };
 }
 
 /**
@@ -209,16 +217,21 @@ async function graphGet(endpoint, token, params = {}) {
 async function getRecentMessages(token, daysBack = 1) {
   const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
   const messages = [];
-  let deltaLink = null;
+  let nextLink = null;
 
   do {
-    let endpoint = `/me/messages?$select=id,subject,bodyPreview,from,toRecipients,ccRecipients,isRead,receivedDateTime,conversationId&$filter=receivedDateTime ge ${since}&$top=50&$orderby=receivedDateTime desc`;
-    if (deltaLink) endpoint = deltaLink;
+    const params = new url.URLSearchParams({
+      '$select': 'id,subject,bodyPreview,from,toRecipients,ccRecipients,isRead,receivedDateTime,conversationId',
+      '$filter': `receivedDateTime ge ${since}`,
+      '$top': '50',
+      '$orderby': 'receivedDateTime desc',
+    });
+    const base = nextLink ? nextLink.replace('https://graph.microsoft.com/v1.0', '') : `/me/messages?${params.toString()}`;
 
-    const res = await graphGet(endpoint, token);
+    const res = await graphGet(base, token);
     if (res.value) messages.push(...res.value);
-    deltaLink = res['@odata.nextLink'] ? res['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '') : null;
-  } while (deltaLink && messages.length < 500);
+    nextLink = res['@odata.nextLink'] || null;
+  } while (nextLink && messages.length < 500);
 
   return messages;
 }
@@ -296,20 +309,25 @@ function extractContactsFromMessages(messages, myEmailDomain = null) {
  * Returns array of event objects.
  */
 async function getRecentEvents(token, daysBack = 1, daysForward = 7) {
-  const start = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
-  const end   = new Date(Date.now() + daysForward * 24 * 60 * 60 * 1000).toISOString();
-
+  const startTime = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
+  const endTime   = new Date(Date.now() + daysForward * 24 * 60 * 60 * 1000).toISOString();
   const events = [];
-  let deltaLink = null;
+  let nextLink = null;
 
   do {
-    let endpoint = `/me/calendarView?startDateTime=${start}&endDateTime=${end}&$select=id,subject,bodyPreview,start,end,attendees,isOnlineMeeting,receivedDateTime&$top=50&$orderby=start/dateTime asc`;
-    if (deltaLink) endpoint = deltaLink;
+    const params = new url.URLSearchParams({
+      startDateTime: startTime,
+      endDateTime: endTime,
+      '$select': 'id,subject,bodyPreview,start,end,attendees,isOnlineMeeting',
+      '$top': '50',
+      '$orderby': 'start/dateTime asc',
+    });
+    const base = nextLink ? nextLink.replace('https://graph.microsoft.com/v1.0', '') : `/me/calendarView?${params.toString()}`;
 
-    const res = await graphGet(endpoint, token);
+    const res = await graphGet(base, token);
     if (res.value) events.push(...res.value);
-    deltaLink = res['@odata.nextLink'] ? res['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '') : null;
-  } while (deltaLink && events.length < 200);
+    nextLink = res['@odata.nextLink'] || null;
+  } while (nextLink && events.length < 200);
 
   return events;
 }
@@ -398,17 +416,17 @@ async function setupInteractive() {
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║  Microsoft Graph — Authentication Setup                   ║');
   console.log('╠══════════════════════════════════════════════════════════╣');
-  console.log(`║                                                           ║`);
-  console.log(`║  1. Open this URL in your browser:                       ║`);
-  console.log(`║                                                           ║`);
-  console.log(`║    ${dc.verificationUri.padEnd(46)}║`);
-  console.log(`║                                                           ║`);
-  console.log(`║  2. Enter this code when prompted:                       ║`);
-  console.log(`║                                                           ║`);
-  console.log(`║    ${dc.user_code.padEnd(46)}║`);
-  console.log(`║                                                           ║`);
-  console.log(`║  3. Complete the login in your browser                  ║`);
-  console.log(`║                                                           ║`);
+  console.log('║                                                           ║');
+  console.log('║  1. Open this URL in your browser:                       ║');
+  console.log('║                                                           ║');
+  console.log(`║    ${String(dc.verification_uri).substring(0, 46).padEnd(46)}║`);
+  console.log('║                                                           ║');
+  console.log('║  2. Enter this code when prompted:                       ║');
+  console.log('║                                                           ║');
+  console.log(`║    ${String(dc.user_code).padEnd(46)}║`);
+  console.log('║                                                           ║');
+  console.log('║  3. Complete the login in your browser                   ║');
+  console.log('║                                                           ║');
   console.log('╚══════════════════════════════════════════════════════════╝\n');
 
   const token = await pollForToken(dc.device_code, config, dc.interval * 1000 || 5000);
