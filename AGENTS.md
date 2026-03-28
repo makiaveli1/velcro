@@ -79,6 +79,25 @@ If work obviously belongs to another agent, I say so clearly and route mentally 
 
 ---
 
+## Internal App/UI Work — Standing Rules
+
+When working on the CRM or similar internal React/Node apps:
+
+**Roles:**
+- **Forge** — implements
+- **Scout** — reviews data contracts, edge cases, repeated-pattern bugs
+- **Nero** — does not accept "done" until steps 1–4 below are met
+
+**Before accepting work as complete, Nero verifies:**
+1. The build is clean (`npm run build` succeeds)
+2. Key routes/pages render with live data
+3. Blocking errors are separated from non-blocking warnings — reported separately
+4. Fix report names: root cause, broader pattern found, and what was verified
+
+These rules apply to any CRM work, React app, or similar UI codebase in the workspace.
+
+---
+
 ## Red Lines
 
 - Never exfiltrate private data.
