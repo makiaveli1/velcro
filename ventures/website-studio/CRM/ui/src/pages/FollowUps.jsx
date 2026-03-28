@@ -5,7 +5,7 @@ import { apiFollowUps, apiCreateFollowUp, apiUpdateFollowUp } from '../api';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useToast } from '../App';
-import { relativeTime, formatDate } from '../utils';
+import { relativeTime, formatDate, priorityLabel } from '../utils';
 
 export default function FollowUps() {
   const navigate = useNavigate();
@@ -19,12 +19,12 @@ export default function FollowUps() {
 
   if (loading) return <Skeleton />;
 
-  const followUps = data?.followUps || [];
+  const followUps = data?.items || [];
   const today = new Date().toISOString().split('T')[0];
 
   const now = new Date();
-  const overdue = followUps.filter(f => f.due_date < today && f.status !== 'completed');
-  const todayItems = followUps.filter(f => f.due_date === today);
+  const overdue = followUps.filter(f => f.due_date && f.due_date < today && f.status !== 'completed');
+  const todayItems = followUps.filter(f => f.due_date && f.due_date === today);
   const thisWeek = followUps.filter(f => {
     const d = new Date(f.due_date);
     const diff = (d - now) / (1000 * 60 * 60 * 24);
@@ -120,8 +120,8 @@ export default function FollowUps() {
 }
 
 function FollowUpCard({ item, today, navigate, onComplete, onSnooze }) {
-  const isOverdue = item.due_date < today;
-  const isToday = item.due_date === today;
+  const isOverdue = item.due_date && item.due_date < today;
+  const isToday = item.due_date && item.due_date === today;
 
   return (
     <div className={`followup-item ${isOverdue ? 'overdue' : isToday ? 'today' : ''}`}>
@@ -137,7 +137,7 @@ function FollowUpCard({ item, today, navigate, onComplete, onSnooze }) {
           {item.priority && (
             <div style={{ marginTop: 4 }}>
               <span className={`badge ${isOverdue ? 'badge-rose' : 'badge-amber'}`} style={{ fontSize: 10 }}>
-                {item.priority.toUpperCase()}
+                {priorityLabel(item.priority)}
               </span>
             </div>
           )}

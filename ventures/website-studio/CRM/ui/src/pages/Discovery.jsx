@@ -220,7 +220,7 @@ function DiscoveryCard({ item, selected, onSelect, onApprove, onReject, onSkip }
       <div className="discovery-card-source">
         <strong>Source:</strong> {sourceLabel()}
         {item.signal_count > 0 && (
-          <span style={{ marginLeft: 8 }}>· {item.signal_count} signal{s[item.signal_count !== 1 ? 's' : '']}</span>
+          <span style={{ marginLeft: 8 }}>· {item.signal_count} signal{item.signal_count !== 1 ? 's' : ''}</span>
         )}
       </div>
 

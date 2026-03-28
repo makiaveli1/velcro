@@ -25,6 +25,7 @@ export default function Contacts() {
     const params = { limit, offset: page * limit };
     if (search.trim()) params.search = search.trim();
     if (priorityFilter !== 'all') params.priority = priorityFilter;
+    if (scoreFilter !== 'all') params.score_filter = scoreFilter;
     return apiContacts(params);
   }, [search, priorityFilter, scoreFilter, page]);
 
@@ -32,7 +33,7 @@ export default function Contacts() {
 
   const debouncedSearch = useCallback(debounce((q) => { setSearch(q); setPage(0); }, 300), []);
 
-  const total = data?.total || 0;
+  const total = data?.count ?? data?.items?.length ?? 0;
   const contacts = data?.items || [];
 
   return (

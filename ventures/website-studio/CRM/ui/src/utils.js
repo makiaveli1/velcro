@@ -65,11 +65,26 @@ export function scoreLabel(score) {
 }
 
 /**
+ * Normalize a priority value to a string key.
+ * Handles: integers 1–4, lowercase strings, uppercase strings.
+ * Returns null if the value is not a recognized priority.
+ */
+function normalizePriority(p) {
+  if (p == null) return null;
+  // Already a string — normalize to lowercase
+  if (typeof p === 'string') return p.trim().toLowerCase() || null;
+  // Integer priority mapping (DB stores 1=Critical, 2=High, 3=Normal, 4=Low)
+  const intMap = { 1: 'critical', 2: 'high', 3: 'normal', 4: 'low' };
+  return intMap[p] ?? null;
+}
+
+/**
  * Get priority badge variant
  */
 export function priorityVariant(p) {
   const map = { critical: 'badge-rose', high: 'badge-amber', normal: 'badge-default', low: 'badge-default' };
-  return map[p?.toLowerCase()] || 'badge-default';
+  const key = normalizePriority(p);
+  return (key && map[key]) || 'badge-default';
 }
 
 /**
@@ -77,7 +92,8 @@ export function priorityVariant(p) {
  */
 export function priorityLabel(p) {
   const map = { critical: 'CRITICAL', high: 'HIGH', normal: 'NORMAL', low: 'LOW' };
-  return map[p?.toLowerCase()] || p?.toUpperCase() || '—';
+  const key = normalizePriority(p);
+  return ((key && map[key]) ?? p?.toUpperCase()) || '—';
 }
 
 /**

@@ -89,8 +89,8 @@ export default function NLQueryBar() {
           </div>
           <div className="nl-query-results-body">
             {!loading && !error && results && (
-              results.results?.length > 0 ? (
-                results.results.map((item, i) => (
+              results?.length > 0 ? (
+                results.map((item, i) => (
                   <ResultItem key={item.id || i} item={item} onClick={() => handleResultClick(item)} />
                 ))
               ) : (
@@ -148,9 +148,9 @@ function ResultItem({ item, onClick }) {
         <div className="nl-query-result-name">{item.name || item.label}</div>
         <div className="nl-query-result-meta">
           {item.meta && <span style={{ marginRight: 8 }}>{item.meta}</span>}
-          {item.score != null && (
-            <span style={{ color: scoreColor(item.score), fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
-              {item.score}/100
+          {item.relationship_score != null && (
+            <span style={{ color: scoreColor(item.relationship_score), fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>
+              {item.relationship_score}/100
             </span>
           )}
           {item.last_touched && <span style={{ color: 'var(--text-tertiary)' }}> · Last: {relativeTime(item.last_touched)}</span>}

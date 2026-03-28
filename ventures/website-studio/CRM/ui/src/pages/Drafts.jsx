@@ -10,7 +10,10 @@ export default function Drafts() {
   const [tab, setTab] = useState('proposed');
   const [expanded, setExpanded] = useState({});
 
-  const fetcher = useCallback(() => apiDrafts({ status: tab === 'proposed' ? 'proposed' : 'approved' }), [tab]);
+  const fetcher = useCallback(() => {
+    if (tab === 'history') return apiDrafts({}); // no filter — all drafts
+    return apiDrafts({ status: tab === 'proposed' ? 'proposed' : 'approved' });
+  }, [tab]);
   const { data, loading, error, execute } = useApi(fetcher, [tab], { immediate: true });
 
   const drafts = data?.drafts || [];

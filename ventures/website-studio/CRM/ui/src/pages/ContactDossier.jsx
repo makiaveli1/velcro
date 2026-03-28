@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
-import { apiContact, apiScoreBreakdown, apiCreateFollowUp, apiUpdateFollowUp, apiApproveDraft, apiGenerateSummary, apiRejectDraft, apiCreateDraft } from '../api';
+import { apiContact, apiScoreBreakdown, apiCreateFollowUp, apiUpdateFollowUp, apiApproveDraft, apiGenerateSummary, apiRejectDraft, apiCreateDraft, apiCreateInteraction } from '../api';
 import ScoreBar from '../components/ScoreBar';
 import { PriorityBadge } from '../components/Badge';
 import Timeline from '../components/Timeline';
@@ -43,7 +43,7 @@ export default function ContactDossier() {
   if (error) return <ErrorState error={error} navigate={navigate} />;
   if (!data) return null;
 
-  const { contact = {}, interactions = [], followUps = [], drafts = [], summary = {} } = data;
+  const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = data;
 
   const tabContent = {
     summary: (
@@ -53,7 +53,7 @@ export default function ContactDossier() {
       <TimelineTab interactions={interactions} />
     ),
     drafts: (
-      <DraftsTab drafts={drafts} contactId={id} onAction={execute} addToast={addToast} />
+      <DraftsTab contactId={id} onAction={execute} addToast={addToast} />
     ),
   };
 
@@ -252,7 +252,7 @@ function TimelineTab({ interactions }) {
   );
 }
 
-function DraftsTab({ drafts, contactId, onAction, addToast }) {
+function DraftsTab({ drafts = [], contactId, onAction, addToast }) {
   const [expanded, setExpanded] = useState({});
 
   const handleApprove = async (draftId) => {
@@ -426,13 +426,7 @@ function LogModal({ contactId, onClose, onLogged, addToast }) {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      // POST /api/contacts/:id/interactions — create an interaction
-      // Using the main contact API
-      await fetch(`/api/contacts/${contactId}/interactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      }).then(r => { if (!r.ok) throw new Error('Failed'); });
+      await apiCreateInteraction(contactId, form);
       onLogged();
     } catch (err) {
       addToast({ type: 'error', message: 'Failed to log interaction' });
