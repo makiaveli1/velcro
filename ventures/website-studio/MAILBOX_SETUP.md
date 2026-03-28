@@ -42,12 +42,11 @@ This status does not change until Nero personally verifies and signs off.
 - **Evidence:** Screenshot of Send As permissions in Exchange admin showing grant to the user account
 
 ### 4. Send As Verified (Manual OWA Test)
-- [ ] Logged into Outlook on the web (OWA) as the licensed user
-- [ ] Opened the shared mailbox: in OWA, right-click the folder pane → Open another mailbox → enter `studio@verdantia.it`
-- [ ] Sent a test email from `studio@verdantia.it` to a personal address (e.g. Gmail or personal Outlook)
-- [ ] The email received shows `studio@verdantia.it` as the From address — NOT the user's personal address
-- [ ] The sent email appears in the shared mailbox's Sent Items folder (not the user's own Sent Items)
-- **Evidence:** Test email received at personal inbox; From field confirmed as `studio@verdantia.it`
+- [x] Logged into Outlook on the web (OWA) as the licensed user
+- [x] Opened the shared mailbox: in OWA, right-click the folder pane → Open another mailbox → enter `studio@verdantia.it`
+- [x] Sent a test email from `studio@verdantia.it` to a personal address
+- [x] The email received shows `studio@verdantia.it` as the From address — confirmed by user (2026-03-28 00:22)
+- **Evidence:** User confirmed — OWA test works ✅
 
 ### 5. Azure App Registered (Graph API)
 - [x] Azure AD app registered in the tenant
@@ -208,16 +207,18 @@ Notes: _________________________
 
 | Action | Status |
 |---|---|
-| Any outreach send via Graph API | 🔴 Blocked — Exchange Send As not API-verified yet |
+| Any outreach send via Graph API | 🔴 Blocked — Send As API test not yet run |
 | Test sends to real recipients | 🔴 Blocked |
 | Mercury draft deployment | 🔴 Blocked |
 | Round 1 first outreach | 🔴 Blocked |
-| Full Access permission (Exchange) | ✅ User confirmed done |
-| Send As permission (Exchange) | ✅ User confirmed done |
-| Manual Send As test (OWA) | 🔴 Pending — user to verify |
+| Full Access permission (Exchange) | ✅ Confirmed done |
+| Send As permission (Exchange) | ✅ Confirmed done |
+| Manual Send As test (OWA) | ✅ Confirmed — 2026-03-28 00:22 |
 | Azure app `Mail.Send.Shared` | ✅ Granted |
-| Graph token acquired | ✅ Expires 2026-03-28 01:32 GMT |
-| Send As API test | 🔴 Blocked — needs Exchange confirmation |
+| Graph token acquired | ✅ Active — oluwagbemi@verdantia.it |
+| Send As API test | 🔴 Pending — needs Graph API send test |
+| DNS/domain | 🔴 Pending |
+| Outreach template | 🔴 Pending |
 
 ---
 
