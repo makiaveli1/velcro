@@ -137,3 +137,18 @@ Full review workspace at `simsuite-review/` with all reports from the launch-rea
 - `LAUNCH_ENABLED_REPORT.md`
 - ConflictEvidenceDisplay.tsx (tiered, launch-enabled for all views)
 - DownloadsDecisionPanel.tsx (gate removed)
+
+## Backend Refresh Loop Fix (2026-03-28)
+
+Three fixes applied to `src-tauri/src/core/downloads_watcher/mod.rs`:
+
+### Fix A: Watch loop live event error handling (line ~1463)
+`let _ = process_downloads_once_for_paths(...)` → `if let Err(error) = ...` with proper Error status storage. Previously, errors after the `checking` store were silently discarded, leaving status stuck at `Processing` forever.
+
+### Fix B: No downloads path returns error (line ~1572)
+When downloads path is not configured, returns `Err(AppError::Message(...))` with `configured: false, state: Error`. Previously returned `Ok(Idle)` — which left the frontend polling on an intermediate state.
+
+### Fix C: process_downloads_once stores error before propagating (line ~1497)
+Stores `Error` status before returning the error to callers. Previously only `refresh_inbox` handled the error; now `process_downloads_once` itself settles the status regardless of caller.
+
+Rust: pre-existing errors in `move_engine/mod.rs` (16 errors, unrelated). Zero errors from downloads_watcher.
