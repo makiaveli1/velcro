@@ -26,7 +26,10 @@ export default function ContactDossier() {
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
 
-  const fetcher = useCallback(() => apiContact(id), [id]);
+  const fetcher = useCallback(() => Promise.all([
+    apiContact(id),
+    fetch(`/api/contacts/${id}/website-studio`).then(r => r.json()),
+  ]), [id]);
   const { data, loading, error, execute } = useApi(fetcher, [id], { immediate: true });
 
   const loadBreakdown = useCallback(async () => {
@@ -43,14 +46,15 @@ export default function ContactDossier() {
   if (error) return <ErrorState error={error} navigate={navigate} />;
   if (!data) return null;
 
-  const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = data;
+  const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = data || {};
+  const websiteStudio = data?.[1] || {};
 
   const tabContent = {
     summary: (
       <SummaryTab contact={contact} summary={summary} onGenerateSummary={execute} />
     ),
     timeline: (
-      <TimelineTab interactions={interactions} />
+      <TimelineTab interactions={interactions} websiteStudio={websiteStudio} />
     ),
     drafts: (
       <DraftsTab contactId={id} onAction={execute} addToast={addToast} />
@@ -116,6 +120,78 @@ export default function ContactDossier() {
           </button>
         </div>
       </div>
+
+      {/* Website Studio Status Banner */}
+      {websiteStudio?.hasWebsiteStudioLead && websiteStudio?.outbound && (
+        <>
+          {websiteStudio.outbound.sendReady === false ? (
+            <div style={{ background: 'var(--signal-rose)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+              ✕ Outbound BLOCKED — {websiteStudio.outbound.sendBlockedReason === 'mailbox'
+                ? 'Mailbox token expired — refresh to continue'
+                : websiteStudio.outbound.sendBlockedReason === 'policy'
+                ? 'No outreach policy defined yet'
+                : (websiteStudio.outbound.deploymentBlockedBy || []).join(', ')}
+            </div>
+          ) : (
+            <div style={{ background: 'var(--signal-emerald)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+              ✓ Ready to send — both gates approved, all systems ready
+            </div>
+          )}
+
+          {/* Outbound Status Card */}
+          <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outbound Status</div>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 11, padding: '2px 8px' }}
+                onClick={() => navigate('/outbound')}
+              >
+                Open in Outbound Queue →
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: websiteStudio.outbound.contentApproval === 'approved' ? 'var(--signal-emerald)' : 'var(--signal-amber)', color: websiteStudio.outbound.contentApproval === 'approved' ? '#fff' : '#1a1a1a' }}>
+                {websiteStudio.outbound.contentApproval === 'approved' ? '✓' : '✕'} Content Approved
+              </span>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: websiteStudio.outbound.deploymentApproval === 'approved' ? 'var(--signal-emerald)' : 'var(--signal-amber)', color: websiteStudio.outbound.deploymentApproval === 'approved' ? '#fff' : '#1a1a1a' }}>
+                {websiteStudio.outbound.deploymentApproval === 'approved' ? '✓' : '✕'} Deploy Approved
+              </span>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                {websiteStudio.outbound.outreachStage?.replace(/_/g, ' ') || 'unknown'}
+              </span>
+            </div>
+            {websiteStudio.outbound.warnings?.length > 0 && (
+              <div style={{ marginTop: 6 }}>
+                {websiteStudio.outbound.warnings.map((w, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 3 }}>⚠ {w}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pitch Constraints */}
+          {websiteStudio.concept?.constraints?.length > 0 && (
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pitch Constraints</div>
+              {websiteStudio.concept.constraints.map((c, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 4 }}>⚠ {c}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Next Action */}
+          {websiteStudio.nextAction && (
+            <div style={{ background: 'var(--signal-sky)', color: '#1a1a1a', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>NEXT ACTION</div>
+              <div style={{ fontSize: 13 }}>{websiteStudio.nextAction.text}</div>
+              {websiteStudio.nextAction.reason && (
+                <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8 }}>{websiteStudio.nextAction.reason}</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Tabs */}
       <div className="tabs">
@@ -238,7 +314,26 @@ function SummaryTab({ contact, summary, onGenerateSummary }) {
   );
 }
 
-function TimelineTab({ interactions }) {
+function TimelineTab({ interactions, websiteStudio }) {
+  const wsTimeline = websiteStudio?.timeline || [];
+
+  if (wsTimeline.length > 0) {
+    return (
+      <div>
+        {wsTimeline.map((entry, i) => (
+          <div key={i} style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>{entry.action.replace(/_/g, ' ')}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatDate(entry.date)}</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{entry.actor}</div>
+            {entry.notes && <div style={{ fontSize: 12, marginTop: 4 }}>{entry.notes}</div>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const items = (interactions || []).map(i => ({
     ...i,
     date: i.created_at || i.date,

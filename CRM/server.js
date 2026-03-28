@@ -374,6 +374,184 @@ app.get('/api/contacts/:id', handleRoute((req, res) => {
   res.json(getContactDetail(req.params.id));
 }));
 
+// GET /api/contacts/:id/website-studio
+// Returns normalized Website Studio state for a CRM contact, keyed by email match.
+app.get('/api/contacts/:id/website-studio', asyncHandler(async (req, res) => {
+  const contact = ensureRecord('contacts', req.params.id, 'Contact');
+  const contactEmail = (contact.email || '').toLowerCase().trim();
+  if (!contactEmail) {
+    return res.json({ hasWebsiteStudioLead: false, leadSlug: null, outbound: null, concept: null, timeline: [], nextAction: null });
+  }
+
+  // Scan LEADS/ for a lead whose LEAD_RECORD.md or PITCH.md contains this email
+  let matchedSlug = null;
+  if (fs.existsSync(LEADS_DIR)) {
+    const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
+      fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
+    );
+    outer: for (const dir of dirs) {
+      const leadDir = path.join(LEADS_DIR, dir);
+
+      // Try LEAD_RECORD.md first — look for "**Contact Email:** <email>" in first 20 lines
+      const leadRecordPath = path.join(leadDir, 'LEAD_RECORD.md');
+      if (fs.existsSync(leadRecordPath)) {
+        const lines = fs.readFileSync(leadRecordPath, 'utf8').split('\n').slice(0, 20);
+        for (const line of lines) {
+          const m = line.match(/\*\*Contact Email:\*\*\s*(.+)/i);
+          if (m && m[1].toLowerCase().trim() === contactEmail) {
+            matchedSlug = dir;
+            break outer;
+          }
+        }
+      }
+
+      // Fall back to PITCH.md — look for "**To:** <email>" in first 20 lines
+      const pitchPath = path.join(leadDir, 'PITCH.md');
+      if (fs.existsSync(pitchPath)) {
+        const lines = fs.readFileSync(pitchPath, 'utf8').split('\n').slice(0, 20);
+        for (const line of lines) {
+          const m = line.match(/\*\*To:\*\*\s*(.+)/i);
+          if (m && m[1].toLowerCase().trim() === contactEmail) {
+            matchedSlug = dir;
+            break outer;
+          }
+        }
+      }
+    }
+  }
+
+  if (!matchedSlug) {
+    return res.json({ hasWebsiteStudioLead: false, leadSlug: null, outbound: null, concept: null, timeline: [], nextAction: null });
+  }
+
+  const leadDir = path.join(LEADS_DIR, matchedSlug);
+
+  // Read OUTREACH.json
+  let outbound = null;
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  if (fs.existsSync(outreachPath)) {
+    const outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+    const readiness = await getQueueReadiness();
+
+    outbound = {
+      outreachStage: outreach.outreachStage || 'unknown',
+      contentApproval: outreach.contentApproval || null,
+      contentApprovedBy: outreach.contentApprovedBy || null,
+      contentApprovedAt: outreach.contentApprovedAt || null,
+      deploymentApproval: outreach.deploymentApproval || null,
+      deploymentApprovedBy: outreach.deploymentApprovedBy || null,
+      deploymentApprovedAt: outreach.deploymentApprovedAt || null,
+      deploymentBlockedBy: Array.isArray(outreach.deploymentBlockedBy) ? outreach.deploymentBlockedBy : [],
+      warnings: Array.isArray(outreach.warnings) ? outreach.warnings : [],
+      mailboxReady: readiness.mailboxReady,
+      policyReady: readiness.policyReady,
+      sendReady: outreach.contentApproval === 'approved' && outreach.deploymentApproval === 'approved' && readiness.mailboxReady && readiness.policyReady,
+      sendBlockedReason: (() => {
+        if (outreach.contentApproval !== 'approved' || outreach.deploymentApproval !== 'approved') return null;
+        if (!readiness.mailboxReady) return 'mailbox';
+        if (!readiness.policyReady) return 'policy';
+        return null;
+      })(),
+    };
+  }
+
+  // Read CONCEPT_BRIEF.md
+  let concept = { segment: null, pitchAngle: null, constraints: [], hasConcept: false };
+  const conceptPath = path.join(leadDir, 'CONCEPT_BRIEF.md');
+  if (fs.existsSync(conceptPath)) {
+    const content = fs.readFileSync(conceptPath, 'utf8');
+    // Extract segment — look for **Who:** or business essence paragraph
+    let segment = null;
+    const whoMatch = content.match(/\*\*Who:\*\*\s*(.+)/);
+    if (whoMatch) segment = whoMatch[1].trim();
+    // Extract pitch angle — look for "**The ONE thing:**" or similar
+    let pitchAngle = null;
+    const oneThingMatch = content.match(/\*\*The ONE thing:\*\*\s*(.+)/);
+    if (oneThingMatch) pitchAngle = oneThingMatch[1].trim();
+    // Constraints: look for "Do NOT" lines and "Constraints" section
+    const constraints = [];
+    const constraintMatches = content.match(/Do NOT\s[^.]+\./g) || [];
+    for (const c of constraintMatches) constraints.push(c.trim());
+    const constraintsSectionMatch = content.match(/\*\*Constraints:\*\*\s*([\s\S]+?)(?=\n##|\n#|$)/i);
+    if (constraintsSectionMatch) {
+      const constraintLines = constraintsSectionMatch[1].split('\n').filter(l => l.trim().startsWith('-'));
+      for (const cl of constraintLines) {
+        const txt = cl.replace(/^-\s*/, '').trim().replace(/\*\*/g, '');
+        if (txt && !constraints.includes(txt)) constraints.push(txt);
+      }
+    }
+    concept = { segment, pitchAngle, constraints, hasConcept: true };
+  }
+
+  // Read TIMELINE.md
+  const timeline = [];
+  const timelinePath = path.join(leadDir, 'TIMELINE.md');
+  if (fs.existsSync(timelinePath)) {
+    const content = fs.readFileSync(timelinePath, 'utf8');
+    // Split on ##  headers (only top-level, not inside code blocks)
+    const sections = content.split(/(?:^|\n)(##\s[^#\n][^\n]*\n)/);
+    // sections[0] = before first ##, sections[1] = first ## header, sections[2] = body, etc.
+    // Reassemble: iterate in pairs (header, body)
+    for (let i = 1; i < sections.length; i += 2) {
+      const headerLine = sections[i] || '';
+      const body = sections[i + 1] || '';
+      const dateMatch = headerLine.match(/^##\s+(.+)/);
+      if (!dateMatch) continue;
+      const date = dateMatch[1].trim();
+
+      const actionMatch = body.match(/\*\*Action:\*\*\s*(.+)/);
+      const actorMatch = body.match(/\*\*Actor:\*\*\s*(.+)/);
+      const fromMatch = body.match(/\*\*From:\*\*\s*(.+)/);
+      const notesMatch = body.match(/\*\*Notes:\*\*\s*([\s\S]*?)$/);
+
+      const from = fromMatch ? fromMatch[1].trim() : null;
+      // Parse "from → to" format
+      let fromState = null, toState = null;
+      if (from && from.includes('→')) {
+        const parts = from.split('→').map(s => s.trim());
+        fromState = parts[0] || null;
+        toState = parts[1] || null;
+      } else if (from) {
+        fromState = from;
+      }
+
+      timeline.push({
+        date,
+        action: actionMatch ? actionMatch[1].trim() : 'unknown',
+        actor: actorMatch ? actorMatch[1].trim() : 'unknown',
+        from: fromState,
+        to: toState,
+        notes: notesMatch ? notesMatch[1].trim() : null,
+      });
+    }
+  }
+
+  // Derive nextAction
+  let nextAction = null;
+  if (outbound) {
+    if (outbound.sendReady) {
+      nextAction = { text: 'Ready to send — open the Outbound Queue to dispatch', reason: 'Both gates approved, mailbox and policy ready', owner: 'Nero' };
+    } else if (outbound.outreachStage === 'send_blocked' && outbound.sendBlockedReason === 'mailbox') {
+      nextAction = { text: 'Refresh Graph token to unblock mailbox readiness', reason: 'Outbound is deployment-approved but blocked by mailbox.token', owner: 'Nero' };
+    } else if (outbound.outreachStage === 'send_blocked' && outbound.sendBlockedReason === 'policy') {
+      nextAction = { text: 'Define outreach policy to unblock send readiness', reason: 'Outbound is deployment-approved but no outreach policy has been set', owner: 'Nero' };
+    } else if (outbound.outreachStage === 'awaiting_content_approval') {
+      nextAction = { text: 'Review and approve pitch content', reason: 'Pitch is pending content approval before deployment', owner: 'Nero' };
+    } else if (outbound.outreachStage === 'content_approved' || outbound.contentApproval === 'approved') {
+      nextAction = { text: 'Approve deployment to proceed to send', reason: 'Content is approved, awaiting deployment gate', owner: 'Nero' };
+    }
+  }
+
+  res.json({
+    leadSlug: matchedSlug,
+    hasWebsiteStudioLead: true,
+    outbound,
+    concept,
+    timeline,
+    nextAction,
+  });
+}));
+
 app.post('/api/contacts', handleRoute((req, res) => {
   const { email, name } = req.body;
   if (!email || !name) {

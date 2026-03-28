@@ -9,6 +9,8 @@ import Modal from '../components/Modal';
 import { useToast } from '../App';
 import { relativeTime, scoreColor, debounce } from '../utils';
 
+const PRIORITY_MAP = { critical: 1, high: 2, normal: 3, low: 4 };
+
 export default function Contacts() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -16,7 +18,7 @@ export default function Contacts() {
 
   const [search, setSearch] = useState(initialSearch);
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [scoreFilter, setScoreFilter] = useState('all');
+  const [suppressionFilter, setSuppressionFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const limit = 20;
@@ -24,12 +26,13 @@ export default function Contacts() {
   const fetcher = useCallback(() => {
     const params = { limit, offset: page * limit };
     if (search.trim()) params.search = search.trim();
-    if (priorityFilter !== 'all') params.priority = priorityFilter;
-    if (scoreFilter !== 'all') params.score_filter = scoreFilter;
+    if (priorityFilter !== 'all') params.priority = PRIORITY_MAP[priorityFilter];
+    if (suppressionFilter === 'suppressed') params.suppressed = 1;
+    else if (suppressionFilter === 'active') params.suppressed = 0;
     return apiContacts(params);
-  }, [search, priorityFilter, scoreFilter, page]);
+  }, [search, priorityFilter, suppressionFilter, page]);
 
-  const { data, loading, error, execute } = useApi(fetcher, [search, priorityFilter, scoreFilter, page]);
+  const { data, loading, error, execute } = useApi(fetcher, [search, priorityFilter, suppressionFilter, page]);
 
   const debouncedSearch = useCallback(debounce((q) => { setSearch(q); setPage(0); }, 300), []);
 
@@ -84,10 +87,20 @@ export default function Contacts() {
             {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
           </button>
         ))}
-        {(search || priorityFilter !== 'all') && (
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 8 }}>State:</span>
+        {['all', 'active', 'suppressed'].map(s => (
+          <button
+            key={s}
+            className={`filter-chip ${suppressionFilter === s ? 'active' : ''}`}
+            onClick={() => { setSuppressionFilter(s); setPage(0); }}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+        {(search || priorityFilter !== 'all' || suppressionFilter !== 'all') && (
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => { setSearch(''); setPriorityFilter('all'); setPage(0); }}
+            onClick={() => { setSearch(''); setPriorityFilter('all'); setSuppressionFilter('all'); setPage(0); }}
           >
             Clear filters
           </button>
@@ -101,7 +114,6 @@ export default function Contacts() {
           <span>Score</span>
           <span>Priority</span>
           <span>Last Touch</span>
-          <span style={{ textAlign: 'center' }}>Follow-up</span>
         </div>
 
         {loading && contacts.length === 0 ? (
@@ -123,7 +135,7 @@ export default function Contacts() {
             <ContactRow
               key={contact.id}
               contact={contact}
-              onClick={() => navigate(`/contacts/${contact.id}`)}
+              onClick={() => navigate(`/contacts/${contact.id}?search=${encodeURIComponent(search)}&priority=${priorityFilter}&suppression=${suppressionFilter}`)}
             />
           ))
         )}
@@ -151,7 +163,7 @@ export default function Contacts() {
           onClose={() => setShowAddModal(false)}
           onCreated={(contact) => {
             setShowAddModal(false);
-            navigate(`/contacts/${contact.id}`);
+            navigate(`/contacts/${contact.id}?search=${encodeURIComponent(search)}&priority=${priorityFilter}&suppression=${suppressionFilter}`);
           }}
         />
       )}
@@ -160,11 +172,24 @@ export default function Contacts() {
 }
 
 function ContactRow({ contact, onClick }) {
+  const suppressed = contact.suppressed;
+  const secondary = contact.company || contact.email || '—';
   return (
     <div className="contact-row" onClick={onClick} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onClick()}>
       <div>
-        <div className="contact-row-name">{contact.name}</div>
-        <div className="contact-row-company">{contact.company || '—'}</div>
+        <div
+          className="contact-row-name"
+          style={{
+            color: suppressed ? 'var(--text-tertiary)' : undefined,
+            textDecoration: suppressed ? 'line-through' : undefined,
+          }}
+        >
+          {contact.name}
+          {suppressed ? (
+            <span title={contact.suppression_reason || 'Suppressed'} style={{ marginLeft: 6 }}>🚫</span>
+          ) : null}
+        </div>
+        <div className="contact-row-company" style={{ color: suppressed ? 'var(--text-tertiary)' : undefined }}>{secondary}</div>
       </div>
       <div>
         {contact.relationship_score != null ? (
@@ -181,13 +206,6 @@ function ContactRow({ contact, onClick }) {
         )}
       </div>
       <div className="contact-row-date">{relativeTime(contact.last_touched_at)}</div>
-      <div className="contact-row-followup">
-        {contact.has_followup ? (
-          <span title="Has pending follow-up" style={{ color: 'var(--signal-amber)', fontSize: 14 }}>⚠️</span>
-        ) : (
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>—</span>
-        )}
-      </div>
     </div>
   );
 }
@@ -204,7 +222,6 @@ function ContactSkeleton() {
           <div className="skeleton skeleton-text" style={{ width: 80 }} />
           <div className="skeleton skeleton-text" style={{ width: 60 }} />
           <div className="skeleton skeleton-text" style={{ width: 60 }} />
-          <div />
         </div>
       ))}
     </>
