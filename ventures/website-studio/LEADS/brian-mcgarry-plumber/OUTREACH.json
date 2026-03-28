@@ -4,7 +4,7 @@
   "contentApprovedAt": "2026-03-28T14:00:00Z",
   "deploymentApproval": "approved",
   "deploymentApprovedBy": "Nero",
-  "deploymentApprovedAt": "2026-03-28T14:59:00Z",
+  "deploymentApprovedAt": "2026-03-28T15:00:00Z",
   "deploymentBlockedBy": ["mailbox", "policy"],
   "warnings": [
     "Pitch references St. Brendan's Crescent — confirm this is accurate and intentional.",
