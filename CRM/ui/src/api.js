@@ -112,6 +112,7 @@ export const apiCreateInteraction = (contactId, data) =>
 
 // ── Outbound Queue ───────────────────────────────────────
 export const apiOutboundQueue = () => request('/outbound/queue');
+export const apiOutboundReadiness = () => request('/outbound/readiness');
 export const apiOutboundTransition = (id, action) =>
   request(`/outbound/leads/${id}/transition`, {
     method: 'POST',

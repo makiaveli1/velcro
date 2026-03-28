@@ -1,0 +1,17 @@
+{
+  "contentApproval": "approved",
+  "contentApprovedBy": "Nero",
+  "contentApprovedAt": "2026-03-28T14:00:00Z",
+  "deploymentApproval": "approved",
+  "deploymentApprovedBy": "Nero",
+  "deploymentApprovedAt": "2026-03-28T14:59:00Z",
+  "deploymentBlockedBy": ["mailbox", "policy"],
+  "warnings": [
+    "Pitch references St. Brendan's Crescent — confirm this is accurate and intentional.",
+    "Pitch is 3+ days old — verify Brian hasn't since claimed a GBP listing since the March 2026 discovery data."
+  ],
+  "outreachStage": "send_blocked",
+  "lastAction": "deploy_approved",
+  "lastActionAt": "2026-03-28T15:00:00Z",
+  "sentAt": null
+}
