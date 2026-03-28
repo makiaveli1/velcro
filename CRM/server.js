@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const { db, uuid } = require('./db/database');
 const llm = require('./adapters/llm');
@@ -10,6 +12,8 @@ const scoring = require('./services/scoring');
 const daily = require('./services/daily');
 const summaries = require('./services/summaries');
 const drafts = require('./services/drafts');
+
+const LEADS_DIR = path.resolve(__dirname, '../LEADS');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3100);
@@ -951,6 +955,219 @@ app.post('/api/drafts/:id/reject', asyncHandler(async (req, res) => {
 app.get('/api/drafts/tones', (req, res) => {
   res.json({ tones: drafts.VALID_TONES });
 });
+
+// ── Outbound Queue ───────────────────────────────────────────────────────────
+
+// GET /api/outbound/queue — scan LEADS/ for leads with PITCH.md
+app.get('/api/outbound/queue', handleRoute((req, res) => {
+  const items = [];
+  if (!fs.existsSync(LEADS_DIR)) return res.json({ items: [], count: 0 });
+
+  const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
+    fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
+  );
+
+  for (const dir of dirs) {
+    const leadDir = path.join(LEADS_DIR, dir);
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    if (!fs.existsSync(pitchPath)) continue;
+
+    // Read STATUS.md for stage, score, lastUpdated
+    let stage = 'unknown', score = null, lastUpdated = null;
+    const statusPath = path.join(leadDir, 'STATUS.md');
+    if (fs.existsSync(statusPath)) {
+      const statusContent = fs.readFileSync(statusPath, 'utf8');
+      const stageMatch = statusContent.match(/\*\*Current Stage:\*\*\s*(\S+)/);
+      const scoreMatch = statusContent.match(/\*\*Score:\*\*\s*(\d+)/);
+      const updatedMatch = statusContent.match(/lastUpdated:\s*(\S+)/);
+      if (stageMatch) stage = stageMatch[1].replace(/,/g, '');
+      if (scoreMatch) score = Number(scoreMatch[1]);
+      if (updatedMatch) lastUpdated = updatedMatch[1];
+    }
+
+    // Read OUTREACH.json for outreachStage
+    const outreachPath = path.join(leadDir, 'OUTREACH.json');
+    let outreachStage = stage; // fallback to STATUS.md stage
+    let sentAt = null;
+    if (fs.existsSync(outreachPath)) {
+      try {
+        const outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+        outreachStage = outreach.outreachStage || stage;
+        sentAt = outreach.sentAt || null;
+      } catch (_) {}
+    }
+
+    // Read LEAD_RECORD.md for email
+    let email = '';
+    const recordPath = path.join(leadDir, 'LEAD_RECORD.md');
+    if (fs.existsSync(recordPath)) {
+      const recordContent = fs.readFileSync(recordPath, 'utf8');
+      const emailMatch = recordContent.match(/\*\*Contact Email:\*\*\s*(\S+@\S+)/);
+      if (emailMatch) email = emailMatch[1];
+    }
+
+    // Read PITCH.md for subject, hook type, word count, preview
+    const pitchContent = fs.readFileSync(pitchPath, 'utf8');
+    const subjectMatch = pitchContent.match(/\*\*Subject:\*\*\s*(.+)/);
+    const hookMatch = pitchContent.match(/\*\*Hook type:\*\*\s*(.+)/);
+
+    let subject = dir, hookType = '', preview = '', wordCount = 0, emailBody = '';
+    if (subjectMatch) subject = subjectMatch[1].trim();
+    if (hookMatch) hookType = hookMatch[1].trim();
+
+    // Extract ## Email Draft section
+    // Structure: ## Email Draft, **To:**, **Subject:**, ---, [body], ---, ## Pitch Notes
+    const emailDraftIdx = pitchContent.indexOf('## Email Draft');
+    if (emailDraftIdx >= 0) {
+      const afterDraft = pitchContent.substring(emailDraftIdx);
+      const dashIdx = afterDraft.indexOf('---');
+      if (dashIdx > 0) {
+        const afterFirstDash = afterDraft.substring(dashIdx + 3);
+        const nextDashIdx = afterFirstDash.indexOf('---');
+        emailBody = (nextDashIdx >= 0 ? afterFirstDash.substring(0, nextDashIdx) : afterFirstDash).trim();
+        wordCount = emailBody.split(/\s+/).filter(Boolean).length;
+        preview = emailBody.substring(0, 150).replace(/\n/g, ' ').trim();
+        if (emailBody.length > 150) preview += '…';
+      }
+    }
+
+    const name = dir.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    items.push({
+      id: dir,
+      name,
+      company: name,
+      score: score,
+      outreachStage,
+      pitch: { subject, preview, hookType, wordCount, body: emailBody },
+      email,
+      lastUpdated,
+      sentAt,
+    });
+  }
+
+  res.json({ items, count: items.length });
+}));
+
+// POST /api/outbound/leads/:id/transition — approve/reject/send
+app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body;
+
+  if (!['approve', 'reject', 'send'].includes(action)) {
+    return res.status(400).json({ error: `Unknown action: ${action}. Must be approve, reject, or send.` });
+  }
+
+  const leadDir = path.join(LEADS_DIR, id);
+  if (!fs.existsSync(leadDir)) {
+    return res.status(404).json({ error: `Lead directory not found: ${id}` });
+  }
+
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  let outreach = {};
+  if (fs.existsSync(outreachPath)) {
+    try { outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8')); } catch (_) {}
+  }
+
+  // Terminal state guard
+  if (outreach.outreachStage === 'sent' || outreach.outreachStage === 'rejected') {
+    return res.status(409).json({ error: `Lead is already in terminal state: ${outreach.outreachStage}` });
+  }
+
+  if (action === 'send') {
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    if (!fs.existsSync(pitchPath)) {
+      return res.status(404).json({ error: 'PITCH.md not found' });
+    }
+    const pitchContent = fs.readFileSync(pitchPath, 'utf8');
+
+    // Extract subject from frontmatter
+    const subjectMatch = pitchContent.match(/\*\*Subject:\*\*\s*(.+)/);
+    const subject = subjectMatch ? subjectMatch[1].trim() : id;
+
+    // Extract recipient from **To:** line in ## Email Draft
+    const toMatch = pitchContent.match(/\*\*To:\*\*\s*(\S+@\S+)/);
+    const recipient = toMatch ? toMatch[1].trim() : outreach.email || '';
+
+    // Extract email body from ## Email Draft section
+    // Structure: ## Email Draft, **To:**, **Subject:**, ---, [body], ---, ## Pitch Notes
+    const rawBody = (() => {
+      const emailDraftIdx = pitchContent.indexOf('## Email Draft');
+      if (emailDraftIdx < 0) return '';
+      const afterDraft = pitchContent.substring(emailDraftIdx);
+      const dashIdx = afterDraft.indexOf('---');
+      if (dashIdx < 0) return '';
+      const afterFirstDash = afterDraft.substring(dashIdx + 3);
+      const nextDashIdx = afterFirstDash.indexOf('---');
+      return (nextDashIdx >= 0 ? afterFirstDash.substring(0, nextDashIdx) : afterFirstDash).trim();
+    })();
+
+    // Simple markdown-to-HTML: wrap paragraphs, convert newlines
+    const htmlContent = simpleMarkdownToHtml(rawBody);
+
+    try {
+      const token = graph.getAccessToken();
+      const graphRes = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: {
+            from: { address: 'studio@verdantia.it' },
+            toRecipients: [{ emailAddress: { address: recipient } }],
+            subject,
+            body: { contentType: 'HTML', content: htmlContent },
+          },
+          saveToSentItems: false,
+        }),
+      });
+
+      if (!graphRes.ok) {
+        const errBody = await graphRes.json().catch(() => ({}));
+        return res.status(500).json({ error: `Graph API error: ${errBody.error?.message || graphRes.statusText}` });
+      }
+    } catch (graphErr) {
+      return res.status(500).json({ error: `Graph API error: ${graphErr.message}` });
+    }
+
+    // Write OUTREACH.json with sent state
+    outreach.outreachStage = 'sent';
+    outreach.lastAction = 'send';
+    outreach.lastActionAt = nowIso();
+    outreach.sentAt = nowIso();
+    fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
+    return res.json(outreach);
+  }
+
+  // approve or reject
+  outreach.outreachStage = action === 'approve' ? 'approved' : 'rejected';
+  outreach.lastAction = action;
+  outreach.lastActionAt = nowIso();
+  if (action === 'approve') outreach.sentAt = null;
+  fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
+  res.json(outreach);
+}));
+
+// Simple markdown-to-HTML converter for email bodies
+function simpleMarkdownToHtml(md) {
+  if (!md) return '';
+  // Strip the To:/Subject: metadata lines at the top
+  const lines = md.split('\n');
+  const filtered = lines.filter(l => !l.match(/^\*\*To:\*\*/) && !l.match(/^\*\*Subject:\*\*/) && !l.startsWith('---'));
+  let text = filtered.join('\n').trim();
+
+  // Wrap paragraphs (split on double newline or bullet markers)
+  const paragraphs = text.split(/\n{2,}/).map(p => p.replace(/\n/g, '<br>').replace(/<br><br>/g, '<br>'));
+  const html = paragraphs.map(p => {
+    // Strip bullet markers but keep text
+    const cleaned = p.replace(/^[-*]\s+/g, '').replace(/<br>[-*]\s+/g, '<br>');
+    return `<p>${cleaned}</p>`;
+  }).join('\n');
+
+  return html || `<p>${text.replace(/\n/g, '<br>')}</p>`;
+}
 
 // ── NL Query (upgraded) ───────────────────────────────────────────────────────
 
