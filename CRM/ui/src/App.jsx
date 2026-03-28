@@ -1,6 +1,7 @@
 import React, { useState, createContext, useContext, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import Discovery from './pages/Discovery';
 import Contacts from './pages/Contacts';
@@ -49,13 +50,13 @@ export default function App() {
       <ToastProvider>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="discovery" element={<Discovery />} />
-            <Route path="contacts" element={<Contacts />} />
-            <Route path="contacts/:id" element={<ContactDossier />} />
-            <Route path="followups" element={<FollowUps />} />
-            <Route path="drafts" element={<Drafts />} />
-            <Route path="settings" element={<Settings />} />
+            <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+            <Route path="discovery" element={<ErrorBoundary><Discovery /></ErrorBoundary>} />
+            <Route path="contacts" element={<ErrorBoundary><Contacts /></ErrorBoundary>} />
+            <Route path="contacts/:id" element={<ErrorBoundary><ContactDossier /></ErrorBoundary>} />
+            <Route path="followups" element={<ErrorBoundary><FollowUps /></ErrorBoundary>} />
+            <Route path="drafts" element={<ErrorBoundary><Drafts /></ErrorBoundary>} />
+            <Route path="settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

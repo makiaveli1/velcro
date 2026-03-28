@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useApi } from '../hooks/useApi';
-import { apiConfig, apiRunDiscovery } from '../api';
+import { apiConfig, apiRunDiscovery, apiContacts } from '../api';
 import { useToast } from '../App';
 
 function Toggle({ checked, onChange, id }) {
@@ -17,21 +17,31 @@ export default function Settings() {
   const { addToast } = useToast();
   const fetcher = useCallback(() => apiConfig(), []);
   const { data, loading, error } = useApi(fetcher, [], { immediate: true });
+
+  // ── ALL useState calls MUST come before any early returns ──
+  const [autoAdd, setAutoAdd] = useState(false);
+  const [emailDraftsEnabled, setEmailDraftsEnabled] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
   const [syncing, setSyncing] = useState(false);
+
+  // ── Derive values from data AFTER all hooks are declared ──
+  const graph = data?.graph || {};
+  const discovery = data?.discovery || {};
+  const emailDrafts = data?.emailDrafts || {};
+
+  // Sync derived values to state once data arrives
+  React.useEffect(() => {
+    if (discovery?.autoAddMode != null) {
+      setAutoAdd(!!discovery.autoAddMode.thresholdReached);
+    }
+    if (emailDrafts?.enabled != null) {
+      setEmailDraftsEnabled(!!emailDrafts.enabled);
+    }
+  }, [discovery, emailDrafts]);
 
   if (loading) return <Skeleton />;
   if (error) return <div style={{ color: 'var(--signal-rose)', padding: 'var(--space-6)' }}>{error}</div>;
   if (!data) return null;
-
-  const {
-    graph = {},
-    discovery = {},
-    emailDrafts = {},
-  } = data;
-
-  const [autoAdd, setAutoAdd] = useState(!!discovery?.autoAddMode?.thresholdReached);
-  const [emailDraftsEnabled, setEmailDraftsEnabled] = useState(!!emailDrafts?.enabled);
-  const [syncStatus, setSyncStatus] = useState(null);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -42,6 +52,39 @@ export default function Settings() {
       addToast({ type: 'error', message: e.message });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const data = await apiContacts({ limit: 10000 });
+      const contacts = data?.items || [];
+      if (contacts.length === 0) { addToast({ type: 'info', message: 'No contacts to export' }); return; }
+      const headers = ['name', 'email', 'company', 'role', 'phone', 'priority', 'relationship_score'];
+      const rows = contacts.map(c => [c.name, c.email, c.company, c.role, c.phone, c.priority, c.relationship_score]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'contacts.csv'; a.click();
+      URL.revokeObjectURL(url);
+      addToast({ type: 'success', message: `Exported ${contacts.length} contacts` });
+    } catch (e) {
+      addToast({ type: 'error', message: e.message });
+    }
+  };
+
+  const handleExportJSON = async () => {
+    try {
+      const data = await apiContacts({ limit: 10000 });
+      const contacts = data?.items || [];
+      if (contacts.length === 0) { addToast({ type: 'info', message: 'No contacts to export' }); return; }
+      const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'contacts.json'; a.click();
+      URL.revokeObjectURL(url);
+      addToast({ type: 'success', message: `Exported ${contacts.length} contacts` });
+    } catch (e) {
+      addToast({ type: 'error', message: e.message });
     }
   };
 
@@ -87,7 +130,7 @@ export default function Settings() {
               <div style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
                 Connect Microsoft Outlook to sync contacts, calendar, and email.
               </div>
-              <button className="btn btn-primary">Connect Outlook</button>
+              <button className="btn btn-primary" onClick={handleSync}>Connect Outlook</button>
             </div>
           )}
         </div>
@@ -206,8 +249,8 @@ export default function Settings() {
               <div className="settings-row-desc">Download all your contacts as CSV or JSON</div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-secondary btn-sm">Export CSV</button>
-              <button className="btn btn-secondary btn-sm">Export JSON</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>Export CSV</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleExportJSON}>Export JSON</button>
             </div>
           </div>
           <div className="settings-row">
@@ -215,7 +258,8 @@ export default function Settings() {
               <div className="settings-row-label" style={{ color: 'var(--signal-rose)' }}>Danger zone</div>
               <div className="settings-row-desc">Permanently delete all data. This cannot be undone.</div>
             </div>
-            <button className="btn btn-danger btn-sm">Delete all data</button>
+            {/* TODO: wire to DELETE /api/wipe when endpoint exists */}
+            <button className="btn btn-danger btn-sm" disabled title="Awaiting DELETE /api/wipe endpoint">Delete all data</button>
           </div>
         </div>
       </div>

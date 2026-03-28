@@ -1,6 +1,23 @@
 // Verdantia CRM — API Layer
 const BASE = '/api';
 
+// ── Response normalizers ─────────────────────────────────
+// Normalize backend responses to match frontend assumptions.
+// These prevent crashes when the backend changes field names or returns null.
+
+// Normalize contact detail — backend uses snake_case and may return null arrays.
+function normalizeContactDetail(data) {
+  if (!data || data.error) return data;
+  return {
+    ...data,
+    // Backend returns follow_ups (snake_case) — normalize to both so callers work
+    follow_ups: Array.isArray(data.follow_ups) ? data.follow_ups : [],
+    // Ensure arrays are always arrays to prevent .map() crashes
+    interactions: Array.isArray(data.interactions) ? data.interactions : [],
+    summary: data.summary || {},
+  };
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -24,7 +41,8 @@ export const apiContacts = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
   return request(`/contacts${qs ? `?${qs}` : ''}`);
 };
-export const apiContact = (id) => request(`/contacts/${id}`);
+export const apiContact = (id) =>
+  request(`/contacts/${id}`).then(normalizeContactDetail);
 export const apiCreateContact = (data) =>
   request('/contacts', { method: 'POST', body: JSON.stringify(data) });
 export const apiUpdateContact = (id, data) =>
@@ -87,3 +105,7 @@ export const apiRunDiscovery = () =>
 // ── Test message ─────────────────────────────────────────
 export const apiTestMessage = () =>
   request('/test-message', { method: 'POST' });
+
+// ── Interactions ─────────────────────────────────────────
+export const apiCreateInteraction = (contactId, data) =>
+  request(`/contacts/${contactId}/interactions`, { method: 'POST', body: JSON.stringify(data) });

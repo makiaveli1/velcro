@@ -53,6 +53,7 @@ export default function Dashboard() {
           sub="contacts below score 40"
           colorClass={contactsNeedingAttention.length > 0 ? 'rose' : 'emerald'}
           onClick={() => {}}
+          loading={loading}
         />
         <StatCard
           label="Discovery Queue"
@@ -60,6 +61,7 @@ export default function Dashboard() {
           sub="pending review"
           colorClass={discoveryQueueSize > 0 ? 'accent' : 'emerald'}
           onClick={() => navigate('/discovery')}
+          loading={loading}
         />
         <StatCard
           label="Follow-ups Due"
@@ -67,13 +69,15 @@ export default function Dashboard() {
           sub="pending follow-ups"
           colorClass={pendingFollowUps.length > 0 ? 'amber' : 'emerald'}
           onClick={() => navigate('/followups')}
+          loading={loading}
         />
         <StatCard
           label="Contacts"
-          value={weeklyStats.totalContacts || 0}
+          value={weeklyStats.contacts_created || 0}
           sub={`${weeklyStats.contacts_created || 0} new this week`}
           colorClass=""
           onClick={() => navigate('/contacts')}
+          loading={loading}
         />
       </div>
 
@@ -148,7 +152,7 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, sub, colorClass = '', onClick }) {
+function StatCard({ label, value, sub, colorClass = '', onClick, loading = false }) {
   return (
     <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
       <div className="stat-card-label">{label}</div>
