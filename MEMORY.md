@@ -91,3 +91,49 @@ Skills CLI installs to `.agents/skills/<name>/` with symlinks in `skills/` — b
 ---
 
 _Update when new durable facts emerge. Keep it curated — no junk._
+
+## Inbox Refresh Loop Bug Fix (2026-03-28)
+
+### Root Cause
+`handleRefresh()` in `DownloadsScreen.tsx` called `setIsRefreshing(true)` even when the backend watcher was already `"processing"`. This caused:
+1. Backend returns `state: "processing"` immediately (early exit, no new work)
+2. Frontend sets `isRefreshing = true` again
+3. Completion effect fires with `isRefreshing=true` + `watcherStatus.state="processing"` → returns early
+4. Backend finishes → emits `"watching"` → completion effect fires again
+5. **Race: stale async block + new block both call `loadInbox()` → visible double-refresh loop**
+
+Secondary: If no downloads folder configured, backend stays `"processing"` indefinitely → `isRefreshing` stuck forever.
+
+### Fix Applied
+`DownloadsScreen.tsx` — `handleRefresh()`: Added `wasAlreadyRefreshing` guard:
+```typescript
+const wasAlreadyRefreshing = isRefreshing;  // read AFTER api call
+const nextStatus = await api.refreshDownloadsInbox();
+setWatcherStatus(nextStatus);
+if (nextStatus.state === "processing") {
+  if (!wasAlreadyRefreshing) {  // only set if genuinely new
+    setIsRefreshing(true);
+    setStatusMessage(...);
+  }
+  return;
+}
+```
+Also fixed `ConflictEvidenceDisplay.tsx` pre-existing `string | null` type error.
+
+Full report: `bugfix-logs/INBOX_REFRESH_LOOP_FIX.md`
+
+### Backend Gap (follow-up)
+`process_downloads_once_for_paths` doesn't emit a non-`processing` status when downloads path is not configured. Frontend is no longer stuck (fix prevents `isRefreshing` from being set), but user gets no feedback. Backend needs a fallback to emit `Idle + configured=false` when path doesn't exist.
+
+### SimSuite Review Files
+Full review workspace at `simsuite-review/` with all reports from the launch-readiness session. Files:
+- `CONFLICT_MAP_SCOPE_AUDIT.md`
+- `CONFLICT_EVIDENCE_DISPLAY_ADR.md`
+- `TIERED_INTELLIGENCE_REPORT.md`
+- `HARDENING_REPORT.md`
+- `INBOX_BACKEND_AUDIT.md`
+- `PRERELEASE_VALIDATION.md`
+- `LAUNCH_ACCEPTANCE.md`
+- `LAUNCH_ENABLED_REPORT.md`
+- ConflictEvidenceDisplay.tsx (tiered, launch-enabled for all views)
+- DownloadsDecisionPanel.tsx (gate removed)
