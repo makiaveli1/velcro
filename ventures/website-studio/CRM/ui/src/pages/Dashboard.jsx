@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { apiDashboard, apiCreateFollowUp } from '../api';
@@ -48,6 +48,9 @@ function stageChipColor(key) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data, loading, error } = useApi(apiDashboard, [], { immediate: true });
+  const [viewMode, setViewMode] = useState(
+    () => (typeof window !== 'undefined' ? localStorage.getItem('dashboard_view_mode') : null) || 'detailed'
+  );
 
   if (loading) return <DashboardSkeleton />;
   if (error) return <ErrorState error={error} />;
@@ -90,7 +93,7 @@ export default function Dashboard() {
             <p className="page-subtitle">{today}</p>
           </div>
           <div className="page-header-actions">
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/pipeline')}>
+            <button className="btn btn-secondary btn-sm" data-automation-id="dashboard-open-pipeline" onClick={() => navigate('/pipeline')}>
               Pipeline
             </button>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/contacts')}>
@@ -103,8 +106,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* WS Health Strip */}
-      {totalLeads > 0 && (
+      {/* View mode toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12, gap: 4 }}>
+        <button
+          data-automation-id="view-mode-simple"
+          onClick={() => { setViewMode('simple'); localStorage.setItem('dashboard_view_mode', 'simple'); }}
+          style={{
+            padding: '4px 12px', fontSize: 11, borderRadius: 6, border: '1px solid',
+            borderColor: viewMode === 'simple' ? 'var(--signal-blue)' : 'var(--border)',
+            background: viewMode === 'simple' ? 'rgba(59,130,246,0.1)' : 'transparent',
+            color: viewMode === 'simple' ? 'var(--signal-blue)' : 'var(--text-tertiary)',
+            cursor: 'pointer', fontWeight: 500,
+          }}
+        >Simple</button>
+        <button
+          data-automation-id="view-mode-detailed"
+          onClick={() => { setViewMode('detailed'); localStorage.setItem('dashboard_view_mode', 'detailed'); }}
+          style={{
+            padding: '4px 12px', fontSize: 11, borderRadius: 6, border: '1px solid',
+            borderColor: viewMode === 'detailed' ? 'var(--signal-blue)' : 'var(--border)',
+            background: viewMode === 'detailed' ? 'rgba(59,130,246,0.1)' : 'transparent',
+            color: viewMode === 'detailed' ? 'var(--signal-blue)' : 'var(--text-tertiary)',
+            cursor: 'pointer', fontWeight: 500,
+          }}
+        >Detailed</button>
+      </div>
+
+      {/* WS Health Strip — hidden in simple mode */}
+      {viewMode === 'detailed' && totalLeads > 0 && (
         <div style={{
           display: 'flex', gap: 8, flexWrap: 'wrap',
           padding: '12px 16px', background: 'var(--surface-raised)',
@@ -164,9 +193,9 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
               {[
-                { label: 'Mailbox', ready: wsReadiness.mailboxReady },
-                { label: 'Policy',  ready: wsReadiness.policyReady },
-              ].map(({ label, ready }) => (
+                { label: 'Mailbox', ready: wsReadiness.mailboxReady, reason: mailboxReason },
+                { label: 'Policy',  ready: wsReadiness.policyReady, reason: policyReason },
+              ].map(({ label, ready, reason }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 13, color: ready ? 'var(--signal-emerald)' : 'var(--signal-rose)', fontWeight: 600 }}>
                     {ready ? '✓' : '✕'}
@@ -175,22 +204,19 @@ export default function Dashboard() {
                   <span style={{ fontSize: 11, color: ready ? 'var(--signal-emerald)' : 'var(--signal-rose)', marginLeft: 'auto' }}>
                     {ready ? 'Ready' : 'Not ready'}
                   </span>
+                  {!ready && reason && (
+                    <span style={{ fontSize: 10, color: 'var(--signal-rose)', marginLeft: 4 }}>({reason})</span>
+                  )}
                 </div>
               ))}
-              {mailboxReason && !wsReadiness.mailboxReady && (
-                <div style={{ fontSize: 11, color: 'var(--signal-rose)' }}>Mailbox: {mailboxReason}</div>
-              )}
-              {policyReason && !wsReadiness.policyReady && (
-                <div style={{ fontSize: 11, color: 'var(--signal-rose)' }}>Policy: {policyReason}</div>
-              )}
             </div>
             <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: sendBlocked > 0 ? 'var(--signal-rose)' : 'var(--text-primary)' }}>{sendBlocked}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Approved, blocked</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: sendBlocked > 0 ? 'var(--signal-rose)' : 'var(--text-tertiary)' }}>{sendBlocked}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Awaiting deployment</div>
               </div>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: readyToSend > 0 ? 'var(--signal-emerald)' : 'var(--text-primary)' }}>{readyToSend}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: readyToSend > 0 ? 'var(--signal-emerald)' : 'var(--text-tertiary)' }}>{readyToSend}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Ready to send</div>
               </div>
               <div>
@@ -198,15 +224,15 @@ export default function Dashboard() {
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Sent</div>
               </div>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/outbound')} style={{ width: '100%' }}>
+            <button className="btn btn-secondary btn-sm" data-automation-id="dashboard-open-outbound-queue" onClick={() => navigate('/outbound')} style={{ width: '100%' }}>
               Open Outbound Queue →
             </button>
           </div>
         </div>
       </div>
 
-      {/* Pipeline Overview Bar */}
-      {pipeline.length > 0 && (
+      {/* Pipeline Overview Bar — hidden in simple mode */}
+      {viewMode === 'detailed' && pipeline.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-body">
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>

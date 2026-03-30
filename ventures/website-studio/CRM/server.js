@@ -280,7 +280,9 @@ async function buildSystemStatusPayload() {
   const tokenExpired = tokenInfo.expiresAtMs != null ? Date.now() > tokenInfo.expiresAtMs : false;
   const wsStats = getWebsiteStudioStats();
 
-  const sendReady = mailboxReady && policyReady && wsStats.approvedNotSent === 0;
+  // sendReady: system is ready when mailbox and policy are both ready.
+  // Empty queue is NOT a blocker — it just means nothing to send yet.
+  const sendReady = mailboxReady && policyReady;
   const nextFixes = [];
   if (mailboxDetail.blockerCode !== 'ready') {
     nextFixes.push({ priority: 'critical', action: mailboxDetail.nextFix, reason: mailboxDetail.reason });
@@ -295,8 +297,10 @@ async function buildSystemStatusPayload() {
       mailboxReady,
       policyReady,
       sendReadyBecause: sendReady
-        ? 'Mailbox connected, policy defined, no approved-but-unsent leads'
-        : (!mailboxReady ? mailboxDetail.reason : !policyReady ? policyDetail.reason : 'Approved leads still blocked by system issues'),
+        ? (wsStats.approvedNotSent > 0
+            ? `Mailbox connected, policy defined — ${wsStats.approvedNotSent} approved lead(s) awaiting send`
+            : 'Mailbox connected, policy defined, ready to send')
+        : (!mailboxReady ? mailboxDetail.reason : !policyReady ? policyDetail.reason : 'System not ready'),
     },
     graph: {
       configured: graphStatus.hasConfig,

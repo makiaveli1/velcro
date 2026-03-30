@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '../hooks/useApi';
 import {
   apiConfig,
@@ -77,7 +77,7 @@ function ActionButton({
   );
 }
 
-function SetupChecklistItem({ label, value, tone = 'bad', dataAutomationId }) {
+function SetupChecklistItem({ label, value, tone = 'bad', dataAutomationId, explanation }) {
   const toneMap = {
     ok: {
       color: 'var(--signal-emerald)',
@@ -102,9 +102,10 @@ function SetupChecklistItem({ label, value, tone = 'bad', dataAutomationId }) {
       data-automation-id={dataAutomationId}
       style={{
         display: 'flex',
+        flexDirection: explanation ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 12,
+        alignItems: explanation ? 'flex-start' : 'center',
+        gap: explanation ? '4px 12px' : 12,
         padding: '10px 12px',
         borderRadius: 8,
         border: `1px solid ${ui.border}`,
@@ -112,8 +113,15 @@ function SetupChecklistItem({ label, value, tone = 'bad', dataAutomationId }) {
         fontSize: 12,
       }}
     >
-      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{label}</span>
-      <span style={{ color: ui.color, fontWeight: 700, textAlign: 'right' }}>{value}</span>
+      <div>
+        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{label}</span>
+        {explanation && (
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2, lineHeight: 1.4 }}>
+            {explanation}
+          </div>
+        )}
+      </div>
+      <span style={{ color: ui.color, fontWeight: 700, textAlign: 'right', flexShrink: 0 }}>{value}</span>
     </div>
   );
 }
@@ -597,10 +605,11 @@ export default function Settings() {
   }[mailboxDetail.blockerCode] || mailboxDetail.blockerCode || 'Unknown';
   const mailboxOverall = getMailboxOverall(mailboxDetail, tokenInfo);
 
-  const checklistItems = useMemo(() => ([
+  const checklistItems = [
     {
       index: 1,
       label: '① Graph configured',
+      explanation: 'Microsoft Graph app registered with Azure AD — required for all API access',
       complete: !!mailboxDetail.configured,
       tone: mailboxDetail.configured ? 'ok' : 'bad',
       value: mailboxDetail.configured ? '✓ Configured' : '✕ Missing',
@@ -608,6 +617,7 @@ export default function Settings() {
     {
       index: 2,
       label: '② Graph authenticated',
+      explanation: 'Successfully signed in with your Microsoft account — Graph calls are authorized',
       complete: !!mailboxDetail.authenticated,
       tone: mailboxDetail.authenticated ? 'ok' : 'bad',
       value: mailboxDetail.authenticated ? '✓ Authenticated' : '✕ Not authenticated',
@@ -615,13 +625,15 @@ export default function Settings() {
     {
       index: 3,
       label: '③ Token healthy',
+      explanation: 'Stored access token is valid and not expired — refreshes automatically when needed',
       complete: !!mailboxDetail.tokenHealthy,
       tone: mailboxDetail.tokenHealthy ? 'ok' : 'bad',
-      value: mailboxDetail.tokenHealthy ? '✓ Healthy' : '✕ Expired / unhealthy',
+      value: mailboxDetail.tokenHealthy ? '✓ Healthy' : '✕ Expired',
     },
     {
       index: 4,
       label: '④ Outreach policy present',
+      explanation: 'outreach-policy.md exists and defines who you contact, how, and when',
       complete: !!policy.fileExists,
       tone: policy.fileExists ? 'ok' : 'bad',
       value: policy.fileExists ? '✓ Present' : '✕ Missing',
@@ -629,11 +641,12 @@ export default function Settings() {
     {
       index: 5,
       label: '⑤ Shared mailbox verified',
+      explanation: 'Confirmed send-as permission on studio@verdantia.it — tested manually in OWA',
       complete: !!mailboxDetail.sendAsVerified,
       tone: mailboxDetail.sendAsVerified ? 'ok' : 'warn',
       value: mailboxDetail.sendAsVerified ? '✓ Verified' : '⚠ Not verified yet',
     },
-  ]), [mailboxDetail, policy.fileExists]);
+  ];
 
   const completeCount = checklistItems.filter((item) => item.complete).length;
   const checklistOverall = getSetupOverallState(completeCount);
@@ -690,7 +703,10 @@ export default function Settings() {
             </div>
 
             {/* Setup checklist */}
-            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 10 }}>
+                Outbound requires a connected Graph mailbox and a defined outreach policy. Fix any blockers below, then approve leads from the Outbound Queue before dispatching.
+              </div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>
                 Setup Checklist
               </div>
@@ -699,6 +715,7 @@ export default function Settings() {
                   <SetupChecklistItem
                     key={item.index}
                     label={item.label}
+                    explanation={item.explanation}
                     value={item.value}
                     tone={item.tone}
                     dataAutomationId={`setup-checklist-item-${item.index}`}
