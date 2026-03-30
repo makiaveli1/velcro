@@ -10,6 +10,7 @@ import FollowUps from './pages/FollowUps';
 import Drafts from './pages/Drafts';
 import Settings from './pages/Settings';
 import OutboundQueue from './pages/OutboundQueue';
+import Pipeline from './pages/Pipeline';
 
 // ── Toast Context ─────────────────────────────────────────
 export const ToastContext = createContext(null);
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="followups" element={<ErrorBoundary><FollowUps /></ErrorBoundary>} />
             <Route path="drafts" element={<ErrorBoundary><Drafts /></ErrorBoundary>} />
             <Route path="outbound" element={<ErrorBoundary><OutboundQueue /></ErrorBoundary>} />
+            <Route path="pipeline" element={<ErrorBoundary><Pipeline /></ErrorBoundary>} />
             <Route path="settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

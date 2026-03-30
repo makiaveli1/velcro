@@ -12,6 +12,8 @@ const url = require('url');
 const CONFIG_PATH = path.join(__dirname, '..', 'config', 'graph.json');
 const TOKEN_PATH  = path.join(__dirname, '..', 'config', 'graph_token.json');
 
+let deviceCodeSetupState = null;
+
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) return null;
   try {
@@ -170,6 +172,90 @@ async function refreshAccessToken(refreshToken, config) {
   const token = { ...res.body, acquired_at: Date.now(), expires_at: Date.now() + res.body.expires_in * 1000 };
   saveToken(token);
   return token;
+}
+
+function getDeviceCodeSetupStatus() {
+  const storedToken = readStoredToken();
+  const validToken = loadToken();
+  const now = Date.now();
+
+  if (deviceCodeSetupState?.pending && deviceCodeSetupState.expiresAtMs && now >= deviceCodeSetupState.expiresAtMs) {
+    deviceCodeSetupState = {
+      ...deviceCodeSetupState,
+      pending: false,
+      lastError: deviceCodeSetupState.lastError || 'Device code expired before authentication completed',
+      expiredAtMs: now,
+    };
+  }
+
+  const pending = !!deviceCodeSetupState?.pending && !validToken;
+
+  return {
+    pending,
+    hasToken: !!storedToken,
+    hasValidToken: !!validToken,
+    lastError: deviceCodeSetupState?.lastError || null,
+  };
+}
+
+async function startDeviceCodeSetup(config = loadConfig()) {
+  if (!config) {
+    throw new Error('No graph.json config found. Create config/graph.json with { clientId, tenantId }');
+  }
+
+  const now = Date.now();
+  if (deviceCodeSetupState?.pending && (!deviceCodeSetupState.expiresAtMs || now < deviceCodeSetupState.expiresAtMs)) {
+    return {
+      device_code: deviceCodeSetupState.deviceCode,
+      user_code: deviceCodeSetupState.userCode,
+      verification_uri: deviceCodeSetupState.verificationUrl,
+      interval: Math.max(1, Math.round((deviceCodeSetupState.intervalMs || 5000) / 1000)),
+      expires_in: deviceCodeSetupState.expiresAtMs
+        ? Math.max(0, Math.round((deviceCodeSetupState.expiresAtMs - now) / 1000))
+        : null,
+    };
+  }
+
+  const deviceCode = await getDeviceCode(config);
+  const intervalMs = (Number(deviceCode.interval) || 5) * 1000;
+  const expiresAtMs = now + (Number(deviceCode.expires_in) || 900) * 1000;
+
+  deviceCodeSetupState = {
+    pending: true,
+    startedAtMs: now,
+    expiresAtMs,
+    intervalMs,
+    deviceCode: deviceCode.device_code,
+    userCode: deviceCode.user_code,
+    verificationUrl: deviceCode.verification_uri,
+    lastError: null,
+  };
+
+  pollForToken(deviceCode.device_code, config, intervalMs)
+    .then((token) => {
+      if (deviceCodeSetupState?.deviceCode === deviceCode.device_code) {
+        deviceCodeSetupState = {
+          ...deviceCodeSetupState,
+          pending: false,
+          completedAtMs: Date.now(),
+          lastError: null,
+          tokenExpiresAtMs: token.expires_at || null,
+        };
+      }
+    })
+    .catch((error) => {
+      if (deviceCodeSetupState?.deviceCode === deviceCode.device_code) {
+        deviceCodeSetupState = {
+          ...deviceCodeSetupState,
+          pending: false,
+          failedAtMs: Date.now(),
+          lastError: error.message,
+        };
+      }
+      console.warn('[graph] Device code polling failed:', error.message);
+    });
+
+  return deviceCode;
 }
 
 // ── Token management ──────────────────────────────────────────────────────────
@@ -555,8 +641,12 @@ function generateMockDiscovery() {
 
 module.exports = {
   loadConfig,
+  readStoredToken,
+  loadToken,
   getAccessToken,
   setupInteractive,
+  startDeviceCodeSetup,
+  getDeviceCodeSetupStatus,
   getStatus,
   getRecentMessages,
   getRecentEvents,

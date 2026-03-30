@@ -7,7 +7,7 @@
 | Repo / Project | Purpose | Status | Repo Note Path |
 |---|---|---|---|
 | _Nero OpenClaw workspace_ | Own agent workspace and config | Active | (built-in, no separate note) |
-| — | — | — | — |
+| website-studio | Website Studio CRM + outbound pipeline | Active | `repos/website-studio/REPO.md` |
 
 ---
 

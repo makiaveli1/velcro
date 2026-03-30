@@ -1,0 +1,22 @@
+# website-studio
+
+- **Repo path:** `/home/likwid/.openclaw/workspace/ventures/website-studio`
+- **Purpose:** Website Studio lead pipeline + CRM for discovery, approvals, outbound queueing, and send readiness diagnostics.
+- **Backend stack:** Node.js + Express + `better-sqlite3`
+- **Frontend stack:** React 18 + Vite
+- **Important dirs:**
+  - `CRM/server.js` — main API server
+  - `CRM/adapters/graph.js` — Microsoft Graph auth/status
+  - `CRM/ui/src/` — React UI
+  - `LEADS/` — file-based Website Studio lead records
+- **Common commands:**
+  - `cd CRM && node server.js`
+  - `cd CRM && node --check server.js`
+  - `cd CRM/ui && npm run build`
+  - `curl -s http://localhost:3100/api/system-status | jq .`
+  - `curl -s http://localhost:3100/api/outbound/queue | jq .`
+- **Patterns:**
+  - Readiness is computed server-side and then reused by dashboard/queue/pipeline consumers.
+  - Graph token expiry values are stored in milliseconds.
+  - Outreach policy is a file gate at `website-studio/outreach-policy.md`.
+  - Repo can be dirty with unrelated UI work; stage only scoped files.
