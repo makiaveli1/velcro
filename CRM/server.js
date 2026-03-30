@@ -65,19 +65,19 @@ function getMailboxDetail(graphStatus = {}, tokenInfo = getTokenInfo(graphStatus
   if (!configured) {
     blockerCode = 'not_configured';
     reason = 'Mailbox not configured — Graph setup required';
-    nextFix = 'Create CRM/config/graph.json and run `graph setup`.';
+    nextFix = 'Add CRM/config/graph.json so Microsoft Graph can be configured.';
   } else if (authenticated && tokenHealthy) {
     reason = 'Mailbox ready — Graph is authenticated and token is healthy';
   } else if (tokenInfo.tokenLoaded && !tokenHealthy) {
     blockerCode = 'token_expired';
-    reason = 'Graph token expired — run `graph setup` to refresh';
-    nextFix = 'Run `graph setup` to refresh the expired Graph token.';
+    reason = 'Graph token expired — refresh the stored token';
+    nextFix = 'Refresh the expired Graph token from Settings.';
   } else {
     blockerCode = 'not_authenticated';
     reason = graphStatus?.message && graphStatus.message !== 'Not authenticated — run setup()'
       ? `Graph not authenticated — ${graphStatus.message}`
-      : 'Graph not authenticated — run `graph setup`';
-    nextFix = 'Run `graph setup` to authenticate Microsoft Graph.';
+      : 'Graph not authenticated — authentication required';
+    nextFix = 'Start Microsoft Graph authentication from Settings.';
   }
 
   return {
@@ -158,6 +158,199 @@ async function getQueueReadiness() {
     systemWarnings,
     blockers: systemBlockers,
     warnings: systemWarnings,
+  };
+}
+
+function getDefaultOutreachPolicyContent() {
+  return `# Outreach Policy — Verdantia Website Studio
+
+_Generated: ${new Date().toISOString().split('T')[0]}_
+
+## Who We Contact
+
+We reach out exclusively to businesses and decision-makers who have shown clear, specific signals of need — not cold mass outreach.
+
+### Signal Requirements for Outreach
+- Must have a discoverable business presence (GBP listing, website, or professional directory entry)
+- Must have a Dublin/Eastern Ireland location or clear service area
+- Must be in a service category relevant to Website Studio's positioning
+- Must NOT be on any suppression list
+
+## How We Outreach
+
+### Modality
+- Email only, sent from studio@verdantia.it via Microsoft Graph API
+- One personalized email per contact, based on their specific business context
+- Plain-text preferred for first contact; HTML allowed for well-formatted pitches
+
+### Cadence
+- Maximum 1 outreach email per contact per 30 days
+- Maximum 1 follow-up if no response after 7 days (optional, based on signal strength)
+- No automated follow-up sequences in v1
+
+### Content Standards
+- Subject line must be specific to the recipient, not generic
+- Email must reference something specific about their business (not a template with a name slot)
+- No false claims, exaggerations, or misleading statements
+- No "just checking in" non-content follow-ups
+
+## Who Can Approve Outreach
+
+Two-gate model:
+1. Content Approval — pitch quality and accuracy verified by a human reviewer
+2. Deployment Approval — timing and list hygiene verified before send
+
+## Suppression
+- Anyone who has requested removal or expressed disinterest is suppressed immediately
+- Competitors are not contacted
+- Suppressed contacts are tracked in SUPPRESSION.md per lead
+
+## Compliance
+- All outreach complies with Irish and EU email marketing regulations
+- Consent is implied by existing business relationship and opt-out mechanism
+- Full suppression list maintained per lead
+
+## Notes for Operators
+- This policy was auto-generated as a starting point
+- Review and customize before first outreach send
+- Update as Verdantia's positioning evolves
+`;
+}
+
+function getWebsiteStudioStats() {
+  let wsStats = { total: 0, sendBlocked: 0, readyToSend: 0, sent: 0, monitor: 0, approvedNotSent: 0 };
+
+  if (!fs.existsSync(LEADS_DIR)) {
+    return wsStats;
+  }
+
+  const dirs = fs.readdirSync(LEADS_DIR).filter(d => fs.statSync(path.join(LEADS_DIR, d)).isDirectory());
+  let sendBlocked = 0;
+  let readyToSend = 0;
+  let sent = 0;
+  let monitor = 0;
+  let approvedNotSent = 0;
+
+  for (const dir of dirs) {
+    const leadDir = path.join(LEADS_DIR, dir);
+    const statusPath = path.join(leadDir, 'STATUS.md');
+    if (fs.existsSync(statusPath)) {
+      const sc = fs.readFileSync(statusPath, 'utf8');
+      if (/\*\*Current Stage:\*\*\s*MONITOR/i.test(sc)) {
+        monitor++;
+        continue;
+      }
+    }
+
+    const outreachPath = path.join(leadDir, 'OUTREACH.json');
+    if (!fs.existsSync(outreachPath)) {
+      continue;
+    }
+
+    try {
+      const outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+      const stage = outreach.outreachStage || '';
+      if (stage === 'send_blocked') {
+        sendBlocked++;
+        approvedNotSent++;
+      } else if (stage === 'awaiting_send' || stage === 'ready_to_send') {
+        readyToSend++;
+      } else if (stage === 'sent') {
+        sent++;
+      }
+    } catch (_) {}
+  }
+
+  wsStats = { total: dirs.length, sendBlocked, readyToSend, sent, monitor, approvedNotSent };
+  return wsStats;
+}
+
+async function buildSystemStatusPayload() {
+  const readiness = await getSystemReadiness();
+  const {
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    tokenInfo,
+    graphStatus,
+    systemBlockers = [],
+    systemWarnings = [],
+  } = readiness;
+  const tokenExpired = tokenInfo.expiresAtMs != null ? Date.now() > tokenInfo.expiresAtMs : false;
+  const wsStats = getWebsiteStudioStats();
+
+  const sendReady = mailboxReady && policyReady && wsStats.approvedNotSent === 0;
+  const nextFixes = [];
+  if (mailboxDetail.blockerCode !== 'ready') {
+    nextFixes.push({ priority: 'critical', action: mailboxDetail.nextFix, reason: mailboxDetail.reason });
+  }
+  if (!policyReady) {
+    nextFixes.push({ priority: 'critical', action: 'Create outreach-policy.md to define outreach rules', reason: 'Outbound policy not defined — all sends are blocked' });
+  }
+
+  return {
+    overall: {
+      sendReady,
+      mailboxReady,
+      policyReady,
+      sendReadyBecause: sendReady
+        ? 'Mailbox connected, policy defined, no approved-but-unsent leads'
+        : (!mailboxReady ? mailboxDetail.reason : !policyReady ? policyDetail.reason : 'Approved leads still blocked by system issues'),
+    },
+    graph: {
+      configured: graphStatus.hasConfig,
+      authenticated: graphStatus.authenticated,
+      message: graphStatus.message,
+      tokenExpiresAt: tokenInfo.expiresAt,
+      tokenExpired,
+      tokenLoaded: tokenInfo.tokenLoaded,
+      expiresAtMs: tokenInfo.expiresAtMs,
+      expiresAt: tokenInfo.expiresAt,
+    },
+    mailbox: {
+      ready: mailboxReady,
+      blocked: !mailboxReady,
+      reason: mailboxDetail.reason,
+    },
+    mailboxDetail,
+    policy: {
+      ready: policyReady,
+      blocked: !policyReady,
+      reason: policyDetail.reason,
+      fileExists: policyDetail.fileExists,
+      fileMissing: policyDetail.fileMissing,
+      detail: policyDetail,
+    },
+    tokenInfo,
+    systemBlockers,
+    systemWarnings,
+    wsStats,
+    nextFixes,
+    sendingIdentity: 'studio@verdantia.it',
+  };
+}
+
+async function buildSystemDiagnosticPayload() {
+  const readiness = await getQueueReadiness();
+  const {
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    systemBlockers = [],
+    systemWarnings = [],
+  } = readiness;
+
+  return {
+    mailboxReady,
+    policyReady,
+    sendReady: mailboxReady && policyReady,
+    mailboxDetail,
+    policyDetail,
+    systemBlockers,
+    systemWarnings,
+    checkedAt: nowIso(),
   };
 }
 
@@ -1301,6 +1494,52 @@ app.get('/api/graph/status', asyncHandler(async (req, res) => {
   res.json(status);
 }));
 
+// POST /api/graph/refresh — refresh the stored Graph token with refresh_token
+app.post('/api/graph/refresh', asyncHandler(async (req, res) => {
+  try {
+    const config = graph.loadConfig();
+    if (!config) {
+      return res.status(400).json({ success: false, message: 'Refresh failed: Graph is not configured' });
+    }
+
+    const storedToken = graph.readStoredToken();
+    if (!storedToken?.refresh_token) {
+      return res.status(400).json({ success: false, message: 'Refresh failed: No refresh token is stored' });
+    }
+
+    const refreshedToken = await graph.refreshAccessToken(storedToken.refresh_token, config);
+    const expiresAtMs = normalizeExpiryMs(refreshedToken?.expires_at);
+
+    return res.json({
+      success: true,
+      message: 'Token refreshed',
+      expiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: `Refresh failed: ${error.message}` });
+  }
+}));
+
+// POST /api/graph/setup/start — start device-code auth without blocking the request
+app.post('/api/graph/setup/start', asyncHandler(async (req, res) => {
+  try {
+    const deviceCode = await graph.startDeviceCodeSetup();
+    return res.json({
+      verificationUrl: deviceCode.verification_uri,
+      userCode: deviceCode.user_code,
+      message: 'Open the URL, enter the code, complete login. This page will update automatically. After completing auth in your browser, click "Verify Graph" to confirm.',
+    });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: `Setup start failed: ${error.message}` });
+  }
+}));
+
+// GET /api/graph/setup/status — poll for device-code completion
+app.get('/api/graph/setup/status', asyncHandler(async (req, res) => {
+  const status = graph.getDeviceCodeSetupStatus();
+  res.json(status);
+}));
+
 // POST /api/graph/run-discovery — trigger a discovery scan
 app.post('/api/graph/run-discovery', asyncHandler(async (req, res) => {
   const { daysBack = 1 } = req.body;
@@ -1389,6 +1628,28 @@ app.put('/api/config/autoadd', asyncHandler(async (req, res) => {
   }
   const result = await discovery.setAutoAddMode(enabled);
   res.json(result);
+}));
+
+// POST /api/policy/create — create a starter outreach-policy.md if missing
+app.post('/api/policy/create', asyncHandler(async (req, res) => {
+  try {
+    if (fs.existsSync(OUTREACH_POLICY_PATH)) {
+      return res.json({
+        success: true,
+        filePath: OUTREACH_POLICY_PATH,
+        message: `Policy already exists at ${OUTREACH_POLICY_PATH}`,
+      });
+    }
+
+    fs.writeFileSync(OUTREACH_POLICY_PATH, getDefaultOutreachPolicyContent(), 'utf8');
+    return res.json({
+      success: true,
+      filePath: OUTREACH_POLICY_PATH,
+      message: `Policy created at ${OUTREACH_POLICY_PATH}`,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: `Failed: ${error.message}` });
+  }
 }));
 
 // ── Messaging ─────────────────────────────────────────────────────────────────
@@ -1721,123 +1982,23 @@ const PIPELINE_STAGES = [
 // GET /api/outbound/readiness — system-level send gates
 // GET /api/system-status/diagnostic — lightweight readiness snapshot
 app.get('/api/system-status/diagnostic', asyncHandler(async (req, res) => {
-  const readiness = await getQueueReadiness();
-  const {
-    mailboxReady,
-    policyReady,
-    mailboxDetail,
-    policyDetail,
-    systemBlockers = [],
-    systemWarnings = [],
-  } = readiness;
+  const payload = await buildSystemDiagnosticPayload();
+  res.json(payload);
+}));
 
+// POST /api/system-status/verify — force a fresh readiness check
+app.post('/api/system-status/verify', asyncHandler(async (req, res) => {
+  const payload = await buildSystemStatusPayload();
   res.json({
-    mailboxReady,
-    policyReady,
-    sendReady: mailboxReady && policyReady,
-    mailboxDetail,
-    policyDetail,
-    systemBlockers,
-    systemWarnings,
-    checkedAt: nowIso(),
+    ...payload,
+    verifiedAt: nowIso(),
   });
 }));
 
 // GET /api/system-status — unified system + outbound diagnostics
 app.get('/api/system-status', asyncHandler(async (req, res) => {
-  const readiness = await getSystemReadiness();
-  const {
-    mailboxReady,
-    policyReady,
-    mailboxDetail,
-    policyDetail,
-    tokenInfo,
-    graphStatus,
-    systemBlockers = [],
-    systemWarnings = [],
-  } = readiness;
-  const tokenExpired = tokenInfo.expiresAtMs != null ? Date.now() > tokenInfo.expiresAtMs : false;
-
-  // WS pipeline summary (quick scan)
-  let wsStats = { total: 0, sendBlocked: 0, readyToSend: 0, sent: 0, monitor: 0, approvedNotSent: 0 };
-  if (fs.existsSync(LEADS_DIR)) {
-    const dirs = fs.readdirSync(LEADS_DIR).filter(d => fs.statSync(path.join(LEADS_DIR, d)).isDirectory());
-    let sendBlocked = 0, readyToSend = 0, sent = 0, monitor = 0, approvedNotSent = 0;
-    for (const dir of dirs) {
-      const leadDir = path.join(LEADS_DIR, dir);
-      // Check STATUS.md for monitor
-      const statusPath = path.join(leadDir, 'STATUS.md');
-      if (fs.existsSync(statusPath)) {
-        const sc = fs.readFileSync(statusPath, 'utf8');
-        if (/\*\*Current Stage:\*\*\s*MONITOR/i.test(sc)) { monitor++; continue; }
-      }
-      // Check OUTREACH.json
-      const outreachPath = path.join(leadDir, 'OUTREACH.json');
-      if (fs.existsSync(outreachPath)) {
-        try {
-          const o = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
-          const stage = o.outreachStage || '';
-          if (stage === 'send_blocked') { sendBlocked++; approvedNotSent++; }
-          else if (stage === 'awaiting_send' || stage === 'ready_to_send') { readyToSend++; }
-          else if (stage === 'sent') sent++;
-        } catch (_) {}
-      }
-    }
-    wsStats = { total: dirs.length, sendBlocked, readyToSend, sent, monitor, approvedNotSent };
-  }
-
-  // Overall send readiness
-  const sendReady = mailboxReady && policyReady && wsStats.approvedNotSent === 0;
-
-  // Next fixes — ordered by priority
-  const nextFixes = [];
-  if (mailboxDetail.blockerCode !== 'ready') {
-    nextFixes.push({ priority: 'critical', action: mailboxDetail.nextFix, reason: mailboxDetail.reason });
-  }
-  if (!policyReady) {
-    nextFixes.push({ priority: 'critical', action: 'create `outreach-policy.md` to define outreach rules', reason: 'Outbound policy not defined — all sends are blocked' });
-  }
-
-  res.json({
-    overall: {
-      sendReady,
-      mailboxReady,
-      policyReady,
-      sendReadyBecause: sendReady
-        ? 'Mailbox connected, policy defined, no approved-but-unsent leads'
-        : (!mailboxReady ? mailboxDetail.reason : !policyReady ? policyDetail.reason : 'Approved leads still blocked by system issues'),
-    },
-    graph: {
-      configured: graphStatus.hasConfig,
-      authenticated: graphStatus.authenticated,
-      message: graphStatus.message,
-      tokenExpiresAt: tokenInfo.expiresAt,
-      tokenExpired,
-      tokenLoaded: tokenInfo.tokenLoaded,
-      expiresAtMs: tokenInfo.expiresAtMs,
-      expiresAt: tokenInfo.expiresAt,
-    },
-    mailbox: {
-      ready: mailboxReady,
-      blocked: !mailboxReady,
-      reason: mailboxDetail.reason,
-    },
-    mailboxDetail,
-    policy: {
-      ready: policyReady,
-      blocked: !policyReady,
-      reason: policyDetail.reason,
-      fileExists: policyDetail.fileExists,
-      fileMissing: policyDetail.fileMissing,
-      detail: policyDetail,
-    },
-    tokenInfo,
-    systemBlockers,
-    systemWarnings,
-    wsStats,
-    nextFixes,
-    sendingIdentity: 'studio@verdantia.it',
-  });
+  const payload = await buildSystemStatusPayload();
+  res.json(payload);
 }));
 
 // GET /api/outbound/queue — scan LEADS/ for leads with PITCH.md

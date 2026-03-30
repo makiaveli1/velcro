@@ -204,12 +204,18 @@ export const apiQuery = (query) =>
 // ── Config ───────────────────────────────────────────────
 export const apiConfig = () => request('/config');
 
-// ── Graph ────────────────────────────────────────────────
+// ── Graph / System setup ─────────────────────────────────
 export const apiRunDiscovery = () =>
   request('/graph/run-discovery', { method: 'POST' });
 export const apiGraphStatus = () => request('/graph/status');
+export const apiGraphRefresh = () => request('/graph/refresh', { method: 'POST' });
+export const apiGraphSetupStart = () => request('/graph/setup/start', { method: 'POST' });
+export const apiGraphSetupStatus = () => request('/graph/setup/status');
 export const apiSystemStatus = () => request('/system-status').then(normalizeSystemStatus);
 export const apiSystemStatusDiagnostic = () => request('/system-status/diagnostic');
+export const apiSystemStatusVerify = () =>
+  request('/system-status/verify', { method: 'POST' }).then(normalizeSystemStatus);
+export const apiPolicyCreate = () => request('/policy/create', { method: 'POST' });
 
 // ── Test message ─────────────────────────────────────────
 export const apiTestMessage = () =>

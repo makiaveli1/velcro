@@ -43,6 +43,13 @@ const OutboundIcon = () => (
   </svg>
 );
 
+const PipelineIcon = () => (
+  <svg className="sidebar-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg className="sidebar-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -77,6 +84,7 @@ export default function Sidebar({ currentPath, open, onClose }) {
     { path: '/followups', label: 'Follow-ups', icon: <FollowUpsIcon />, badge: followUpCount, badgeAlert: true },
     { path: '/drafts', label: 'Drafts', icon: <DraftsIcon /> },
     { path: '/outbound', label: 'Outbound', icon: <OutboundIcon /> },
+    { path: '/pipeline', label: 'Pipeline', icon: <PipelineIcon /> },
     { path: '/settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
