@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
-import { apiDashboard } from '../api';
+import { apiDashboard, apiCreateFollowUp } from '../api';
 import ScoreBar from '../components/ScoreBar';
 import EmptyState from '../components/EmptyState';
 import { relativeTime, formatFullDate } from '../utils';
@@ -392,7 +392,6 @@ function AttentionCard({ contact, onOpen }) {
   const handleFollowUp = async () => {
     setLoading(true);
     try {
-      const { apiCreateFollowUp } = await import('../api');
       await apiCreateFollowUp({
         contact_id: contact.id,
         reason: 'Check in — needs attention',
