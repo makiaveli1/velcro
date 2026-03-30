@@ -18,6 +18,112 @@ function normalizeContactDetail(data) {
   };
 }
 
+function normalizeMailboxDetail(detail = {}) {
+  return {
+    configured: false,
+    authenticated: false,
+    tokenHealthy: false,
+    sharedMailboxConfigured: false,
+    sendAsVerified: false,
+    reason: 'Mailbox status unavailable',
+    blockerCode: 'not_authenticated',
+    nextFix: 'Run `graph setup` to authenticate Microsoft Graph.',
+    ...detail,
+  };
+}
+
+function normalizePolicyDetail(detail = {}, fallback = {}) {
+  const baseFileExists = fallback.fileExists ?? detail.fileExists ?? false;
+  return {
+    filePath: null,
+    fileExists: baseFileExists,
+    fileMissing: !(detail.fileExists ?? baseFileExists),
+    ready: fallback.ready ?? baseFileExists,
+    reason: fallback.reason ?? (baseFileExists ? 'Policy defined' : 'Outreach policy not defined'),
+    ...detail,
+    fileExists: detail.fileExists ?? baseFileExists,
+    fileMissing: detail.fileMissing ?? !(detail.fileExists ?? baseFileExists),
+    ready: detail.ready ?? fallback.ready ?? (detail.fileExists ?? baseFileExists),
+    reason: detail.reason ?? fallback.reason ?? ((detail.fileExists ?? baseFileExists) ? 'Policy defined' : 'Outreach policy not defined'),
+  };
+}
+
+function normalizeTokenInfo(tokenInfo = {}, graph = {}) {
+  return {
+    tokenLoaded: false,
+    expiresAtMs: null,
+    expiresAt: graph.tokenExpiresAt || null,
+    tokenAgeMinutes: null,
+    ...tokenInfo,
+  };
+}
+
+function normalizeSystemStatus(data) {
+  if (!data || data.error) return data;
+
+  const tokenInfo = normalizeTokenInfo(data.tokenInfo, data.graph || {});
+  const mailboxDetail = normalizeMailboxDetail(data.mailboxDetail);
+  const policyDetail = normalizePolicyDetail(data.policy?.detail, data.policy || {});
+
+  return {
+    ...data,
+    overall: data.overall || {},
+    graph: {
+      ...(data.graph || {}),
+      tokenExpiresAt: data.graph?.tokenExpiresAt || tokenInfo.expiresAt || null,
+    },
+    mailbox: data.mailbox || {},
+    mailboxDetail,
+    policy: {
+      ...(data.policy || {}),
+      fileExists: data.policy?.fileExists ?? policyDetail.fileExists,
+      fileMissing: data.policy?.fileMissing ?? policyDetail.fileMissing,
+      detail: policyDetail,
+    },
+    tokenInfo,
+    systemBlockers: Array.isArray(data.systemBlockers) ? data.systemBlockers : [],
+    systemWarnings: Array.isArray(data.systemWarnings) ? data.systemWarnings : [],
+    wsStats: data.wsStats || {},
+    nextFixes: Array.isArray(data.nextFixes) ? data.nextFixes : [],
+  };
+}
+
+function normalizeDashboardData(data) {
+  if (!data || data.error) return data;
+  const wsReadiness = data.wsReadiness || {};
+  return {
+    ...data,
+    wsHealth: data.wsHealth || {},
+    wsUrgent: Array.isArray(data.wsUrgent) ? data.wsUrgent : [],
+    wsBlocked: Array.isArray(data.wsBlocked) ? data.wsBlocked : [],
+    wsApprovedNotSent: Array.isArray(data.wsApprovedNotSent) ? data.wsApprovedNotSent : [],
+    wsReadiness: {
+      ...wsReadiness,
+      systemBlockers: Array.isArray(wsReadiness.systemBlockers) ? wsReadiness.systemBlockers : [],
+      systemWarnings: Array.isArray(wsReadiness.systemWarnings) ? wsReadiness.systemWarnings : [],
+      mailboxDetail: normalizeMailboxDetail(wsReadiness.mailboxDetail),
+      policyDetail: normalizePolicyDetail(wsReadiness.policyDetail),
+    },
+  };
+}
+
+function normalizeOutboundQueue(data) {
+  if (!data || data.error) return data;
+  return {
+    ...data,
+    items: Array.isArray(data.items) ? data.items.map(item => ({
+      ...item,
+      deploymentBlockedBy: Array.isArray(item.deploymentBlockedBy) ? item.deploymentBlockedBy : [],
+      warnings: Array.isArray(item.warnings) ? item.warnings : [],
+      pitch: item.pitch || {},
+    })) : [],
+    mailboxDetail: normalizeMailboxDetail(data.mailboxDetail),
+    policyDetail: normalizePolicyDetail(data.policyDetail),
+    systemBlockers: Array.isArray(data.systemBlockers) ? data.systemBlockers : [],
+    systemWarnings: Array.isArray(data.systemWarnings) ? data.systemWarnings : [],
+  };
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -34,7 +140,7 @@ async function request(path, options = {}) {
 export const apiHealth = () => request('/health');
 
 // ── Dashboard ───────────────────────────────────────────
-export const apiDashboard = () => request('/dashboard');
+export const apiDashboard = () => request('/dashboard').then(normalizeDashboardData);
 
 // ── Contacts ────────────────────────────────────────────
 export const apiContacts = (params = {}) => {
@@ -101,6 +207,9 @@ export const apiConfig = () => request('/config');
 // ── Graph ────────────────────────────────────────────────
 export const apiRunDiscovery = () =>
   request('/graph/run-discovery', { method: 'POST' });
+export const apiGraphStatus = () => request('/graph/status');
+export const apiSystemStatus = () => request('/system-status').then(normalizeSystemStatus);
+export const apiSystemStatusDiagnostic = () => request('/system-status/diagnostic');
 
 // ── Test message ─────────────────────────────────────────
 export const apiTestMessage = () =>
@@ -111,10 +220,13 @@ export const apiCreateInteraction = (contactId, data) =>
   request(`/contacts/${contactId}/interactions`, { method: 'POST', body: JSON.stringify(data) });
 
 // ── Outbound Queue ───────────────────────────────────────
-export const apiOutboundQueue = () => request('/outbound/queue');
+export const apiOutboundQueue = () => request('/outbound/queue').then(normalizeOutboundQueue);
 export const apiOutboundReadiness = () => request('/outbound/readiness');
 export const apiOutboundTransition = (id, action) =>
   request(`/outbound/leads/${id}/transition`, {
     method: 'POST',
     body: JSON.stringify({ action }),
   });
+
+// ── Pipeline ─────────────────────────────────────────────
+export const apiPipeline = () => request('/pipeline');

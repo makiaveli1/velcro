@@ -27,18 +27,33 @@ function saveToken(token) {
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2));
 }
 
-function loadToken() {
+function normalizeExpiresAtMs(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric > 1e12 ? numeric : numeric * 1000;
+}
+
+function readStoredToken() {
   if (!fs.existsSync(TOKEN_PATH)) return null;
   try {
-    const t = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-    // Check expiry
-    if (t.expires_at && Date.now() > t.expires_at - 60_000) {
-      return null; // Expired
-    }
-    return t;
+    const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+    const expiresAtMs = normalizeExpiresAtMs(token.expires_at);
+    return {
+      ...token,
+      expires_at: expiresAtMs,
+    };
   } catch {
     return null;
   }
+}
+
+function loadToken() {
+  const token = readStoredToken();
+  if (!token) return null;
+  if (token.expires_at && Date.now() > token.expires_at - 60_000) {
+    return null; // Expired or too close to expiry for safe use
+  }
+  return token;
 }
 
 // ── HTTP helpers ───────────────────────────────────────────────────────────────
@@ -443,14 +458,46 @@ async function setupInteractive() {
  */
 async function getStatus() {
   const config = loadConfig();
-  const token = loadToken();
+  const token = readStoredToken();
+  const expiresAtMs = token?.expires_at || null;
+  const expiresAt = expiresAtMs ? new Date(expiresAtMs).toISOString() : null;
+  const tokenLoaded = !!token;
+  const tokenExpired = expiresAtMs ? Date.now() > expiresAtMs : false;
 
   if (!config) {
-    return { authenticated: false, hasConfig: false, message: 'No graph.json config found' };
+    return {
+      authenticated: false,
+      hasConfig: false,
+      tokenLoaded,
+      tokenExpired,
+      expiresAtMs,
+      expiresAt,
+      message: 'No graph.json config found',
+    };
   }
 
-  if (!token) {
-    return { authenticated: false, hasConfig: true, message: 'Not authenticated — run setup()' };
+  if (!token?.access_token) {
+    return {
+      authenticated: false,
+      hasConfig: true,
+      tokenLoaded,
+      tokenExpired,
+      expiresAtMs,
+      expiresAt,
+      message: tokenLoaded ? 'Stored token missing access token — run setup()' : 'Not authenticated — run setup()',
+    };
+  }
+
+  if (tokenExpired) {
+    return {
+      authenticated: false,
+      hasConfig: true,
+      tokenLoaded,
+      tokenExpired: true,
+      expiresAtMs,
+      expiresAt,
+      message: 'Token expired — run setup()',
+    };
   }
 
   // Try a lightweight call to verify token
@@ -459,14 +506,33 @@ async function getStatus() {
     return {
       authenticated: true,
       hasConfig: true,
-      expiresAt: new Date(token.expires_at).toISOString(),
+      tokenLoaded,
+      tokenExpired: false,
+      expiresAtMs,
+      expiresAt,
       message: 'Authenticated',
     };
   } catch (err) {
     if (err.message === 'GRAPH_AUTH_EXPIRED') {
-      return { authenticated: false, hasConfig: true, message: 'Token expired — run setup()' };
+      return {
+        authenticated: false,
+        hasConfig: true,
+        tokenLoaded,
+        tokenExpired: true,
+        expiresAtMs,
+        expiresAt,
+        message: 'Token expired — run setup()',
+      };
     }
-    return { authenticated: false, hasConfig: true, message: err.message };
+    return {
+      authenticated: false,
+      hasConfig: true,
+      tokenLoaded,
+      tokenExpired,
+      expiresAtMs,
+      expiresAt,
+      message: err.message,
+    };
   }
 }
 

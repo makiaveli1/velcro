@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApi } from '../hooks/useApi';
-import { apiOutboundQueue, apiOutboundReadiness, apiOutboundTransition } from '../api';
+import { apiOutboundQueue, apiOutboundTransition } from '../api';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useToast } from '../App';
@@ -48,6 +48,21 @@ function MailboxChip({ ready }) {
   return ready
     ? <span className="badge badge-emerald">✓ Mailbox Ready</span>
     : <span className="badge badge-rose">✕ Mailbox Blocked</span>;
+}
+
+function getMailboxBannerCopy(mailboxDetail = {}) {
+  switch (mailboxDetail?.blockerCode) {
+    case 'not_configured':
+      return 'Mailbox not configured — Graph setup required';
+    case 'not_authenticated':
+      return 'Graph not authenticated — run `graph setup`';
+    case 'token_expired':
+      return 'Graph token expired — run `graph setup` to refresh';
+    case 'ready':
+      return 'Mailbox ready';
+    default:
+      return mailboxDetail?.reason || 'Mailbox not ready';
+  }
 }
 
 function OutboundCard({ item, onAction, onPreview }) {
@@ -308,6 +323,8 @@ export default function OutboundQueue() {
   };
 
   const items = filteredItems();
+  const mailboxBannerCopy = getMailboxBannerCopy(data?.mailboxDetail);
+  const mailboxReason = data?.mailboxDetail?.reason;
 
   if (loading) {
     return (
@@ -350,7 +367,10 @@ export default function OutboundQueue() {
       {/* Mailbox readiness banner */}
       {!data?.mailboxReady && (
         <div style={{ background: 'var(--signal-rose)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
-          ✕ Mailbox not ready — Graph token expired or missing. Outreach is blocked. Refresh the token to continue.
+          <div style={{ fontWeight: 700, marginBottom: mailboxReason ? 4 : 0 }}>✕ {mailboxBannerCopy}</div>
+          {mailboxReason && mailboxReason !== mailboxBannerCopy && (
+            <div style={{ opacity: 0.92 }}>{mailboxReason}</div>
+          )}
         </div>
       )}
 

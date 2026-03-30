@@ -18,34 +18,107 @@ const drafts = require('./services/drafts');
 
 // ── Shared Outbound Readiness ────────────────────────────────────────────────
 
+const OUTREACH_POLICY_PATH = path.join(__dirname, '..', 'outreach-policy.md');
+
+function normalizeExpiryMs(value) {
+  if (value == null) return null;
+  if (typeof value === 'string' && value.trim() && Number.isNaN(Number(value))) {
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric > 1e12 ? numeric : numeric * 1000;
+}
+
+function getTokenInfo(graphStatus = {}) {
+  const expiresAtMs = normalizeExpiryMs(graphStatus?.expiresAtMs ?? graphStatus?.expiresAt);
+  return {
+    tokenLoaded: !!graphStatus?.tokenLoaded,
+    expiresAtMs,
+    expiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
+    tokenAgeMinutes: expiresAtMs ? Math.round((Date.now() - expiresAtMs) / 60000) : null,
+  };
+}
+
+function getPolicyDetail() {
+  const filePath = OUTREACH_POLICY_PATH;
+  const fileExists = fs.existsSync(filePath);
+  return {
+    filePath,
+    fileExists,
+    fileMissing: !fileExists,
+    ready: fileExists,
+    reason: fileExists ? 'Policy defined' : 'Outreach policy not defined',
+  };
+}
+
+function getMailboxDetail(graphStatus = {}, tokenInfo = getTokenInfo(graphStatus)) {
+  const configured = !!graphStatus?.hasConfig;
+  const authenticated = !!graphStatus?.authenticated;
+  const tokenHealthy = tokenInfo.expiresAtMs != null ? tokenInfo.expiresAtMs >= Date.now() : false;
+
+  let blockerCode = 'ready';
+  let reason = 'Mailbox ready — Graph is authenticated and token is healthy';
+  let nextFix = 'No action required.';
+
+  if (!configured) {
+    blockerCode = 'not_configured';
+    reason = 'Mailbox not configured — Graph setup required';
+    nextFix = 'Create CRM/config/graph.json and run `graph setup`.';
+  } else if (authenticated && tokenHealthy) {
+    reason = 'Mailbox ready — Graph is authenticated and token is healthy';
+  } else if (tokenInfo.tokenLoaded && !tokenHealthy) {
+    blockerCode = 'token_expired';
+    reason = 'Graph token expired — run `graph setup` to refresh';
+    nextFix = 'Run `graph setup` to refresh the expired Graph token.';
+  } else {
+    blockerCode = 'not_authenticated';
+    reason = graphStatus?.message && graphStatus.message !== 'Not authenticated — run setup()'
+      ? `Graph not authenticated — ${graphStatus.message}`
+      : 'Graph not authenticated — run `graph setup`';
+    nextFix = 'Run `graph setup` to authenticate Microsoft Graph.';
+  }
+
+  return {
+    configured,
+    authenticated,
+    tokenHealthy,
+    sharedMailboxConfigured: false,
+    sendAsVerified: false,
+    reason,
+    blockerCode,
+    nextFix,
+  };
+}
+
 // System-level gates that block deployment regardless of human approval
 async function getSystemReadiness() {
+  const graphStatus = await graph.getStatus();
+  const tokenInfo = getTokenInfo(graphStatus);
+  const mailboxDetail = getMailboxDetail(graphStatus, tokenInfo);
+  const policyDetail = getPolicyDetail();
   const blockers = [];
   const warnings = [];
 
-  // 1. Mailbox readiness — check Graph token validity
-  let mailboxReady = false;
-  try {
-    const token = graph.getAccessToken();
-    if (token) {
-      const tokenPath = path.join(__dirname, 'config', 'graph_token.json');
-      if (fs.existsSync(tokenPath)) {
-        const tok = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
-        const expiresAt = tok.expires_at;
-        const nowMs = Date.now();
-        const expired = expiresAt > 1e12 ? nowMs > expiresAt : nowMs > expiresAt * 1000;
-        mailboxReady = !expired;
-      }
-    }
-  } catch (_) {
-    mailboxReady = false;
-  }
+  const mailboxReady = mailboxDetail.authenticated && mailboxDetail.tokenHealthy;
+  const policyReady = policyDetail.fileExists;
+
   if (!mailboxReady) blockers.push('mailbox');
+  if (!policyReady) blockers.push('policy');
 
-  // 2. Policy readiness — always blocked until outreach policy is defined
-  blockers.push('policy');
-
-  return { mailboxReady, policyReady: false, blockers, warnings };
+  return {
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    tokenInfo,
+    graphStatus,
+    blockers,
+    warnings,
+    systemBlockers: blockers,
+    systemWarnings: warnings,
+  };
 }
 
 function getLeadBlockers(leadDir) {
@@ -74,11 +147,17 @@ function getLeadBlockers(leadDir) {
 
 async function getQueueReadiness() {
   const system = await getSystemReadiness();
+  const systemBlockers = system.systemBlockers || system.blockers || [];
+  const systemWarnings = system.systemWarnings || system.warnings || [];
   return {
     mailboxReady: system.mailboxReady,
     policyReady: system.policyReady,
-    systemBlockers: system.blockers,
-    systemWarnings: system.warnings,
+    mailboxDetail: system.mailboxDetail,
+    policyDetail: system.policyDetail,
+    systemBlockers,
+    systemWarnings,
+    blockers: systemBlockers,
+    warnings: systemWarnings,
   };
 }
 
@@ -260,7 +339,7 @@ function getContactDetail(id) {
   };
 }
 
-function getDashboardData() {
+async function getDashboardData() {
   const attentionCutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const followUpWindow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
   const recentCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -323,6 +402,180 @@ function getDashboardData() {
       )?.total || 0,
   };
 
+  // ── Website Studio aggregation ─────────────────────────────────────────────
+  let wsHealth = {
+    totalLeads: 0, activeLeads: 0, sendBlocked: 0, readyToSend: 0,
+    sent: 0, monitor: 0, parked: 0, suppressed: 0,
+    awaitingContent: 0, contentApproved: 0,
+    pipeline: [],
+  };
+  const wsUrgent = [];
+  const wsBlocked = [];
+  const wsApprovedNotSent = [];
+  let mailboxReady = false;
+  let policyReady = false;
+  let _systemBlockers = [];
+  let _systemWarnings = [];
+  let _mailboxDetail = null;
+  let _policyDetail = null;
+
+  if (fs.existsSync(LEADS_DIR)) {
+    const readiness = await getQueueReadiness();
+    mailboxReady = readiness.mailboxReady;
+    policyReady = readiness.policyReady;
+    _systemBlockers = readiness.systemBlockers || [];
+    _systemWarnings = readiness.systemWarnings || [];
+    _mailboxDetail = readiness.mailboxDetail || null;
+    _policyDetail = readiness.policyDetail || null;
+
+    const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
+      fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
+    );
+
+    const stageCounts = {};
+    const STAGE_LABELS = {
+      lead_found: 'Lead Found', brief_created: 'Brief Created',
+      pitch_drafted: 'Pitch Drafted', awaiting_content: 'Awaiting Content',
+      content_approved: 'Content Approved', send_blocked: 'Send Blocked',
+      ready_to_send: 'Ready to Send', sent: 'Sent',
+      monitor: 'Monitor', parked: 'Parked', suppressed: 'Suppressed',
+    };
+
+    for (const dir of dirs) {
+      const leadDir = path.join(LEADS_DIR, dir);
+
+      // Read STATUS.md for CRM stage / monitor_reason
+      let crmStage = null;
+      let monitorReason = null;
+      const statusPath = path.join(leadDir, 'STATUS.md');
+      if (fs.existsSync(statusPath)) {
+        const statusContent = fs.readFileSync(statusPath, 'utf8');
+        const stageMatch = statusContent.match(/\*\*Current Stage:\*\*\s*(.+)/i);
+        if (stageMatch) crmStage = stageMatch[1].trim();
+        const notesParts = statusContent.split('## Notes\n\n');
+        if (notesParts.length > 1) monitorReason = notesParts[1].split('\n\n')[0].trim();
+      }
+
+      // Read OUTREACH.json
+      let outreach = null;
+      let outreachStage = null;
+      let contentApproval = null;
+      let deploymentApproval = null;
+      let deploymentBlockedBy = [];
+      let warnings = [];
+      let lastAction = null;
+      let lastActionAt = null;
+      let sentAt = null;
+      const outreachPath = path.join(leadDir, 'OUTREACH.json');
+      if (fs.existsSync(outreachPath)) {
+        try {
+          outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+          // Migrate old schema
+          if (outreach.outreachStage === 'approved') {
+            outreach.outreachStage = 'content_approved';
+            if (outreach.contentApproval == null) outreach.contentApproval = 'approved';
+            if (outreach.deploymentApproval == null) outreach.deploymentApproval = 'pending';
+          } else if (outreach.outreachStage === 'approval_queued') {
+            outreach.outreachStage = 'awaiting_content_approval';
+            if (outreach.contentApproval == null) outreach.contentApproval = 'pending';
+          }
+          outreachStage = outreach.outreachStage || null;
+          contentApproval = outreach.contentApproval || null;
+          deploymentApproval = outreach.deploymentApproval || null;
+          deploymentBlockedBy = Array.isArray(outreach.deploymentBlockedBy) ? outreach.deploymentBlockedBy : [];
+          warnings = Array.isArray(outreach.warnings) ? outreach.warnings : [];
+          lastAction = outreach.lastAction || null;
+          lastActionAt = outreach.lastActionAt || null;
+          sentAt = outreach.sentAt || null;
+        } catch (_) {}
+      }
+
+      // Determine board_stage
+      let board_stage;
+      if (outreachStage) {
+        const stageMap = {
+          draft_ready: 'draft', awaiting_content_approval: 'awaiting_content',
+          content_approved: 'content_approved', send_blocked: 'send_blocked',
+          awaiting_send: 'ready_to_send', sent: 'sent',
+          suppressed: 'suppressed', rejected: 'rejected',
+        };
+        board_stage = stageMap[outreachStage] || outreachStage;
+      } else if (crmStage === 'MONITOR') {
+        board_stage = 'monitor';
+      } else {
+        board_stage = fs.existsSync(path.join(leadDir, 'CONCEPT_BRIEF.md'))
+          ? 'brief_created'
+          : (fs.existsSync(path.join(leadDir, 'PITCH.md')) ? 'pitch_drafted' : 'lead_found');
+      }
+
+      // Count by stage
+      stageCounts[board_stage] = (stageCounts[board_stage] || 0) + 1;
+
+      // CRM contact match
+      let crmContactId = null;
+      const recordPath = path.join(leadDir, 'LEAD_RECORD.md');
+      if (fs.existsSync(recordPath)) {
+        const recordContent = fs.readFileSync(recordPath, 'utf8');
+        const emailMatch = recordContent.match(/\*\*Contact Email:\*\*\s*(.+)/i);
+        if (emailMatch) {
+          const email = emailMatch[1].trim().replace(/[<>]/g, '').trim();
+          const contact = db.getOne('SELECT id FROM contacts WHERE email = ?', [email.toLowerCase()]);
+          if (contact) crmContactId = contact.id;
+        }
+      }
+
+      const name = dir.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const allBlockers = [...new Set([..._systemBlockers, ...deploymentBlockedBy])];
+
+      // wsUrgent: send_blocked leads
+      if (board_stage === 'send_blocked') {
+        wsUrgent.push({
+          id: dir, name,
+          reason: `Send blocked${allBlockers.length > 0 ? ' — ' + allBlockers.join(', ') : ''}`,
+          type: 'blocked', blockers: allBlockers, warnings,
+          crmContactId, canResolve: false,
+          nextAction: allBlockers.includes('mailbox')
+            ? 'Refresh Graph token to unblock mailbox'
+            : allBlockers.includes('policy')
+            ? 'Configure outreach policy to unblock'
+            : 'Resolve blockers to enable send',
+        });
+        wsBlocked.push({ id: dir, name, stage: board_stage, blockers: allBlockers, warnings, crmContactId });
+      }
+
+      // wsUrgent: awaiting_content with stale last_activity (> 3 days old)
+      if (board_stage === 'awaiting_content' && lastActionAt) {
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        if (Date.now() - new Date(lastActionAt).getTime() > threeDaysMs) {
+          wsUrgent.push({ id: dir, name, reason: 'Pitch awaiting approval — review is stale', type: 'stale', blockers: [], warnings, crmContactId, canResolve: true, nextAction: 'Review and approve or revoke pitch' });
+        }
+      }
+
+      // wsApprovedNotSent: approved but blocked
+      if (contentApproval === 'approved' && deploymentApproval === 'approved' && allBlockers.length > 0) {
+        wsApprovedNotSent.push({ id: dir, name, contentApprovalAt: outreach?.contentApprovedAt, deploymentApprovedAt: outreach?.deploymentApprovedAt, blockedBy: allBlockers, crmContactId });
+      }
+    }
+
+    wsHealth.totalLeads = dirs.length;
+    wsHealth.sendBlocked = stageCounts['send_blocked'] || 0;
+    wsHealth.readyToSend = stageCounts['ready_to_send'] || 0;
+    wsHealth.sent = stageCounts['sent'] || 0;
+    wsHealth.monitor = stageCounts['monitor'] || 0;
+    wsHealth.parked = stageCounts['parked'] || 0;
+    wsHealth.suppressed = stageCounts['suppressed'] || 0;
+    wsHealth.awaitingContent = stageCounts['awaiting_content'] || 0;
+    wsHealth.contentApproved = stageCounts['content_approved'] || 0;
+    wsHealth.activeLeads = dirs.length - (wsHealth.sent + wsHealth.monitor + wsHealth.parked + wsHealth.suppressed);
+
+    wsHealth.pipeline = Object.entries(stageCounts).map(([stage, count]) => ({
+      stage, count, label: STAGE_LABELS[stage] || stage,
+    })).sort((a, b) => {
+      const order = ['lead_found','brief_created','pitch_drafted','awaiting_content','content_approved','send_blocked','ready_to_send','sent','monitor','parked','suppressed'];
+      return order.indexOf(a.stage) - order.indexOf(b.stage);
+    });
+  }
+
   return {
     contactsNeedingAttention,
     pendingFollowUps,
@@ -330,6 +583,19 @@ function getDashboardData() {
     recentInteractions,
     weeklyStats,
     generatedAt: nowIso(),
+    // Website Studio
+    wsHealth,
+    wsUrgent,
+    wsBlocked,
+    wsApprovedNotSent,
+    wsReadiness: {
+      mailboxReady,
+      policyReady,
+      systemBlockers: _systemBlockers,
+      systemWarnings: _systemWarnings,
+      mailboxDetail: _mailboxDetail,
+      policyDetail: _policyDetail,
+    },
   };
 }
 
@@ -1020,8 +1286,9 @@ app.get('/api/meetings/:id', handleRoute((req, res) => {
 }));
 
 
-app.get('/api/dashboard', handleRoute((req, res) => {
-  res.json(getDashboardData());
+app.get('/api/dashboard', asyncHandler(async (req, res) => {
+  const data = await getDashboardData();
+  res.json(data);
 }));
 
 
@@ -1221,20 +1488,378 @@ app.get('/api/drafts/tones', (req, res) => {
 
 // ── Outbound Queue ───────────────────────────────────────────────────────────
 
+// GET /api/pipeline — primary board data endpoint covering ALL leads
+app.get('/api/pipeline', asyncHandler(async (req, res) => {
+  const items = [];
+  if (!fs.existsSync(LEADS_DIR)) return res.json({ items: [], stages: PIPELINE_STAGES, readiness: {} });
+
+  const readiness = await getQueueReadiness();
+  const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
+    fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
+  );
+
+  for (const dir of dirs) {
+    const leadDir = path.join(LEADS_DIR, dir);
+
+    // ── Read STATUS.md ──────────────────────────────────────────────────────
+    let crmStage = null;
+    let monitorReason = null;
+    const statusPath = path.join(leadDir, 'STATUS.md');
+    if (fs.existsSync(statusPath)) {
+      const statusContent = fs.readFileSync(statusPath, 'utf8');
+      const stageMatch = statusContent.match(/\*\*Current Stage:\*\*\s*(.+)/i);
+      if (stageMatch) crmStage = stageMatch[1].trim();
+      // Extract the Notes section for monitor_reason — split on '## Notes\n\n' header
+      const notesParts = statusContent.split('## Notes\n\n');
+      if (notesParts.length > 1) {
+        monitorReason = notesParts[1].split('\n\n')[0].trim();
+      }
+    }
+
+    // ── Read OUTREACH.json ──────────────────────────────────────────────────
+    const outreachPath = path.join(leadDir, 'OUTREACH.json');
+    let outreach = null;
+    let outreachStage = null;
+    let contentApproval = null;
+    let deploymentApproval = null;
+    let deploymentBlockedBy = [];
+    let warnings = [];
+    let lastAction = null;
+    let lastActionAt = null;
+    let sentAt = null;
+    // monitorReason may already be set from STATUS.md above — preserve it
+    // when OUTREACH.json doesn't exist (lead is managed via STATUS.md only)
+
+    if (fs.existsSync(outreachPath)) {
+      try {
+        outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+
+        // Migrate old schema
+        if (outreach.outreachStage === 'approved') {
+          outreach.outreachStage = 'content_approved';
+          if (outreach.contentApproval == null) outreach.contentApproval = 'approved';
+          if (outreach.deploymentApproval == null) outreach.deploymentApproval = 'pending';
+        } else if (outreach.outreachStage === 'approval_queued') {
+          outreach.outreachStage = 'awaiting_content_approval';
+          if (outreach.contentApproval == null) outreach.contentApproval = 'pending';
+        }
+
+        outreachStage = outreach.outreachStage || null;
+        contentApproval = outreach.contentApproval || null;
+        deploymentApproval = outreach.deploymentApproval || null;
+        deploymentBlockedBy = Array.isArray(outreach.deploymentBlockedBy) ? outreach.deploymentBlockedBy : [];
+        warnings = Array.isArray(outreach.warnings) ? outreach.warnings : [];
+        lastAction = outreach.lastAction || null;
+        lastActionAt = outreach.lastActionAt || null;
+        sentAt = outreach.sentAt || null;
+      } catch (_) {}
+    }
+
+    // ── Determine board_stage ────────────────────────────────────────────────
+    let board_stage;
+    if (outreachStage) {
+      // Map OUTREACH.outreachStage → board_stage
+      const stageMap = {
+        draft_ready: 'draft',
+        awaiting_content_approval: 'awaiting_content',
+        content_approved: 'content_approved',
+        send_blocked: 'send_blocked',
+        awaiting_send: 'ready_to_send',
+        sent: 'sent',
+        suppressed: 'suppressed',
+        rejected: 'rejected',
+      };
+      board_stage = stageMap[outreachStage] || outreachStage;
+    } else if (crmStage === 'MONITOR') {
+      board_stage = 'monitor';
+    } else {
+      // File-based inference
+      const pitchPath = path.join(leadDir, 'PITCH.md');
+      const briefPath = path.join(leadDir, 'CONCEPT_BRIEF.md');
+      if (fs.existsSync(pitchPath)) {
+        board_stage = 'pitch_drafted';
+      } else if (fs.existsSync(briefPath)) {
+        board_stage = 'brief_created';
+      } else {
+        board_stage = 'lead_found';
+      }
+    }
+
+    // ── Read LEAD_RECORD.md ─────────────────────────────────────────────────
+    let contactMethod = 'none';
+    let contactValue = '';
+    const recordPath = path.join(leadDir, 'LEAD_RECORD.md');
+    if (fs.existsSync(recordPath)) {
+      const recordContent = fs.readFileSync(recordPath, 'utf8');
+      const emailMatch = recordContent.match(/\*\*Contact Email:\*\*\s*(.+)/i);
+      if (emailMatch && emailMatch[1].trim()) {
+        contactMethod = 'email';
+        contactValue = emailMatch[1].trim().replace(/[<>]/g, '').trim();
+      } else {
+        // Check for phone
+        const phoneMatch = recordContent.match(/\*\*Telephone:\*\*\s*(.+)/i);
+        if (phoneMatch && phoneMatch[1].trim()) {
+          contactMethod = 'phone';
+          contactValue = phoneMatch[1].trim();
+        }
+      }
+    }
+
+    // Fall back: check PITCH.md for email
+    if (contactMethod === 'none') {
+      const pitchPath = path.join(leadDir, 'PITCH.md');
+      if (fs.existsSync(pitchPath)) {
+        const pitchContent = fs.readFileSync(pitchPath, 'utf8');
+        const toMatch = pitchContent.match(/\*\*To:\*\*\s*(.+)/i);
+        if (toMatch && toMatch[1].trim()) {
+          contactMethod = 'email';
+          contactValue = toMatch[1].trim().replace(/[<>]/g, '').trim();
+        }
+      }
+    }
+
+    // ── Read CONCEPT_BRIEF.md for segment/constraints ───────────────────────
+    let segment = '';
+    let constraints = [];
+    const briefPath = path.join(leadDir, 'CONCEPT_BRIEF.md');
+    if (fs.existsSync(briefPath)) {
+      const briefContent = fs.readFileSync(briefPath, 'utf8');
+      const segMatch = briefContent.match(/\*\*Segment:\*\*\s*(.+)/i);
+      if (segMatch) segment = segMatch[1].trim();
+      // Extract constraints
+      const constraintsSection = briefContent.match(/\*\*Constraints[\s:]*\*(.+?)(?=\n\n|\*\*|$)/is);
+      if (constraintsSection) {
+        const constraintLines = constraintsSection[1].split('\n').filter(l => l.trim().startsWith('-'));
+        constraints = constraintLines.map(l => l.replace(/^\s*-\s*/, '').trim());
+      }
+    }
+
+    // ── Read TIMELINE.md last entry ────────────────────────────────────────
+    let lastActivity = null;
+    const timelinePath = path.join(leadDir, 'TIMELINE.md');
+    if (fs.existsSync(timelinePath)) {
+      const timelineContent = fs.readFileSync(timelinePath, 'utf8');
+      const entries = timelineContent.split('## ').filter(Boolean);
+      if (entries.length > 0) {
+        const lastEntry = entries[entries.length - 1].trim();
+        const tsMatch = lastEntry.match(/^([\dT:\-\.]+Z)/);
+        if (tsMatch) lastActivity = tsMatch[1];
+      }
+    }
+    if (!lastActivity && lastActionAt) lastActivity = lastActionAt;
+
+    // ── CRM contact match by email ───────────────────────────────────────────
+    let crmContactId = null;
+    if (contactValue && contactMethod === 'email') {
+      const contact = db.getOne('SELECT id FROM contacts WHERE email = ?', [contactValue.toLowerCase()]);
+      if (contact) crmContactId = contact.id;
+    }
+
+    // ── Determine can_* flags ───────────────────────────────────────────────
+    const isTerminal = ['sent', 'failed', 'suppressed', 'rejected'].includes(outreachStage);
+    const isMonitor = crmStage === 'MONITOR';
+    const isSuppressed = outreachStage === 'suppressed';
+    const isParked = board_stage === 'parked';
+
+    // can_enter_approval: PITCH.md exists AND not terminal
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    const hasPitch = fs.existsSync(pitchPath);
+    const canEnterApproval = hasPitch && !isTerminal && !outreach;
+
+    // can_send: all approvals + no blockers
+    // Deduplicate: systemBlockers and deploymentBlockedBy may overlap (both include mailbox/policy)
+    const allBlockers = [...new Set([...readiness.systemBlockers, ...deploymentBlockedBy])];
+    const canSend = (
+      contentApproval === 'approved' &&
+      deploymentApproval === 'approved' &&
+      allBlockers.length === 0
+    );
+
+    // can_transition: anything that allows outbound moves
+    const canTransition = !isTerminal && !isMonitor && !isSuppressed && !isParked;
+
+    const name = dir.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    items.push({
+      id: dir,
+      name,
+      segment: segment || null,
+      board_stage,
+      outbound_stage: outreachStage || null,
+      content_approval: contentApproval,
+      deploy_approval: deploymentApproval,
+      contact_method: contactMethod,
+      contact_value: contactValue || null,
+      crm_contact_id: crmContactId,
+      blockers: allBlockers,
+      warnings,
+      last_activity: lastActivity,
+      last_action: lastAction,
+      constraints,
+      sent_at: sentAt,
+      monitor_reason: isMonitor ? (monitorReason || 'No outreach route.') : null,
+      can_send: canSend,
+      can_enter_approval: canEnterApproval,
+      can_transition: canTransition,
+      is_terminal: isTerminal,
+      is_monitor: isMonitor,
+      is_suppressed: isSuppressed,
+      is_parked: isParked,
+      score: null,
+    });
+  }
+
+  res.json({ items, stages: PIPELINE_STAGES, readiness });
+}));
+
+const PIPELINE_STAGES = [
+  'lead_found', 'brief_created', 'pitch_drafted',
+  'awaiting_content', 'content_approved', 'send_blocked',
+  'ready_to_send', 'sent', 'monitor', 'parked', 'suppressed',
+];
+
 // GET /api/outbound/readiness — system-level send gates
-app.get('/api/outbound/readiness', asyncHandler(async (req, res) => {
-  const result = await getQueueReadiness();
-  res.json(result);
+// GET /api/system-status/diagnostic — lightweight readiness snapshot
+app.get('/api/system-status/diagnostic', asyncHandler(async (req, res) => {
+  const readiness = await getQueueReadiness();
+  const {
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    systemBlockers = [],
+    systemWarnings = [],
+  } = readiness;
+
+  res.json({
+    mailboxReady,
+    policyReady,
+    sendReady: mailboxReady && policyReady,
+    mailboxDetail,
+    policyDetail,
+    systemBlockers,
+    systemWarnings,
+    checkedAt: nowIso(),
+  });
+}));
+
+// GET /api/system-status — unified system + outbound diagnostics
+app.get('/api/system-status', asyncHandler(async (req, res) => {
+  const readiness = await getSystemReadiness();
+  const {
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    tokenInfo,
+    graphStatus,
+    systemBlockers = [],
+    systemWarnings = [],
+  } = readiness;
+  const tokenExpired = tokenInfo.expiresAtMs != null ? Date.now() > tokenInfo.expiresAtMs : false;
+
+  // WS pipeline summary (quick scan)
+  let wsStats = { total: 0, sendBlocked: 0, readyToSend: 0, sent: 0, monitor: 0, approvedNotSent: 0 };
+  if (fs.existsSync(LEADS_DIR)) {
+    const dirs = fs.readdirSync(LEADS_DIR).filter(d => fs.statSync(path.join(LEADS_DIR, d)).isDirectory());
+    let sendBlocked = 0, readyToSend = 0, sent = 0, monitor = 0, approvedNotSent = 0;
+    for (const dir of dirs) {
+      const leadDir = path.join(LEADS_DIR, dir);
+      // Check STATUS.md for monitor
+      const statusPath = path.join(leadDir, 'STATUS.md');
+      if (fs.existsSync(statusPath)) {
+        const sc = fs.readFileSync(statusPath, 'utf8');
+        if (/\*\*Current Stage:\*\*\s*MONITOR/i.test(sc)) { monitor++; continue; }
+      }
+      // Check OUTREACH.json
+      const outreachPath = path.join(leadDir, 'OUTREACH.json');
+      if (fs.existsSync(outreachPath)) {
+        try {
+          const o = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+          const stage = o.outreachStage || '';
+          if (stage === 'send_blocked') { sendBlocked++; approvedNotSent++; }
+          else if (stage === 'awaiting_send' || stage === 'ready_to_send') { readyToSend++; }
+          else if (stage === 'sent') sent++;
+        } catch (_) {}
+      }
+    }
+    wsStats = { total: dirs.length, sendBlocked, readyToSend, sent, monitor, approvedNotSent };
+  }
+
+  // Overall send readiness
+  const sendReady = mailboxReady && policyReady && wsStats.approvedNotSent === 0;
+
+  // Next fixes — ordered by priority
+  const nextFixes = [];
+  if (mailboxDetail.blockerCode !== 'ready') {
+    nextFixes.push({ priority: 'critical', action: mailboxDetail.nextFix, reason: mailboxDetail.reason });
+  }
+  if (!policyReady) {
+    nextFixes.push({ priority: 'critical', action: 'create `outreach-policy.md` to define outreach rules', reason: 'Outbound policy not defined — all sends are blocked' });
+  }
+
+  res.json({
+    overall: {
+      sendReady,
+      mailboxReady,
+      policyReady,
+      sendReadyBecause: sendReady
+        ? 'Mailbox connected, policy defined, no approved-but-unsent leads'
+        : (!mailboxReady ? mailboxDetail.reason : !policyReady ? policyDetail.reason : 'Approved leads still blocked by system issues'),
+    },
+    graph: {
+      configured: graphStatus.hasConfig,
+      authenticated: graphStatus.authenticated,
+      message: graphStatus.message,
+      tokenExpiresAt: tokenInfo.expiresAt,
+      tokenExpired,
+      tokenLoaded: tokenInfo.tokenLoaded,
+      expiresAtMs: tokenInfo.expiresAtMs,
+      expiresAt: tokenInfo.expiresAt,
+    },
+    mailbox: {
+      ready: mailboxReady,
+      blocked: !mailboxReady,
+      reason: mailboxDetail.reason,
+    },
+    mailboxDetail,
+    policy: {
+      ready: policyReady,
+      blocked: !policyReady,
+      reason: policyDetail.reason,
+      fileExists: policyDetail.fileExists,
+      fileMissing: policyDetail.fileMissing,
+      detail: policyDetail,
+    },
+    tokenInfo,
+    systemBlockers,
+    systemWarnings,
+    wsStats,
+    nextFixes,
+    sendingIdentity: 'studio@verdantia.it',
+  });
 }));
 
 // GET /api/outbound/queue — scan LEADS/ for leads with PITCH.md
 app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
   const items = [];
-  if (!fs.existsSync(LEADS_DIR)) return res.json({ items: [], count: 0 });
+  if (!fs.existsSync(LEADS_DIR)) {
+    const readiness = await getQueueReadiness();
+    return res.json({
+      items: [],
+      count: 0,
+      mailboxReady: readiness.mailboxReady,
+      policyReady: readiness.policyReady,
+      mailboxDetail: readiness.mailboxDetail,
+      policyDetail: readiness.policyDetail,
+      systemBlockers: readiness.systemBlockers || [],
+      systemWarnings: readiness.systemWarnings || [],
+    });
+  }
 
   // Get system-level readiness once for all items
   const readiness = await getQueueReadiness();
-  const { mailboxReady, policyReady } = readiness;
+  const { mailboxReady, policyReady, mailboxDetail, policyDetail, systemBlockers = [], systemWarnings = [] } = readiness;
 
   const dirs = fs.readdirSync(LEADS_DIR).filter(d =>
     fs.statSync(path.join(LEADS_DIR, d)).isDirectory()
@@ -1404,7 +2029,16 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
     });
   }
 
-  res.json({ items, count: items.length, mailboxReady, policyReady });
+  res.json({
+    items,
+    count: items.length,
+    mailboxReady,
+    policyReady,
+    mailboxDetail,
+    policyDetail,
+    systemBlockers,
+    systemWarnings,
+  });
 }));
 
 // POST /api/outbound/leads/:id/transition — two-gate approve/send/suppress
@@ -1415,7 +2049,8 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
   const VALID_ACTIONS = [
     'content_approve', 'content_revoke',
     'deploy_approve', 'deploy_revoke',
-    'send', 'suppress', 'unsuppress', 'reactivate'
+    'send', 'suppress', 'unsuppress', 'reactivate',
+    'monitor', 'park'
   ];
   if (!VALID_ACTIONS.includes(action)) {
     return res.status(400).json({ error: `Unknown action: ${action}. Valid: ${VALID_ACTIONS.join(', ')}` });
@@ -1638,6 +2273,32 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
       lastAction: 'reactivated',
       lastActionAt: timestamp,
     }, { timestamp, action: 'reactivated', actor: ACTOR, from, notes: 'Reactivated for content review.' });
+    return res.json(result);
+  }
+
+  // ── monitor ─────────────────────────────────────────────────────────────────
+  if (action === 'monitor') {
+    const from = outreach.outreachStage || 'unknown';
+    const monitorPath = path.join(leadDir, 'MONITOR.md');
+    fs.writeFileSync(monitorPath, `# Monitored\n\n**Monitored by:** ${ACTOR}\n**At:** ${timestamp}\n\n`, 'utf8');
+    const result = writeOutreach({
+      outreachStage: 'monitor',
+      lastAction: 'monitored',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'monitored', actor: ACTOR, from, notes: 'Lead moved to monitor.' });
+    return res.json(result);
+  }
+
+  // ── park ───────────────────────────────────────────────────────────────────
+  if (action === 'park') {
+    const from = outreach.outreachStage || 'unknown';
+    const parkPath = path.join(leadDir, 'PARK.md');
+    fs.writeFileSync(parkPath, `# Parked\n\n**Parked by:** ${ACTOR}\n**At:** ${timestamp}\n\n`, 'utf8');
+    const result = writeOutreach({
+      outreachStage: 'parked',
+      lastAction: 'parked',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'parked', actor: ACTOR, from, notes: 'Lead parked.' });
     return res.json(result);
   }
 }));
