@@ -356,6 +356,7 @@ export default function OutboundQueue() {
         addToast({ type: 'error', message: `Human approval required before send.` });
       } else if (e.message.includes('pitch_revised')) {
         addToast({ type: 'error', message: `Pitch was revised — human re-approval required.` });
+        execute();
       } else {
         addToast({ type: 'error', message: `Action failed: ${e.message}` });
       }
