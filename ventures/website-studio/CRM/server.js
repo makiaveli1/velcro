@@ -1723,7 +1723,7 @@ app.get('/api/drafts', asyncHandler(async (req, res) => {
   res.json({ drafts: draftRows, pendingApproval: pending });
 }));
 
-// POST /api/drafts/:id/approve — approve draft (creates in email client)
+// POST /api/drafts/:id/approve — approve draft (creates in email client AND bridges to outbound queue)
 app.post('/api/drafts/:id/approve', asyncHandler(async (req, res) => {
   const { id } = req.params;
   const draft = db.getOne(`SELECT * FROM email_drafts WHERE id = ?`, [id]);
@@ -1731,8 +1731,60 @@ app.post('/api/drafts/:id/approve', asyncHandler(async (req, res) => {
   if (draft.status !== 'proposed') return res.status(409).json({ error: `Draft already ${draft.status}` });
 
   // Safety: require explicit approval (enforced here — no silent auto-approve)
-  const approved = drafts.approveDraft(id, 'user');
-  res.json({ ...approved, _notice: 'Draft approved. Open your email client to create and send.' });
+  drafts.approveDraft(id, 'user');
+
+  // ── Bridge: also create/update lead in outbound queue ─────────────────────
+  // Slug is derived from the contact associated with this draft
+  const contact = db.getOne(`SELECT * FROM contacts WHERE id = ?`, [draft.contact_id]);
+  if (contact && contact.name) {
+    const slug = contact.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const leadDir = path.join(LEADS_DIR, slug);
+    fs.mkdirSync(leadDir, { recursive: true });
+
+    // Write PITCH.md from draft content (if not already present)
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    const pitchContent = `**To:** ${contact.email || 'unknown@example.com'}\n**Subject:** ${draft.subject || 'Outbound Inquiry'}\n\n${draft.body || ''}`;
+    if (!fs.existsSync(pitchPath)) {
+      fs.writeFileSync(pitchPath, pitchContent, 'utf8');
+    }
+
+    // Write/Update OUTREACH.json with human-approval lifecycle
+    const outreachPath = path.join(leadDir, 'OUTREACH.json');
+    const timestamp = nowIso();
+    const ACTOR = 'Nero';
+    const existingOutreach = fs.existsSync(outreachPath)
+      ? JSON.parse(fs.readFileSync(outreachPath, 'utf8'))
+      : { outreachStage: 'draft_ready', contentApproval: null, deploymentApproval: null };
+
+    // Compute pitch hash for revision detection
+    const pitchStat = fs.statSync(pitchPath);
+    const pitchHash = `${pitchStat.mtimeMs}-${pitchStat.size}`;
+
+    const outreach = {
+      ...existingOutreach,
+      outreachStage: 'awaiting_human_review',
+      humanApproval: existingOutreach.humanApproval || 'needs_review',
+      contentApproval: existingOutreach.contentApproval || 'approved', // draft approval counts as content approved
+      contentApprovedBy: ACTOR,
+      contentApprovedAt: timestamp,
+      pitchHashAtApproval: pitchHash,
+      lastAction: 'draft_approved_bridged',
+      lastActionAt: timestamp,
+    };
+    fs.writeFileSync(outreachPath, JSON.stringify(outreach, null, 2));
+
+    // Write TIMELINE.md entry
+    const leadName = contact.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    appendTimeline(leadDir, {
+      timestamp,
+      action: 'Draft approved — awaiting human review',
+      actor: ACTOR,
+      from: existingOutreach.outreachStage || 'draft',
+      notes: `Draft approved for ${contact.email}. Pitch bridged to outbound queue for human send approval.`,
+    });
+  }
+
+  res.json({ ...draft, status: 'approved', _notice: 'Draft approved. Open your email client to create and send. Lead bridged to outbound queue for human send approval.' });
 }));
 
 // POST /api/drafts/:id/reject — discard draft
@@ -1827,10 +1879,13 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
       const stageMap = {
         draft_ready: 'draft',
         awaiting_content_approval: 'awaiting_content',
+        awaiting_human_review: 'awaiting_content',
         content_approved: 'content_approved',
         send_blocked: 'send_blocked',
         awaiting_send: 'ready_to_send',
+        sending: 'ready_to_send',
         sent: 'sent',
+        send_failed: 'send_blocked',
         suppressed: 'suppressed',
         rejected: 'rejected',
       };
@@ -1980,7 +2035,7 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
 const PIPELINE_STAGES = [
   'lead_found', 'brief_created', 'pitch_drafted',
   'awaiting_content', 'content_approved', 'send_blocked',
-  'ready_to_send', 'sent', 'monitor', 'parked', 'suppressed',
+  'ready_to_send', 'sent', 'send_failed', 'monitor', 'parked', 'suppressed',
 ];
 
 // GET /api/outbound/readiness — system-level send gates
@@ -2052,6 +2107,9 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
     const outreachPath = path.join(leadDir, 'OUTREACH.json');
     let outreachStage = stage;
     let sentAt = null;
+    let humanApproval = null;
+    let pitchHashAtApproval = null;
+    let lastError = null;
     let contentApproval = null;
     let contentApprovedBy = null;
     let contentApprovedAt = null;
@@ -2080,6 +2138,9 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
 
         outreachStage = outreach.outreachStage || stage;
         sentAt = outreach.sentAt || null;
+        humanApproval = outreach.humanApproval || null;
+        pitchHashAtApproval = outreach.pitchHashAtApproval || null;
+        lastError = outreach.lastError || null;
         contentApproval = outreach.contentApproval || null;
         contentApprovedBy = outreach.contentApprovedBy || null;
         contentApprovedAt = outreach.contentApprovedAt || null;
@@ -2174,6 +2235,9 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
       score: score,
       email,
       outreachStage,
+      humanApproval,
+      pitchHashAtApproval,
+      lastError,
       contentApproval,
       contentApprovedBy,
       contentApprovedAt,
@@ -2214,6 +2278,7 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
   const VALID_ACTIONS = [
     'content_approve', 'content_revoke',
     'deploy_approve', 'deploy_revoke',
+    'human_approve', 'human_deny',
     'send', 'suppress', 'unsuppress', 'reactivate',
     'monitor', 'park'
   ];
@@ -2243,10 +2308,10 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
   }
 
   const currentStage = outreach.outreachStage || 'draft_ready';
-  const TERMINAL_STATES = ['sent', 'failed', 'suppressed', 'rejected'];
+  const TERMINAL_STATES = ['sent', 'send_failed', 'suppressed', 'rejected'];
 
-  // Terminal state guard (except reactivate/unsuppress which can re-enter)
-  if (TERMINAL_STATES.includes(currentStage) && !['reactivate', 'unsuppress'].includes(action)) {
+  // Terminal state guard (except reactivate/unsuppress/human_approve which can re-enter)
+  if (TERMINAL_STATES.includes(currentStage) && !['reactivate', 'unsuppress', 'human_approve'].includes(action)) {
     return res.status(409).json({ error: `Lead is in terminal state: ${currentStage}. Action '${action}' is not permitted.` });
   }
 
@@ -2290,11 +2355,21 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
   // ── deploy_approve ──────────────────────────────────────────────────────────
   if (action === 'deploy_approve') {
     const from = outreach.outreachStage || 'content_approved';
-    // Determine next stage based on system gates
+    // Determine next stage based on system gates AND human approval status
     const readiness = await getQueueReadiness();
     const { blockers: leadBlockers } = getLeadBlockers(leadDir);
     const allBlockers = [...readiness.systemBlockers, ...leadBlockers];
-    const nextStage = allBlockers.length === 0 ? 'awaiting_send' : 'send_blocked';
+
+    // Only move to awaiting_send if human approval is already granted
+    let nextStage;
+    if (allBlockers.length === 0 && outreach.humanApproval === 'human_approved') {
+      nextStage = 'awaiting_send';
+    } else if (allBlockers.length === 0) {
+      nextStage = 'send_blocked';
+    } else {
+      nextStage = 'send_blocked';
+    }
+
     const result = writeOutreach({
       deploymentApproval: 'approved',
       deploymentApprovedBy: ACTOR,
@@ -2318,8 +2393,82 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
     return res.json(result);
   }
 
+  // ── human_approve ────────────────────────────────────────────────────────────
+  if (action === 'human_approve') {
+    const from = outreach.outreachStage || 'unknown';
+    // Store pitch hash at human approval time for revision detection
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    let pitchHashAtApproval = outreach.pitchHashAtApproval || null;
+    if (fs.existsSync(pitchPath)) {
+      const pitchStat = fs.statSync(pitchPath);
+      pitchHashAtApproval = `${pitchStat.mtimeMs}-${pitchStat.size}`;
+    }
+    // Determine next stage based on deployment approval status
+    const readiness = await getQueueReadiness();
+    const { blockers: leadBlockers } = getLeadBlockers(leadDir);
+    const allBlockers = [...readiness.systemBlockers, ...leadBlockers];
+    let nextStage;
+    if (allBlockers.length === 0 && outreach.deploymentApproval === 'approved') {
+      nextStage = 'awaiting_send';
+    } else {
+      nextStage = 'send_blocked';
+    }
+    const result = writeOutreach({
+      humanApproval: 'human_approved',
+      pitchHashAtApproval,
+      outreachStage: nextStage,
+      lastAction: 'human_approved',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'human_approved', actor: ACTOR, from, notes: `Human approved send. Next stage: ${nextStage}.` });
+    return res.json(result);
+  }
+
+  // ── human_deny ──────────────────────────────────────────────────────────────
+  if (action === 'human_deny') {
+    const from = outreach.outreachStage || 'unknown';
+    const result = writeOutreach({
+      humanApproval: 'human_denied',
+      outreachStage: 'send_blocked',
+      lastAction: 'human_denied',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'human_denied', actor: ACTOR, from, notes: 'Human denied send.' });
+    return res.json(result);
+  }
+
   // ── send ────────────────────────────────────────────────────────────────────
   if (action === 'send') {
+    // ── Human approval gate ────────────────────────────────────────────────────
+    if (outreach.humanApproval !== 'human_approved') {
+      return res.status(409).json({
+        error: 'Human approval required before send',
+        reason: 'outreach.humanApproval must be \'human_approved\' to send',
+        currentHumanApproval: outreach.humanApproval || null,
+      });
+    }
+
+    // ── Pitch revision detection ───────────────────────────────────────────────
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    if (fs.existsSync(pitchPath) && outreach.pitchHashAtApproval) {
+      const pitchStat = fs.statSync(pitchPath);
+      const currentHash = `${pitchStat.mtimeMs}-${pitchStat.size}`;
+      if (currentHash !== outreach.pitchHashAtApproval) {
+        // Pitch was modified after human approval — invalidate approval
+        const from = outreach.outreachStage;
+        writeOutreach({
+          humanApproval: 'needs_review',
+          pitchHashAtApproval: null,
+          outreachStage: 'send_blocked',
+          lastAction: 'approval_invalidated',
+          lastActionAt: timestamp,
+        }, { timestamp, action: 'approval_invalidated', actor: ACTOR, from, notes: 'Approval invalidated — pitch revised. Human re-review required.' });
+        return res.status(409).json({
+          error: 'Pitch was revised after human approval — approval is now invalid',
+          reason: 'pitch_revised_after_approval',
+          currentHumanApproval: 'needs_review',
+        });
+      }
+    }
+
     // Send gate: check all system + lead blockers
     const readiness = await getQueueReadiness();
     const { blockers: leadBlockers, warnings: leadWarnings } = getLeadBlockers(leadDir);
@@ -2336,7 +2485,6 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
       return res.status(409).json({ error: 'Deployment not approved' });
     }
 
-    const pitchPath = path.join(leadDir, 'PITCH.md');
     if (!fs.existsSync(pitchPath)) {
       return res.status(404).json({ error: 'PITCH.md not found' });
     }
@@ -2364,6 +2512,14 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
 
     const htmlContent = simpleMarkdownToHtml(rawBody);
 
+    // Set sending stage immediately
+    const from = outreach.outreachStage;
+    writeOutreach({
+      outreachStage: 'sending',
+      lastAction: 'sending',
+      lastActionAt: timestamp,
+    }, { timestamp, action: 'sending', actor: ACTOR, from, notes: 'Send initiated.' });
+
     try {
       const token = graph.getAccessToken();
       const graphRes = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
@@ -2385,18 +2541,32 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
 
       if (!graphRes.ok) {
         const errBody = await graphRes.json().catch(() => ({}));
-        return res.status(500).json({ error: `Graph API error: ${errBody.error?.message || graphRes.statusText}` });
+        const errMsg = errBody.error?.message || graphRes.statusText;
+        const result = writeOutreach({
+          outreachStage: 'send_failed',
+          lastAction: 'send_failed',
+          lastActionAt: timestamp,
+          lastError: `Graph API error: ${errMsg}`,
+        }, { timestamp, action: 'send_failed', actor: ACTOR, from: 'sending', notes: `Send failed: ${errMsg}` });
+        return res.status(500).json({ error: `Send failed: ${errMsg}`, outreach: result });
       }
     } catch (graphErr) {
-      return res.status(500).json({ error: `Graph API error: ${graphErr.message}` });
+      const errMsg = graphErr.message;
+      const result = writeOutreach({
+        outreachStage: 'send_failed',
+        lastAction: 'send_failed',
+        lastActionAt: timestamp,
+        lastError: `Graph API error: ${errMsg}`,
+      }, { timestamp, action: 'send_failed', actor: ACTOR, from: 'sending', notes: `Send failed: ${errMsg}` });
+      return res.status(500).json({ error: `Send failed: ${errMsg}`, outreach: result });
     }
 
-    const from = outreach.outreachStage;
     const result = writeOutreach({
       outreachStage: 'sent',
-      lastAction: 'send',
+      lastAction: 'sent',
       lastActionAt: timestamp,
       sentAt: timestamp,
+      lastError: null,
     }, { timestamp, action: 'sent', actor: ACTOR, from, notes: `Email sent to ${recipient}.` });
     return res.json(result);
   }

@@ -233,6 +233,16 @@ export const apiOutboundTransition = (id, action) =>
     method: 'POST',
     body: JSON.stringify({ action }),
   });
+export const apiHumanApprove = (leadId) =>
+  request(`/outbound/leads/${leadId}/transition`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'human_approve' }),
+  });
+export const apiHumanDeny = (leadId) =>
+  request(`/outbound/leads/${leadId}/transition`, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'human_deny' }),
+  });
 
 // ── Pipeline ─────────────────────────────────────────────
 export const apiPipeline = () => request('/pipeline');

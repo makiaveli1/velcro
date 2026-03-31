@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApi } from '../hooks/useApi';
-import { apiOutboundQueue, apiOutboundTransition } from '../api';
+import { apiOutboundQueue, apiOutboundTransition, apiHumanApprove, apiHumanDeny } from '../api';
 import EmptyState from '../components/EmptyState';
 import Modal from '../components/Modal';
 import { useToast } from '../App';
@@ -8,10 +8,13 @@ import { useToast } from '../App';
 const STAGE_LABELS = {
   draft_ready: 'Draft Ready',
   awaiting_content_approval: 'Awaiting Content',
+  awaiting_human_review: 'Awaiting Human Review',
   content_approved: 'Content Approved',
   awaiting_send: 'Ready to Send',
+  sending: 'Sending…',
   send_blocked: 'Send Blocked',
   sent: 'Sent',
+  send_failed: 'Send Failed',
   failed: 'Failed',
   suppressed: 'Suppressed',
   rejected: 'Rejected',
@@ -42,6 +45,14 @@ function DeployBadge({ approval, approvedBy, approvedAt }) {
     return <span className="badge badge-rose">✕ Deploy Revoked</span>;
   }
   return <span className="badge badge-default">Deploy: Pending</span>;
+}
+
+function HumanApprovalBadge({ approval }) {
+  if (!approval || approval === 'needs_review') return <span className="badge badge-default">⏳ Awaiting Review</span>;
+  if (approval === 'ready_for_approval') return <span className="badge badge-amber">✓ Ready for Review</span>;
+  if (approval === 'human_approved') return <span className="badge badge-emerald">✓ Human Approved</span>;
+  if (approval === 'human_denied') return <span className="badge badge-rose">✕ Human Denied</span>;
+  return null;
 }
 
 function MailboxChip({ ready }) {
@@ -116,6 +127,7 @@ function OutboundCard({ item, onAction, onPreview }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
         <ContentBadge approval={item.contentApproval} approvedBy={item.contentApprovedBy} approvedAt={item.contentApprovedAt} />
         <DeployBadge approval={item.deploymentApproval} approvedBy={item.deploymentApprovedBy} approvedAt={item.deploymentApprovedAt} />
+        <HumanApprovalBadge approval={item.humanApproval} />
         {item.sendReady && (
           <span className="badge badge-emerald">✓ Ready to Send</span>
         )}
@@ -156,8 +168,20 @@ function OutboundCard({ item, onAction, onPreview }) {
           </>
         )}
 
+        {/* awaiting_human_review / needs_review — human approval buttons */}
+        {(item.outreachStage === 'awaiting_human_review' || item.humanApproval === 'needs_review' || item.humanApproval === 'ready_for_approval') && item.humanApproval !== 'human_approved' && item.humanApproval !== 'human_denied' && (
+          <>
+            <button className="btn btn-emerald btn-sm" onClick={() => handleAction('human_approve')} disabled={isLoading('human_approve')}>
+              {isLoading('human_approve') ? '…' : '✓ Approve Send'}
+            </button>
+            <button className="btn btn-outline btn-sm" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={() => handleAction('human_deny')} disabled={isLoading('human_deny')}>
+              {isLoading('human_deny') ? '…' : '✕ Deny'}
+            </button>
+          </>
+        )}
+
         {/* content_approved (no deploy approval) */}
-        {item.outreachStage === 'content_approved' && (
+        {item.outreachStage === 'content_approved' && item.humanApproval !== 'needs_review' && item.humanApproval !== 'human_denied' && (
           <>
             <button className="btn btn-emerald btn-sm" onClick={() => handleAction('deploy_approve')} disabled={isLoading('deploy_approve')}>
               {isLoading('deploy_approve') ? 'Approving…' : '✓ Approve Deploy'}
@@ -171,11 +195,21 @@ function OutboundCard({ item, onAction, onPreview }) {
           </>
         )}
 
-        {/* send_blocked */}
+        {/* send_blocked — show human approval gate if not yet approved */}
         {item.outreachStage === 'send_blocked' && (
           <>
+            {item.humanApproval !== 'human_approved' && item.humanApproval !== 'human_denied' && (
+              <>
+                <button className="btn btn-emerald btn-sm" onClick={() => handleAction('human_approve')} disabled={isLoading('human_approve')}>
+                  {isLoading('human_approve') ? '…' : '✓ Approve Send'}
+                </button>
+                <button className="btn btn-outline btn-sm" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={() => handleAction('human_deny')} disabled={isLoading('human_deny')}>
+                  {isLoading('human_deny') ? '…' : '✕ Deny'}
+                </button>
+              </>
+            )}
             {item.deploymentApproval !== 'approved' && (
-              <button className="btn btn-emerald btn-sm" onClick={() => handleAction('deploy_approve')} disabled={isLoading('deploy_approve')}>
+              <button className="btn btn-outline btn-sm" onClick={() => handleAction('deploy_approve')} disabled={isLoading('deploy_approve')}>
                 {isLoading('deploy_approve') ? 'Approving…' : '✓ Approve Deploy'}
               </button>
             )}
@@ -188,10 +222,10 @@ function OutboundCard({ item, onAction, onPreview }) {
           </>
         )}
 
-        {/* awaiting_send */}
-        {item.outreachStage === 'awaiting_send' && (
+        {/* awaiting_send — requires human_approved */}
+        {item.outreachStage === 'awaiting_send' && item.humanApproval === 'human_approved' && (
           <>
-            <button className="btn btn-primary btn-sm" onClick={() => handleAction('send')} disabled={isLoading('send')}>
+            <button className="btn btn-primary btn-sm" style={{ boxShadow: '0 0 12px rgba(16,185,129,0.4)' }} onClick={() => handleAction('send')} disabled={isLoading('send')}>
               {isLoading('send') ? 'Sending…' : '✉ Send'}
             </button>
             <button className="btn btn-outline btn-sm" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={() => handleAction('deploy_revoke')} disabled={isLoading('deploy_revoke')}>
@@ -203,6 +237,13 @@ function OutboundCard({ item, onAction, onPreview }) {
           </>
         )}
 
+        {/* sending */}
+        {item.outreachStage === 'sending' && (
+          <button className="btn btn-primary btn-sm" disabled>
+            Sending…
+          </button>
+        )}
+
         {/* sent */}
         {item.outreachStage === 'sent' && (
           <span style={{ fontSize: 13, color: 'var(--signal-emerald)', fontWeight: 600 }}>
@@ -210,17 +251,28 @@ function OutboundCard({ item, onAction, onPreview }) {
           </span>
         )}
 
-        {/* failed */}
-        {item.outreachStage === 'failed' && (
+        {/* send_failed */}
+        {item.outreachStage === 'send_failed' && (
           <>
-            <span style={{ fontSize: 13, color: 'var(--signal-amber)', fontWeight: 600 }}>⚠ Failed</span>
-            <button className="btn btn-outline btn-sm" onClick={() => handleAction('send')} disabled={isLoading('send')}>
-              {isLoading('send') ? 'Retrying…' : '↻ Re-try'}
-            </button>
+            {item.humanApproval === 'human_approved' && (
+              <button className="btn btn-outline btn-sm" onClick={() => handleAction('send')} disabled={isLoading('send')}>
+                {isLoading('send') ? 'Retrying…' : '↻ Retry'}
+              </button>
+            )}
+            <span style={{ fontSize: 13, color: 'var(--signal-rose)', fontWeight: 500 }}>
+              ⚠ Send failed{item.lastError ? `: ${item.lastError}` : ''}
+            </span>
             <button className="btn btn-outline btn-sm" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={() => handleAction('suppress')} disabled={isLoading('suppress')}>
               {isLoading('suppress') ? '…' : '🚫 Suppress'}
             </button>
           </>
+        )}
+
+        {/* human_denied */}
+        {item.humanApproval === 'human_denied' && (
+          <span style={{ fontSize: 13, color: 'var(--signal-rose)', fontWeight: 500 }}>
+            ✕ Human Denied
+          </span>
         )}
 
         {/* rejected */}
@@ -275,22 +327,35 @@ export default function OutboundQueue() {
 
   const handleAction = async (id, action) => {
     try {
-      await apiOutboundTransition(id, action);
-      const messages = {
-        content_approve: 'Content approved.',
-        content_revoke: 'Content revoked.',
-        deploy_approve: 'Deployment approved.',
-        deploy_revoke: 'Deployment revoked.',
-        send: 'Email sent!',
-        suppress: 'Lead suppressed.',
-        unsuppress: 'Suppression removed.',
-        reactivate: 'Lead reactivated.',
-      };
-      addToast({ type: 'success', message: messages[action] || `Action '${action}' complete.` });
+      // Use dedicated APIs for human approval actions
+      if (action === 'human_approve') {
+        await apiHumanApprove(id);
+        addToast({ type: 'success', message: 'Human approval granted.' });
+      } else if (action === 'human_deny') {
+        await apiHumanDeny(id);
+        addToast({ type: 'success', message: 'Human denial recorded.' });
+      } else {
+        await apiOutboundTransition(id, action);
+        const messages = {
+          content_approve: 'Content approved.',
+          content_revoke: 'Content revoked.',
+          deploy_approve: 'Deployment approved.',
+          deploy_revoke: 'Deployment revoked.',
+          send: 'Email sent!',
+          suppress: 'Lead suppressed.',
+          unsuppress: 'Suppression removed.',
+          reactivate: 'Lead reactivated.',
+        };
+        addToast({ type: 'success', message: messages[action] || `Action '${action}' complete.` });
+      }
       execute();
     } catch (e) {
       if (e.message.includes('deployment blocked') || e.message.includes('blocked')) {
         addToast({ type: 'error', message: `Cannot send: ${e.message}` });
+      } else if (e.message.includes('Human approval required')) {
+        addToast({ type: 'error', message: `Human approval required before send.` });
+      } else if (e.message.includes('pitch_revised')) {
+        addToast({ type: 'error', message: `Pitch was revised — human re-approval required.` });
       } else {
         addToast({ type: 'error', message: `Action failed: ${e.message}` });
       }
@@ -433,7 +498,14 @@ export default function OutboundQueue() {
                 <button className="btn btn-success" onClick={async () => { await handleAction(previewItem.id, 'content_approve'); setPreviewItem(null); }}>✓ Approve Content</button>
               )}
 
-              {previewItem.outreachStage === 'content_approved' && (
+              {(previewItem.outreachStage === 'awaiting_human_review' || previewItem.humanApproval === 'needs_review' || previewItem.humanApproval === 'ready_for_approval') && previewItem.humanApproval !== 'human_approved' && previewItem.humanApproval !== 'human_denied' && (
+                <>
+                  <button className="btn btn-emerald" onClick={async () => { await handleAction(previewItem.id, 'human_approve'); setPreviewItem(null); }}>✓ Approve Send</button>
+                  <button className="btn btn-outline" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={async () => { await handleAction(previewItem.id, 'human_deny'); setPreviewItem(null); }}>✕ Deny</button>
+                </>
+              )}
+
+              {previewItem.outreachStage === 'content_approved' && previewItem.humanApproval !== 'needs_review' && previewItem.humanApproval !== 'human_denied' && (
                 <>
                   <button className="btn btn-emerald" onClick={async () => { await handleAction(previewItem.id, 'deploy_approve'); setPreviewItem(null); }}>✓ Approve Deploy</button>
                   <button className="btn btn-outline" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={async () => { await handleAction(previewItem.id, 'content_revoke'); setPreviewItem(null); }}>↩ Revoke Content</button>
@@ -442,20 +514,30 @@ export default function OutboundQueue() {
 
               {previewItem.outreachStage === 'send_blocked' && (
                 <>
+                  {previewItem.humanApproval !== 'human_approved' && previewItem.humanApproval !== 'human_denied' && (
+                    <>
+                      <button className="btn btn-emerald" onClick={async () => { await handleAction(previewItem.id, 'human_approve'); setPreviewItem(null); }}>✓ Approve Send</button>
+                      <button className="btn btn-outline" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={async () => { await handleAction(previewItem.id, 'human_deny'); setPreviewItem(null); }}>✕ Deny</button>
+                    </>
+                  )}
                   {previewItem.deploymentApproval !== 'approved' && (
-                    <button className="btn btn-emerald" onClick={async () => { await handleAction(previewItem.id, 'deploy_approve'); setPreviewItem(null); }}>✓ Approve Deploy</button>
+                    <button className="btn btn-outline" onClick={async () => { await handleAction(previewItem.id, 'deploy_approve'); setPreviewItem(null); }}>✓ Approve Deploy</button>
                   )}
                   <button className="btn btn-outline" onClick={async () => { await handleAction(previewItem.id, 'refresh'); setPreviewItem(null); execute(); }}>↻ Re-check</button>
                 </>
               )}
 
-              {previewItem.outreachStage === 'awaiting_send' && (
+              {previewItem.outreachStage === 'awaiting_send' && previewItem.humanApproval === 'human_approved' && (
                 <>
                   <button className="btn btn-primary" onClick={async () => { setSendingFromModal(true); await handleAction(previewItem.id, 'send'); setSendingFromModal(false); setPreviewItem(null); }} disabled={sendingFromModal}>
                     {sendingFromModal ? 'Sending…' : '✉ Send'}
                   </button>
                   <button className="btn btn-outline" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={async () => { await handleAction(previewItem.id, 'deploy_revoke'); setPreviewItem(null); }}>↩ Revoke Deploy</button>
                 </>
+              )}
+
+              {previewItem.outreachStage === 'send_failed' && previewItem.humanApproval === 'human_approved' && (
+                <button className="btn btn-outline" onClick={async () => { await handleAction(previewItem.id, 'send'); setPreviewItem(null); }}>↻ Retry Send</button>
               )}
 
               {(previewItem.outreachStage === 'rejected' || previewItem.outreachStage === 'suppressed') && (
