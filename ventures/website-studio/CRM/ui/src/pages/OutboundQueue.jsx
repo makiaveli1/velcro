@@ -49,7 +49,7 @@ function DeployBadge({ approval, approvedBy, approvedAt }) {
 
 function HumanApprovalBadge({ approval }) {
   if (!approval || approval === 'needs_review') return <span className="badge badge-default">⏳ Awaiting Review</span>;
-  if (approval === 'ready_for_approval') return <span className="badge badge-amber">✓ Ready for Review</span>;
+  if (approval === 'ready_for_approval') return <span className="badge badge-amber">📋 Pending Review</span>;
   if (approval === 'human_approved') return <span className="badge badge-emerald">✓ Human Approved</span>;
   if (approval === 'human_denied') return <span className="badge badge-rose">✕ Human Denied</span>;
   return null;
@@ -103,7 +103,7 @@ function OutboundCard({ item, onAction, onPreview }) {
             <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{item.name}</h3>
             {item.sendBlockedReason && (
               <span className="badge badge-rose" style={{ fontSize: 11 }}>
-                ✕ {item.sendBlockedReason}
+                ✕ {item.sendBlockedReason === 'mailbox' ? 'Graph not ready' : item.sendBlockedReason}
               </span>
             )}
           </div>
@@ -130,6 +130,12 @@ function OutboundCard({ item, onAction, onPreview }) {
         <HumanApprovalBadge approval={item.humanApproval} />
         {item.sendReady && (
           <span className="badge badge-emerald">✓ Ready to Send</span>
+        )}
+        {/* Human-approved but infrastructure blocks — explain why */}
+        {item.humanApproval === 'human_approved' && item.outreachStage === 'send_blocked' && item.sendBlockedReason && (
+          <span className="badge badge-amber" style={{ background: 'var(--signal-amber)', color: '#1a1a1a', border: 'none' }}>
+            ⚠ {item.sendBlockedReason === 'mailbox' ? 'Graph not ready' : item.sendBlockedReason}
+          </span>
         )}
       </div>
 
@@ -467,6 +473,12 @@ export default function OutboundQueue() {
           </button>
         ))}
       </div>
+
+      {activeTab === 'actionable' && (
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 'var(--space-3)', marginTop: -4 }}>
+          Includes leads blocked by setup — resolve blockers to enable send.
+        </div>
+      )}
 
       {items.length === 0 ? (
         <EmptyState
