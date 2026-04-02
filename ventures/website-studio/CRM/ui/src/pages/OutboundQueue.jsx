@@ -55,6 +55,20 @@ function HumanApprovalBadge({ approval }) {
   return null;
 }
 
+function ConceptQueueBadge({ status }) {
+  const CONCEPT_LABELS = {
+    not_started:    { label: 'No Concept',        cls: 'badge-default' },
+    brief_ready:     { label: 'Brief Ready',      cls: 'badge-sky' },
+    building:        { label: 'Building Concept',  cls: 'badge-amber' },
+    internal_review: { label: 'In Review',         cls: 'badge-amber' },
+    approved:        { label: '✓ Concept Ready',  cls: 'badge-emerald' },
+    rework_needed:   { label: '↩ Concept Rework', cls: 'badge-rose' },
+    attached:        { label: '↗ Attached',        cls: 'badge-emerald' },
+  };
+  const cfg = CONCEPT_LABELS[status] || CONCEPT_LABELS.not_started;
+  return <span className={`badge ${cfg.cls}`}>{cfg.label}</span>;
+}
+
 function MailboxChip({ ready }) {
   return ready
     ? <span className="badge badge-emerald">✓ Mailbox Ready</span>
@@ -128,13 +142,17 @@ function OutboundCard({ item, onAction, onPreview }) {
         <ContentBadge approval={item.contentApproval} approvedBy={item.contentApprovedBy} approvedAt={item.contentApprovedAt} />
         <DeployBadge approval={item.deploymentApproval} approvedBy={item.deploymentApprovedBy} approvedAt={item.deploymentApprovedAt} />
         <HumanApprovalBadge approval={item.humanApproval} />
+        {/* Concept status badge */}
+        {item.conceptStatus && (
+          <ConceptQueueBadge status={item.conceptStatus} />
+        )}
         {item.sendReady && (
           <span className="badge badge-emerald">✓ Ready to Send</span>
         )}
         {/* Human-approved but infrastructure blocks — explain why */}
         {item.humanApproval === 'human_approved' && item.outreachStage === 'send_blocked' && item.sendBlockedReason && (
           <span className="badge badge-amber" style={{ background: 'var(--signal-amber)', color: '#1a1a1a', border: 'none' }}>
-            ⚠ {item.sendBlockedReason === 'mailbox' ? 'Graph not ready' : item.sendBlockedReason}
+            ⚠ {item.sendBlockedReason === 'mailbox' ? 'Graph not ready' : item.sendBlockedReason === 'concept_not_approved' ? 'Concept not approved' : item.sendBlockedReason}
           </span>
         )}
       </div>
@@ -162,6 +180,35 @@ function OutboundCard({ item, onAction, onPreview }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        {/* ── Concept stages ── */}
+        {/* concept_brief_ready — Forge can start build */}
+        {item.outreachStage === 'concept_brief_ready' && (
+          <>
+            <button className="btn btn-emerald btn-sm" onClick={() => handleAction('concept_start_build')} disabled={isLoading('concept_start_build')}>
+              {isLoading('concept_start_build') ? '…' : '▶ Start Build'}
+            </button>
+          </>
+        )}
+        {/* concept_building — mark as in review */}
+        {item.outreachStage === 'concept_building' && (
+          <>
+            <button className="btn btn-amber btn-sm" onClick={() => handleAction('concept_review')} disabled={isLoading('concept_review')}>
+              {isLoading('concept_review') ? '…' : '🔍 Mark In Review'}
+            </button>
+          </>
+        )}
+        {/* concept_review — Ariadne approves or requests rework */}
+        {item.outreachStage === 'concept_review' && (
+          <>
+            <button className="btn btn-emerald btn-sm" onClick={() => handleAction('concept_approve')} disabled={isLoading('concept_approve')}>
+              {isLoading('concept_approve') ? '…' : '✓ Approve Concept'}
+            </button>
+            <button className="btn btn-outline btn-sm" style={{ color: 'var(--signal-rose)', borderColor: 'var(--signal-rose)' }} onClick={() => handleAction('concept_reject')} disabled={isLoading('concept_reject')}>
+              {isLoading('concept_reject') ? '…' : '↩ Request Rework'}
+            </button>
+          </>
+        )}
+
         {/* awaiting_content_approval */}
         {item.outreachStage === 'awaiting_content_approval' && (
           <>
@@ -351,6 +398,10 @@ export default function OutboundQueue() {
           suppress: 'Lead suppressed.',
           unsuppress: 'Suppression removed.',
           reactivate: 'Lead reactivated.',
+          refresh: 'Infrastructure re-checked.',
+          concept_start_build: 'Concept build started.',
+          concept_approve: 'Concept approved!',
+          concept_reject: 'Concept sent back for rework.',
         };
         addToast({ type: 'success', message: messages[action] || `Action '${action}' complete.` });
       }
@@ -428,8 +479,8 @@ export default function OutboundQueue() {
       <div className="page-header">
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Outbound Queue</h1>
-            <p className="page-subtitle">
+            <h1 className="page-title" data-automation-id="outbound-page-title">Outbound</h1>
+            <p className="page-subtitle" data-automation-id="outbound-page-subtitle">
               {(data?.items || []).length} lead{(data?.items || []).length !== 1 ? 's' : ''} total
             </p>
           </div>
@@ -447,10 +498,14 @@ export default function OutboundQueue() {
       )}
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+      <div
+        data-automation-id="outbound-tabs"
+        style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}
+      >
         {ACTIONABLE_TABS.map(tab => (
           <button
             key={tab}
+            data-automation-id={`outbound-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
             onClick={() => setActiveTab(tab)}
             style={{
               padding: '8px 16px',

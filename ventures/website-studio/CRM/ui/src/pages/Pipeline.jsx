@@ -8,31 +8,40 @@ import { useToast } from '../App';
 
 // ── Stage config ─────────────────────────────────────────
 const STAGE_COLUMNS = [
-  { key: 'lead_found',        label: 'Lead Found',       color: 'neutral' },
-  { key: 'brief_created',    label: 'Brief Created',    color: 'neutral-blue' },
-  { key: 'pitch_drafted',    label: 'Pitch Drafted',    color: 'neutral' },
-  { key: 'awaiting_content', label: 'Awaiting Content', color: 'sky' },
-  { key: 'content_approved', label: 'Content Approved',color: 'sky' },
-  { key: 'send_blocked',     label: 'Send Blocked',     color: 'rose' },
-  { key: 'ready_to_send',    label: 'Ready to Send',    color: 'emerald' },
-  { key: 'sent',             label: 'Sent',              color: 'muted' },
-  { key: 'monitor',          label: 'Monitor',           color: 'amber' },
-  { key: 'parked',           label: 'Parked',            color: 'neutral' },
-  { key: 'suppressed',       label: 'Suppressed',        color: 'muted' },
+  { key: 'lead_found',            label: 'Lead Found',           color: 'neutral' },
+  { key: 'brief_created',         label: 'Brief Created',        color: 'neutral-blue' },
+  { key: 'concept_brief_ready',   label: 'Brief Ready',          color: 'sky' },
+  { key: 'concept_building',      label: 'Building Concept',     color: 'sky' },
+  { key: 'concept_review',        label: 'Concept Review',       color: 'amber' },
+  { key: 'concept_approved',      label: 'Concept Approved',     color: 'emerald' },
+  { key: 'outreach_drafted',      label: 'Outreach Drafted',     color: 'neutral' },
+  { key: 'awaiting_content',      label: 'Awaiting Approval',    color: 'sky' },
+  { key: 'content_approved',      label: 'Content Approved',     color: 'sky' },
+  { key: 'send_blocked',          label: 'Send Blocked',        color: 'rose' },
+  { key: 'ready_to_send',         label: 'Ready to Send',        color: 'emerald' },
+  { key: 'sent',                  label: 'Sent',                 color: 'muted' },
+  { key: 'monitor',               label: 'Monitor',              color: 'amber' },
+  { key: 'parked',                label: 'Parked',               color: 'neutral' },
+  { key: 'suppressed',            label: 'Suppressed',           color: 'muted' },
 ];
 
 const STAGE_COLOR_MAP = {
-  lead_found:       { border: 'var(--border)',      bg: 'transparent' },
-  brief_created:    { border: 'var(--signal-sky)',  bg: 'transparent' },
-  pitch_drafted:    { border: 'var(--border)',      bg: 'transparent' },
-  awaiting_content: { border: 'var(--signal-sky)',  bg: 'transparent' },
-  content_approved: { border: 'var(--signal-sky)',  bg: 'transparent' },
-  send_blocked:     { border: 'var(--signal-rose)', bg: 'transparent' },
-  ready_to_send:    { border: 'var(--signal-emerald)', bg: 'transparent' },
-  sent:             { border: 'var(--border)',      bg: 'transparent' },
-  monitor:          { border: 'var(--signal-amber)', bg: 'rgba(245,158,11,0.06)' },
-  parked:           { border: 'var(--border)',      bg: 'transparent' },
-  suppressed:       { border: 'var(--border)',      bg: 'rgba(255,255,255,0.02)' },
+  lead_found:           { border: 'var(--border)',         bg: 'transparent' },
+  brief_created:        { border: 'var(--signal-sky)',     bg: 'transparent' },
+  concept_brief_ready: { border: 'var(--signal-sky)',     bg: 'rgba(56,189,248,0.06)' },
+  concept_building:     { border: 'var(--signal-amber)',   bg: 'rgba(245,158,11,0.06)' },
+  concept_review:       { border: 'var(--signal-amber)',   bg: 'rgba(245,158,11,0.06)' },
+  concept_approved:     { border: 'var(--signal-emerald)', bg: 'rgba(16,185,129,0.06)' },
+  outreach_drafted:     { border: 'var(--border)',         bg: 'transparent' },
+  pitch_drafted:        { border: 'var(--border)',         bg: 'transparent' },
+  awaiting_content:    { border: 'var(--signal-sky)',     bg: 'transparent' },
+  content_approved:     { border: 'var(--signal-sky)',     bg: 'transparent' },
+  send_blocked:        { border: 'var(--signal-rose)',    bg: 'transparent' },
+  ready_to_send:        { border: 'var(--signal-emerald)', bg: 'rgba(16,185,129,0.06)' },
+  sent:                { border: 'var(--border)',           bg: 'transparent' },
+  monitor:             { border: 'var(--signal-amber)',    bg: 'rgba(245,158,11,0.06)' },
+  parked:              { border: 'var(--border)',           bg: 'transparent' },
+  suppressed:          { border: 'var(--border)',           bg: 'rgba(255,255,255,0.02)' },
 };
 
 const FILTER_TABS = [
@@ -46,7 +55,9 @@ const FILTER_TABS = [
 ];
 
 const ACTIVE_STAGES = new Set([
-  'lead_found', 'brief_created', 'pitch_drafted',
+  'lead_found', 'brief_created',
+  'concept_brief_ready', 'concept_building', 'concept_review', 'concept_approved',
+  'outreach_drafted',
   'awaiting_content', 'content_approved', 'send_blocked', 'ready_to_send',
 ]);
 
@@ -125,6 +136,33 @@ function WarningChip() {
   return <span title="Has warnings" style={{ fontSize: 12 }}>⚠️</span>;
 }
 
+function ConceptStatusBadge({ status }) {
+  const CONCEPT_LABELS = {
+    not_started:    { label: 'No Concept',     bg: 'rgba(255,255,255,0.05)',  color: 'var(--text-tertiary)' },
+    brief_ready:     { label: 'Brief Ready',    bg: 'rgba(56,189,248,0.15)',  color: 'var(--signal-sky)' },
+    building:        { label: 'Building',       bg: 'rgba(245,158,11,0.15)',  color: 'var(--signal-amber)' },
+    internal_review: { label: 'In Review',     bg: 'rgba(245,158,11,0.15)',  color: 'var(--signal-amber)' },
+    approved:        { label: '✓ Concept Ready',bg: 'rgba(16,185,129,0.15)', color: 'var(--signal-emerald)' },
+    rework_needed:   { label: '↩ Rework',      bg: 'rgba(244,63,94,0.15)',  color: 'var(--signal-rose)' },
+    attached:        { label: '↗ Attached',     bg: 'rgba(16,185,129,0.1)',  color: 'var(--signal-emerald)' },
+  };
+  const cfg = CONCEPT_LABELS[status] || CONCEPT_LABELS.not_started;
+  return (
+    <span style={{
+      fontSize: 10,
+      fontWeight: 600,
+      background: cfg.bg,
+      color: cfg.color,
+      padding: '2px 6px',
+      borderRadius: 3,
+      letterSpacing: '0.04em',
+      border: `1px solid ${cfg.color}44`,
+    }}>
+      {cfg.label}
+    </span>
+  );
+}
+
 // ── Card context menu ────────────────────────────────────
 function CardMenu({ item, onClose, onAction, onViewDetails, onViewOutbound }) {
   const ref = useRef(null);
@@ -153,6 +191,9 @@ function CardMenu({ item, onClose, onAction, onViewDetails, onViewOutbound }) {
     }}>
       {item.crm_contact_id && (
         <MenuItem onClick={() => onViewDetails(item)} label="View Details" />
+      )}
+      {item.crm_contact_id && (
+        <MenuItem onClick={() => handle('review_canvas')} label="🧭 Review Canvas" />
       )}
       <MenuItem onClick={() => onViewOutbound(item)} label="View Outbound" />
       <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
@@ -304,19 +345,22 @@ function PipelineCard({ item, onAction, onViewDetails, onViewOutbound, onSendCon
     if (action === 'send') { onSendConfirm(item); return; }
     if (action === 'view_details') { navigate(`/contacts/${item.crm_contact_id}`); return; }
     if (action === 'view_outbound') { navigate('/outbound'); return; }
+    if (action === 'review_canvas') { navigate(`/contacts/${item.crm_contact_id}/review`); return; }
     setLoading(action);
     await onAction(item.id, action);
     setLoading(null);
   };
 
   return (
-    <div style={{
-      background: isMonitor ? stageColors.bg : 'var(--bg-surface)',
-      border: '1px solid var(--border)',
-      borderLeft: `3px solid ${stageColors.border}`,
-      borderRadius: 8,
-      padding: '10px 12px',
-      marginBottom: 8,
+    <div
+      data-automation-id={`pipeline-card-${item.board_stage}`}
+      style={{
+        background: isMonitor ? stageColors.bg : 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderLeft: `3px solid ${stageColors.border}`,
+        borderRadius: 8,
+        padding: '10px 12px',
+        marginBottom: 8,
       opacity: isSuppressed ? 0.65 : 1,
       position: 'relative',
     }}>
@@ -377,6 +421,9 @@ function PipelineCard({ item, onAction, onViewDetails, onViewOutbound, onSendCon
         </span>
         <StageBadge stage={item.board_stage} />
         <BlockerBadge blockers={item.blockers} />
+        {item.conceptStatus && (
+          <ConceptStatusBadge status={item.conceptStatus} />
+        )}
         {item.warnings && item.warnings.length > 0 && <WarningChip />}
         {item.score != null && (
           <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-tertiary)' }}>
@@ -661,7 +708,7 @@ export default function Pipeline() {
       <div className="page-header">
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Pipeline</h1>
+            <h1 className="page-title" data-automation-id="pipeline-page-title">Website Studio Pipeline</h1>
             <p className="page-subtitle">
               {data?.items?.length || 0} lead{data?.items?.length !== 1 ? 's' : ''} total
               {refreshing && ' · refreshing…'}
@@ -673,17 +720,21 @@ export default function Pipeline() {
       <ReadinessBanner readiness={data?.readiness} />
 
       {/* Filter tabs */}
-      <div style={{
-        display: 'flex',
-        gap: 4,
-        marginBottom: 20,
-        borderBottom: '1px solid var(--border)',
-        paddingBottom: 0,
-        overflowX: 'auto',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          marginBottom: 20,
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: 0,
+          overflowX: 'auto',
+        }}
+        data-automation-id="pipeline-filter-tabs"
+      >
         {FILTER_TABS.map(tab => (
           <button
             key={tab.key}
+            data-automation-id={`pipeline-tab-${tab.key}`}
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '8px 14px',

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
-import { apiContact, apiScoreBreakdown, apiCreateFollowUp, apiUpdateFollowUp, apiApproveDraft, apiGenerateSummary, apiRejectDraft, apiCreateDraft, apiCreateInteraction } from '../api';
+import { apiContact, apiScoreBreakdown, apiCreateFollowUp, apiUpdateFollowUp, apiApproveDraft, apiGenerateSummary, apiRejectDraft, apiCreateDraft, apiCreateInteraction, apiDrafts } from '../api';
 import ScoreBar from '../components/ScoreBar';
 import { PriorityBadge } from '../components/Badge';
 import Timeline from '../components/Timeline';
@@ -29,6 +29,7 @@ export default function ContactDossier() {
   const fetcher = useCallback(() => Promise.all([
     apiContact(id),
     fetch(`/api/contacts/${id}/website-studio`).then(r => r.json()),
+    apiDrafts({ contact_id: id }),
   ]), [id]);
   const { data, loading, error, execute } = useApi(fetcher, [id], { immediate: true });
 
@@ -46,8 +47,9 @@ export default function ContactDossier() {
   if (error) return <ErrorState error={error} navigate={navigate} />;
   if (!data) return null;
 
-  const [contactData = {}, websiteStudio = {}] = Array.isArray(data) ? data : [data, {}];
+  const [contactData = {}, websiteStudio = {}, draftsData = {}] = Array.isArray(data) ? data : [data, {}, {}];
   const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = contactData || {};
+  const contactDrafts = draftsData?.drafts || [];
 
   const tabContent = {
     summary: (
@@ -57,14 +59,18 @@ export default function ContactDossier() {
       <TimelineTab interactions={interactions} websiteStudio={websiteStudio} />
     ),
     drafts: (
-      <DraftsTab contactId={id} onAction={execute} addToast={addToast} />
+      <DraftsTab contactId={id} drafts={contactDrafts} onAction={execute} addToast={addToast} />
     ),
   };
 
   return (
     <div>
       {/* Back */}
-      <div className="dossier-back" onClick={() => navigate('/contacts')}>
+      <div
+        className="dossier-back"
+        data-automation-id="dossier-back"
+        onClick={() => navigate('/contacts')}
+      >
         <BackIcon /> Back to Contacts
       </div>
 
@@ -109,23 +115,212 @@ export default function ContactDossier() {
 
         {/* Action Bar */}
         <div className="dossier-actions" style={{ marginTop: 'var(--space-4)' }}>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowDraftModal(true)}>
+          <button
+            className="btn btn-primary btn-sm"
+            data-automation-id="dossier-btn-generate-draft"
+            onClick={() => setShowDraftModal(true)}
+          >
             ✉️ Generate Draft
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowFollowUpModal(true)}>
+          <button
+            className="btn btn-secondary btn-sm"
+            data-automation-id="dossier-btn-followup"
+            onClick={() => setShowFollowUpModal(true)}
+          >
             📅 Create Follow-up
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowLogModal(true)}>
+          <button
+            className="btn btn-secondary btn-sm"
+            data-automation-id="dossier-btn-log-interaction"
+            onClick={() => setShowLogModal(true)}
+          >
             📞 Log Interaction
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/contacts/${id}/review`)}>
-            🧭 Review Canvas
-          </button>
+          {websiteStudio?.hasWebsiteStudioLead ? (
+            <button
+              className="btn btn-secondary btn-sm"
+              data-automation-id="dossier-btn-review-canvas"
+              onClick={() => navigate(`/contacts/${id}/review`)}
+              style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}
+            >
+              🧭 Review Canvas
+            </button>
+          ) : (
+            <button
+              className="btn btn-secondary btn-sm"
+              data-automation-id="dossier-btn-start-review"
+              onClick={() => navigate('/pipeline')}
+              title="Add this contact to the Website Studio pipeline"
+            >
+              🌐 Add to Website Studio
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Website Studio Status Banner */}
-      {websiteStudio?.hasWebsiteStudioLead && websiteStudio?.outbound && (
+      {/* Website Studio / Review Canvas Section */}
+      {websiteStudio?.hasWebsiteStudioLead ? (
+        <>
+          {/* Blocked / Ready banner */}
+          {websiteStudio.outbound?.sendReady === false ? (
+            <div
+              data-automation-id="dossier-banner-blocked"
+              style={{ background: 'var(--signal-rose)', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}
+            >
+              ✕ Outbound BLOCKED —{' '}
+              {websiteStudio.outbound.sendBlockedReason === 'mailbox'
+                ? 'Mailbox token expired — refresh to continue'
+                : websiteStudio.outbound.sendBlockedReason === 'policy'
+                ? 'No outreach policy defined yet'
+                : (websiteStudio.outbound.deploymentBlockedBy || []).join(', ')}
+            </div>
+          ) : (
+            <div
+              data-automation-id="dossier-banner-ready"
+              style={{ background: 'var(--signal-emerald)', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}
+            >
+              ✓ Ready to send — both gates approved, all systems ready
+            </div>
+          )}
+
+          {/* Review Canvas entry card */}
+          <div
+            data-automation-id="dossier-canvas-entry"
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '16px',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Concept Review Canvas</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: '2px 7px',
+                    borderRadius: 9,
+                    background: 'var(--accent-dim)',
+                    color: 'var(--accent)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {websiteStudio.concept?.hasConcept ? 'Concept Ready' : 'No Concept Yet'}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                Review the full concept package — website preview, brief, draft, QA, and approval — in one surface.
+              </p>
+              {websiteStudio.outbound?.outreachStage && (
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                  Pipeline stage:{' '}
+                  <span style={{ color: 'var(--accent)' }}>
+                    {websiteStudio.outbound.outreachStage.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              )}
+            </div>
+            <button
+              className="btn btn-primary btn-sm"
+              data-automation-id="dossier-btn-open-canvas"
+              onClick={() => navigate(`/contacts/${id}/review`)}
+            >
+              Open Canvas →
+            </button>
+          </div>
+
+          {/* Outbound Status Card */}
+          <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outbound Status</div>
+              <button
+                className="btn btn-ghost btn-sm"
+                data-automation-id="dossier-btn-open-outbound"
+                style={{ fontSize: 11, padding: '2px 8px' }}
+                onClick={() => navigate('/outbound')}
+              >
+                Open in Outbound Queue →
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: websiteStudio.outbound?.contentApproval === 'approved' ? 'var(--signal-emerald)' : 'var(--signal-amber)', color: websiteStudio.outbound?.contentApproval === 'approved' ? '#fff' : '#1a1a1a' }}>
+                {websiteStudio.outbound?.contentApproval === 'approved' ? '✓' : '✕'} Content Approved
+              </span>
+              <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 4, background: websiteStudio.outbound?.deploymentApproval === 'approved' ? 'var(--signal-emerald)' : 'var(--signal-amber)', color: websiteStudio.outbound?.deploymentApproval === 'approved' ? '#fff' : '#1a1a1a' }}>
+                {websiteStudio.outbound?.deploymentApproval === 'approved' ? '✓' : '✕'} Deploy Approved
+              </span>
+              <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                {websiteStudio.outbound?.outreachStage?.replace(/_/g, ' ') || 'unknown'}
+              </span>
+            </div>
+            {websiteStudio.outbound?.warnings?.length > 0 && (
+              <div style={{ marginTop: 6 }} data-automation-id="dossier-outbound-warnings">
+                {websiteStudio.outbound.warnings.map((w, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 3 }}>⚠ {w}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Concept / Pitch Constraints */}
+          {websiteStudio.concept?.constraints?.length > 0 && (
+            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pitch Constraints</div>
+              {websiteStudio.concept.constraints.map((c, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 4 }}>⚠ {c}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Next Action */}
+          {websiteStudio.nextAction && (
+            <div
+              data-automation-id="dossier-next-action"
+              style={{ background: 'var(--signal-sky)', color: '#1a1a1a', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>NEXT ACTION</div>
+              <div style={{ fontSize: 13 }}>{websiteStudio.nextAction.text}</div>
+              {websiteStudio.nextAction.reason && (
+                <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8 }}>{websiteStudio.nextAction.reason}</div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        /* No Website Studio lead — show a prompt */
+        <div
+          data-automation-id="dossier-no-ws-prompt"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px dashed var(--border-strong)',
+            borderRadius: 10,
+            padding: '20px',
+            marginBottom: 16,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: 22, marginBottom: 8 }}>🌐</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No Website Studio Package</div>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+            This contact isn't in the Website Studio pipeline yet. Add them to start building their concept package.
+          </p>
+          <button
+            className="btn btn-secondary btn-sm"
+            data-automation-id="dossier-btn-goto-pipeline"
+            onClick={() => navigate('/pipeline')}
+          >
+            View Website Studio Pipeline →
+          </button>
+        </div>
+      )}
+
+      {/* Tabs */}
         <>
           {websiteStudio.outbound.sendReady === false ? (
             <div style={{ background: 'var(--signal-rose)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
@@ -197,17 +392,18 @@ export default function ContactDossier() {
       )}
 
       {/* Tabs */}
-      <div className="tabs">
+      <div className="tabs" data-automation-id="dossier-tabs">
         {['summary', 'timeline', 'drafts'].map(tab => (
           <button
             key={tab}
             className={`tab ${activeTab === tab ? 'active' : ''}`}
+            data-automation-id={`dossier-tab-${tab}`}
             onClick={() => setActiveTab(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === 'drafts' && drafts.length > 0 && (
+            {tab === 'drafts' && contactDrafts.length > 0 && (
               <span style={{ marginLeft: 6, background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 10, padding: '1px 5px', borderRadius: 9, fontWeight: 600 }}>
-                {drafts.length}
+                {contactDrafts.length}
               </span>
             )}
           </button>
