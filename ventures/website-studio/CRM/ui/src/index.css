@@ -2206,3 +2206,98 @@ iframe[data-automation-id="canvas-preview-iframe"] {
 .device-chrome-dot:hover {
   transform: scale(1.2);
 }
+
+/* ============================================================
+   Concept Canvas — Immersive / Focus Mode
+   ============================================================ */
+
+/* Immersive: collapse rails, expand center */
+.canvas-page.immersive {
+  gap: 0;
+}
+.canvas-page.immersive > [data-automation-id="canvas-left-rail"],
+.canvas-page.immersive > [data-automation-id="canvas-right-rail"] {
+  display: none;
+}
+.canvas-page.immersive > [data-automation-id="canvas-center-panel"] {
+  flex: 1;
+}
+
+/* Floating immersive control bar */
+.immersive-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: #1e1e2e;
+  border-bottom: 1px solid #313244;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 50;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* ============================================================
+   Utility Drawer
+   ============================================================ */
+
+.utility-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  z-index: 30;
+  overflow-y: auto;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: drawerSlideIn 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Hamburger Icon Button
+   ============================================================ */
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 6px;
+  transition: background 150ms ease;
+}
+.hamburger-btn:hover {
+  background: var(--bg-elevated);
+}
+.hamburger-line {
+  width: 22px;
+  height: 2px;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: background 150ms ease;
+}
+.hamburger-btn:hover .hamburger-line {
+  background: var(--text-primary);
+}

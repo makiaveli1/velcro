@@ -321,6 +321,8 @@ export default function ConceptCanvas() {
   const [device,         setDevice]         = useState('desktop');
   const [selectedVersion, setSelectedVersion] = useState('');
   const [reviewNote,     setReviewNote]     = useState('');
+  const [immersive,      setImmersive]      = useState(false);
+  const [drawerOpen,     setDrawerOpen]     = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
   const [busyAction,    setBusyAction]     = useState('');
   const [viewportWidth,  setViewportWidth]  = useState(
@@ -340,6 +342,13 @@ export default function ConceptCanvas() {
     const versions = data?.concept?.versions || [];
     if (versions.length && !selectedVersion) setSelectedVersion(versions[0].url);
   }, [data, selectedVersion]);
+
+  // Escape key closes the utility drawer
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && drawerOpen) setDrawerOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
 
   const collapsedRail = viewportWidth < 1200;
   const leadName = data?.contact?.name || data?.leadSlug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Lead';
@@ -419,7 +428,41 @@ export default function ConceptCanvas() {
   const modePanelKey = `${mode}-${device}`;
 
   return (
-    <div className="canvas-page" style={{ minHeight: 'calc(100vh - 140px)' }}>
+    <div className={`canvas-page${immersive ? ' immersive' : ''}`} style={{ minHeight: 'calc(100vh - 140px)' }}>
+
+      {/* ── Immersive floating bar ───────────────────────────────── */}
+      {immersive && (
+        <div className="immersive-bar" data-automation-id="immersive-bar">
+          <span style={{ fontSize: 14, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+            {leadName}
+          </span>
+          <span className="badge badge-amber" style={{ fontSize: 11 }}>Focus Mode</span>
+          {mode === 'website' && (
+            <div style={{ display: 'inline-flex', marginLeft: 8, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
+              {(['desktop', 'tablet', 'mobile']).map(opt => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={`btn btn-sm ${device === opt ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setDevice(opt)}
+                  data-automation-id={`canvas-device-${opt}`}
+                  style={{ minWidth: 72, textTransform: 'capitalize' }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className="btn btn-secondary btn-sm"
+            data-automation-id="canvas-btn-exit-immersive"
+            onClick={() => setImmersive(false)}
+            style={{ marginLeft: 'auto' }}
+          >
+            Exit Focus
+          </button>
+        </div>
+      )}
 
       {/* ── Left Rail ─────────────────────────────────────────────── */}
       <aside
@@ -578,7 +621,29 @@ export default function ConceptCanvas() {
 
           {/* Controls cluster */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
-            {mode === 'website' && (
+            {/* Header action buttons: immersive + hamburger */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                data-automation-id="canvas-btn-immersive"
+                onClick={() => setImmersive(v => !v)}
+                title="Focus mode"
+              >
+                {immersive ? 'Exit Focus' : 'Focus Mode'}
+              </button>
+              <button
+                className="hamburger-btn"
+                data-automation-id="canvas-btn-drawer"
+                onClick={() => setDrawerOpen(v => !v)}
+                title="Canvas utilities"
+                aria-label="Open canvas utilities"
+              >
+                <span className="hamburger-line" />
+                <span className="hamburger-line" />
+                <span className="hamburger-line" />
+              </button>
+            </div>
+            {mode === 'website' && !immersive && (
               <div style={{ display: 'inline-flex', padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
                 {(['desktop', 'tablet', 'mobile']).map(opt => (
                   <button
@@ -651,7 +716,7 @@ export default function ConceptCanvas() {
         </div>
       </main>
 
-      {/* ── Right Rail ─────────────────────────────────────────────── */}
+      {/* ── Right Rail — Essential signal + sticky actions ────────── */}
       <aside
         data-automation-id="canvas-right-rail"
         style={{
@@ -667,91 +732,7 @@ export default function ConceptCanvas() {
       >
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, overflowY: 'auto' }}>
 
-          {/* ── Section 1: Review Gates (checklist + send readiness) ── */}
-          <section>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
-              Review Gates
-            </div>
-
-            {/* Checklist */}
-            <div style={{ display: 'grid', gap: 7, marginBottom: 14 }}>
-              {CHECKLIST_ITEMS.map(([key, label]) => {
-                const checked = !!checklist[key];
-                return (
-                  <label
-                    key={key}
-                    data-automation-id={`canvas-checklist-${kebabCase(key)}`}
-                    style={{
-                      display:          'grid',
-                      gridTemplateColumns: '20px 1fr',
-                      gap:              10,
-                      alignItems:       'center',
-                      padding:          '8px 12px',
-                      background:       checked ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-elevated)',
-                      border:           `1px solid ${checked ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-default)'}`,
-                      borderRadius:     8,
-                      cursor:           'pointer',
-                      transition:       'background 200ms ease, border-color 200ms ease',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={e => mutateChecklist(key, e.target.checked)}
-                      style={{ accentColor: 'var(--signal-emerald)' }}
-                    />
-                    <span style={{
-                      fontSize:   13,
-                      color:      checked ? 'var(--signal-emerald)' : 'var(--text-primary)',
-                      fontWeight: checked ? 600 : 400,
-                      transition: 'color 200ms ease',
-                    }}>
-                      {label}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-
-            {/* Send Readiness */}
-            <div style={{
-              padding:       '12px 14px',
-              background:   'var(--bg-elevated)',
-              borderRadius:  10,
-              border:       '1px solid var(--border-default)',
-            }}>
-              <div style={{ display: 'grid', gap: 8 }}>
-                <GateRow label="Concept approved" value={readiness.conceptApproved} />
-                <GateRow label="Preview valid"    value={readiness.previewValid} />
-                <GateRow label="QA passed"        value={readiness.qaPassed} />
-                <GateRow label="Draft ready"     value={readiness.draftReady} />
-                <GateRow label="Mailbox ready"   value={readiness.mailboxReady} />
-                <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 8, marginTop: 2 }}>
-                  <GateRow label="Send ready" value={readiness.sendReady} accent />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* ── Section 2: Concept Status ──────────────────────────── */}
-          <section className="card" style={{ background: 'var(--bg-elevated)' }}>
-            <div className="card-body" style={{ padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Concept Status</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <span className={conceptBadgeClass}>{conceptBadgeLabel}</span>
-                {data.concept?.approvedAt && (
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{relativeTime(data.concept.approvedAt)}</span>
-                )}
-              </div>
-              {data.concept?.approvedBy && (
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Approved by <strong style={{ color: 'var(--text-primary)' }}>{data.concept.approvedBy}</strong> on {formatFullDate(data.concept.approvedAt)}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* ── Section 3: Blockers ─────────────────────────────────── */}
+          {/* ── Blockers — always visible ───────────────────────────── */}
           <section>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Blockers</div>
@@ -788,10 +769,10 @@ export default function ConceptCanvas() {
             </div>
           </section>
 
-          {/* ── Section 4: Review Notes ─────────────────────────────── */}
+          {/* ── Review Notes — read-only (textarea moved to drawer) ─── */}
           <section>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Review Notes</div>
-            <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
               {(data.reviewNotes || []).slice(0, 5).map((note, i) => (
                 <div key={i} style={{
                   padding: '9px 12px', borderRadius: 10,
@@ -813,27 +794,11 @@ export default function ConceptCanvas() {
                 </div>
               )}
             </div>
-            <textarea
-              className="form-input"
-              rows={3}
-              value={reviewNote}
-              onChange={e => setReviewNote(e.target.value)}
-              placeholder="Add a review note…"
-              style={{ width: '100%', resize: 'vertical' }}
-            />
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={submitReviewNote}
-              disabled={!reviewNote.trim() || submittingNote}
-              style={{ marginTop: 8, width: '100%' }}
-            >
-              {submittingNote ? 'Adding…' : 'Add note'}
-            </button>
           </section>
 
         </div>
 
-        {/* ── Section 5: Sticky Action Buttons ─────────────────────── */}
+        {/* ── Sticky Action Buttons ────────────────────────────────── */}
         <div style={{
           padding:        '14px 18px',
           borderTop:      '1px solid var(--border-default)',
@@ -879,6 +844,159 @@ export default function ConceptCanvas() {
           </button>
         </div>
       </aside>
+
+      {/* ── Utility Drawer — screenshots, metadata, notes, review gates */}
+      {drawerOpen && (
+        <div
+          className="utility-drawer"
+          data-automation-id="canvas-utility-drawer"
+          role="dialog"
+          aria-label="Canvas utilities"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Canvas Utilities</div>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close utilities"
+              style={{ padding: '4px 8px', fontSize: 13 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {(data.concept?.screenshots?.length ?? 0) > 0 && (
+            <section>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Screenshots</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.concept.screenshots.map(src => (
+                  <a key={src} href={src} target="_blank" rel="noreferrer"
+                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                    <img src={src} alt="Screenshot" style={{ display: 'block', width: '100%', height: 88, objectFit: 'cover' }} />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 10, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Concept Info</div>
+            <MetaRow label="Tier"    value={`Tier ${data.concept?.tier || 1}`} />
+            <MetaRow label="Type"    value={String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')} />
+            <MetaRow label="Created" value={data.concept?.createdAt ? formatDate(data.concept.createdAt, true) : '—'} />
+          </section>
+
+          {(data.concept?.versions?.length ?? 0) > 1 && (
+            <section>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Version</div>
+              <select
+                className="form-input form-select"
+                value={selectedVersion}
+                onChange={e => setSelectedVersion(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                {data.concept.versions.map(v => <option key={v.id} value={v.url}>{v.label}</option>)}
+              </select>
+            </section>
+          )}
+
+          <section>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Review Gates</div>
+            <div style={{ display: 'grid', gap: 7, marginBottom: 14 }}>
+              {CHECKLIST_ITEMS.map(([key, label]) => {
+                const checked = !!checklist[key];
+                return (
+                  <label
+                    key={key}
+                    data-automation-id={`canvas-checklist-${kebabCase(key)}`}
+                    style={{
+                      display:          'grid',
+                      gridTemplateColumns: '20px 1fr',
+                      gap:              10,
+                      alignItems:       'center',
+                      padding:          '8px 12px',
+                      background:       checked ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-elevated)',
+                      border:           `1px solid ${checked ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-default)'}`,
+                      borderRadius:     8,
+                      cursor:           'pointer',
+                      transition:       'background 200ms ease, border-color 200ms ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={e => mutateChecklist(key, e.target.checked)}
+                      style={{ accentColor: 'var(--signal-emerald)' }}
+                    />
+                    <span style={{
+                      fontSize:   13,
+                      color:      checked ? 'var(--signal-emerald)' : 'var(--text-primary)',
+                      fontWeight: checked ? 600 : 400,
+                      transition: 'color 200ms ease',
+                    }}>
+                      {label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div style={{
+              padding:       '12px 14px',
+              background:   'var(--bg-elevated)',
+              borderRadius:  10,
+              border:       '1px solid var(--border-default)',
+            }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <GateRow label="Concept approved" value={readiness.conceptApproved} />
+                <GateRow label="Preview valid"    value={readiness.previewValid} />
+                <GateRow label="QA passed"        value={readiness.qaPassed} />
+                <GateRow label="Draft ready"     value={readiness.draftReady} />
+                <GateRow label="Mailbox ready"   value={readiness.mailboxReady} />
+                <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 8, marginTop: 2 }}>
+                  <GateRow label="Send ready" value={readiness.sendReady} accent />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="card" style={{ background: 'var(--bg-elevated)' }}>
+            <div className="card-body" style={{ padding: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Concept Status</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <span className={conceptBadgeClass}>{conceptBadgeLabel}</span>
+                {data.concept?.approvedAt && (
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{relativeTime(data.concept.approvedAt)}</span>
+                )}
+              </div>
+              {data.concept?.approvedBy && (
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Approved by <strong style={{ color: 'var(--text-primary)' }}>{data.concept.approvedBy}</strong> on {formatFullDate(data.concept.approvedAt)}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Add Review Note</div>
+            <textarea
+              className="form-input"
+              rows={3}
+              value={reviewNote}
+              onChange={e => setReviewNote(e.target.value)}
+              placeholder="Add a review note…"
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={submitReviewNote}
+              disabled={!reviewNote.trim() || submittingNote}
+              style={{ marginTop: 8, width: '100%' }}
+            >
+              {submittingNote ? 'Adding…' : 'Add note'}
+            </button>
+          </section>
+        </div>
+      )}
 
     </div>
   );
