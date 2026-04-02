@@ -21,7 +21,7 @@ export default function Layout() {
         <div className="app-topbar" style={{ padding: '12px 24px' }}>
           <NLQueryBar />
         </div>
-        <div className="app-content">
+        <div className={`app-content${location.pathname.includes('/review') ? ' canvas-route' : ''}`}>
           <Outlet />
         </div>
       </div>

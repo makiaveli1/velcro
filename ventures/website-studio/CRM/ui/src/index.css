@@ -192,6 +192,12 @@ img {
   max-width: 1200px;
 }
 
+/* Canvas route: full-bleed workspace, no max-width constraint */
+.app-content.canvas-route {
+  max-width: none;
+  padding: 0;
+}
+
 /* ---------- Sidebar ---------- */
 .sidebar-logo {
   padding: var(--space-5) var(--space-5) var(--space-4);
@@ -2123,8 +2129,54 @@ iframe[data-automation-id="canvas-preview-iframe"] {
 }
 
 /* Canvas page entrance */
+/* Canvas: unified elevated workspace surface that fills the app-content */
 .canvas-page {
   animation: canvasEntrance 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-height: 0;
+  /* Inset from the shell — feels grounded, not floating */
+  margin: 0;
+}
+
+/* App-content full-bleed for canvas route */
+.app-content.canvas-route {
+  max-width: none;
+  padding: 20px;
+}
+
+/* Canvas columns: flex column so inner content can scroll */
+.canvas-page > [data-automation-id="canvas-left-rail"],
+.canvas-page > [data-automation-id="canvas-center-panel"],
+.canvas-page > [data-automation-id="canvas-right-rail"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.canvas-page > [data-automation-id="canvas-center-panel"] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Left rail: slightly lighter surface to distinguish it */
+.canvas-page > [data-automation-id="canvas-left-rail"] {
+  background: var(--bg-surface);
+}
+
+/* Right rail: blend with canvas surface */
+.canvas-page > [data-automation-id="canvas-right-rail"] {
+  background: var(--bg-elevated);
+}
+
+/* Center panel: transparent — canvas surface shows through */
+.canvas-page > [data-automation-id="canvas-center-panel"] {
+  background: transparent;
 }
 
 @keyframes canvasEntrance {
