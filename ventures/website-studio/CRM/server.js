@@ -768,7 +768,7 @@ async function getDashboardData() {
     wsHealth.pipeline = Object.entries(stageCounts).map(([stage, count]) => ({
       stage, count, label: STAGE_LABELS[stage] || stage,
     })).sort((a, b) => {
-      const order = ['lead_found','brief_created','pitch_drafted','awaiting_content','content_approved','send_blocked','ready_to_send','sent','monitor','parked','suppressed'];
+      const order = ['lead_found','brief_created','concept_brief_ready','concept_building','concept_review','concept_approved','outreach_drafted','awaiting_content','content_approved','send_blocked','ready_to_send','sent','monitor','parked','suppressed'];
       return order.indexOf(a.stage) - order.indexOf(b.stage);
     });
   }
@@ -1880,6 +1880,13 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
         draft_ready: 'draft',
         awaiting_content_approval: 'awaiting_content',
         awaiting_human_review: 'awaiting_content',
+        // Concept stages
+        concept_brief_ready: 'concept_brief_ready',
+        concept_building: 'concept_building',
+        concept_review: 'concept_review',
+        concept_approved: 'concept_approved',
+        outreach_drafted: 'outreach_drafted',
+        // Content/outreach stages
         content_approved: 'content_approved',
         send_blocked: 'send_blocked',
         awaiting_send: 'ready_to_send',
@@ -1893,13 +1900,14 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
     } else if (crmStage === 'MONITOR') {
       board_stage = 'monitor';
     } else {
-      // File-based inference
+      // File-based inference — concept-first: check CONCEPT_BRIEF.md first
       const pitchPath = path.join(leadDir, 'PITCH.md');
       const briefPath = path.join(leadDir, 'CONCEPT_BRIEF.md');
-      if (fs.existsSync(pitchPath)) {
-        board_stage = 'pitch_drafted';
-      } else if (fs.existsSync(briefPath)) {
-        board_stage = 'brief_created';
+      if (fs.existsSync(briefPath)) {
+        // CONCEPT_BRIEF.md exists — lead is in concept pipeline
+        board_stage = 'concept_brief_ready';
+      } else if (fs.existsSync(pitchPath)) {
+        board_stage = 'outreach_drafted';
       } else {
         board_stage = 'lead_found';
       }
@@ -2000,6 +2008,12 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
 
     const name = dir.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+    // Concept readiness
+    const conceptPackage = outreach?.conceptPackage || null;
+    const conceptStatus = conceptPackage?.conceptStatus || null;
+    const conceptReady = !conceptPackage || conceptStatus === 'approved';
+    if (!conceptReady) allBlockers.push('concept_not_approved');
+
     items.push({
       id: dir,
       name,
@@ -2018,14 +2032,16 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
       constraints,
       sent_at: sentAt,
       monitor_reason: isMonitor ? (monitorReason || 'No outreach route.') : null,
-      can_send: canSend,
-      can_enter_approval: canEnterApproval,
+      can_send: canSend && conceptReady,
+      can_enter_approval: canEnterApproval && conceptReady,
       can_transition: canTransition,
       is_terminal: isTerminal,
       is_monitor: isMonitor,
       is_suppressed: isSuppressed,
       is_parked: isParked,
       score: null,
+      conceptPackage,
+      conceptStatus,
     });
   }
 
@@ -2033,7 +2049,9 @@ app.get('/api/pipeline', asyncHandler(async (req, res) => {
 }));
 
 const PIPELINE_STAGES = [
-  'lead_found', 'brief_created', 'pitch_drafted',
+  'lead_found', 'brief_created',
+  'concept_brief_ready', 'concept_building', 'concept_review', 'concept_approved',
+  'outreach_drafted',
   'awaiting_content', 'content_approved', 'send_blocked',
   'ready_to_send', 'sent', 'send_failed', 'monitor', 'parked', 'suppressed',
 ];
@@ -2119,11 +2137,12 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
     let deploymentBlockedBy = [];
     let warnings = [];
     let lastAction = null;
+    let outreach = {};
     let lastActionAt = null;
 
     if (fs.existsSync(outreachPath)) {
       try {
-        const outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
+        outreach = JSON.parse(fs.readFileSync(outreachPath, 'utf8'));
 
         // Backward-compat migration for old schema (only set if not already present)
         if (outreach.outreachStage === 'approved') {
@@ -2219,12 +2238,21 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
     const itemBlockers = [...leadBlockers];
     const itemWarnings = [...warnings, ...leadWarnings];
 
-    // Determine sendReadiness — merge system blockers with per-lead blockers
+    // Concept readiness — if lead has a conceptPackage, concept must be approved
+    const conceptPackage = outreach.conceptPackage || null;
+    const conceptStatus = conceptPackage?.conceptStatus || null;
+    const conceptReady = !conceptPackage || conceptStatus === 'approved';
+    if (!conceptReady) {
+      itemBlockers.push('concept_not_approved');
+    }
+
+    // Determine sendReadiness — merge system blockers with per-lead blockers + concept gate
     const allBlockers = [...readiness.systemBlockers, ...itemBlockers];
     const sendReady = (
       contentApproval === 'approved' &&
       deploymentApproval === 'approved' &&
-      allBlockers.length === 0
+      allBlockers.length === 0 &&
+      conceptReady
     );
     const sendBlockedReason = sendReady ? null : (allBlockers[0] || null);
 
@@ -2255,6 +2283,8 @@ app.get('/api/outbound/queue', asyncHandler(async (req, res) => {
       policyReady,
       sendReady,
       sendBlockedReason,
+      conceptPackage,
+      conceptStatus,
     });
   }
 
@@ -2280,7 +2310,8 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
     'deploy_approve', 'deploy_revoke',
     'human_approve', 'human_deny',
     'send', 'suppress', 'unsuppress', 'reactivate',
-    'monitor', 'park'
+    'monitor', 'park', 'refresh',
+    'concept_approve', 'concept_reject', 'concept_start_build',
   ];
   if (!VALID_ACTIONS.includes(action)) {
     return res.status(400).json({ error: `Unknown action: ${action}. Valid: ${VALID_ACTIONS.join(', ')}` });
@@ -2432,6 +2463,116 @@ app.post('/api/outbound/leads/:id/transition', asyncHandler(async (req, res) => 
       lastAction: 'human_denied',
       lastActionAt: timestamp,
     }, { timestamp, action: 'human_denied', actor: ACTOR, from, notes: 'Human denied send.' });
+    return res.json(result);
+  }
+
+  // ── refresh ─────────────────────────────────────────────────────────────────
+  // Re-check blockers and auto-advance stage if previously blocked infrastructure
+  // is now clear. Handles the case where a lead was blocked at send_blocked stage
+  // due to mailbox/policy, then the infrastructure was restored.
+  if (action === 'refresh') {
+    const readiness = await getQueueReadiness();
+    const { blockers: leadBlockers } = getLeadBlockers(leadDir);
+    const allBlockers = [...readiness.systemBlockers, ...leadBlockers];
+    const from = outreach.outreachStage || 'unknown';
+
+    let nextStage = outreach.outreachStage;
+    let notes = 'Re-checked — no state change.';
+
+    // Only auto-advance from send_blocked when infrastructure is now clear
+    if (outreach.outreachStage === 'send_blocked' && allBlockers.length === 0) {
+      if (outreach.deploymentApproval === 'approved' && outreach.humanApproval === 'human_approved') {
+        nextStage = 'awaiting_send';
+        notes = `Infrastructure restored — auto-advanced from send_blocked to awaiting_send. cleared=${JSON.stringify(allBlockers)}`;
+      } else if (outreach.deploymentApproval === 'approved' || outreach.humanApproval === 'human_approved') {
+        // One approval missing — stay blocked but clear sendBlockedReason
+        nextStage = outreach.deploymentApproval === 'approved'
+          ? 'send_blocked'  // human approval still needed
+          : 'send_blocked'; // deployment approval still needed
+        notes = 'Infrastructure restored but approval not yet granted — remaining in send_blocked.';
+      }
+    }
+
+    // Update OUTREACH.json
+    const updates = { lastAction: 'recheck', lastActionAt: timestamp };
+    if (nextStage !== from) {
+      updates.outreachStage = nextStage;
+    }
+    // Clear sendBlockedReason if blockers are now clear
+    if (allBlockers.length === 0) {
+      updates.sendBlockedReason = null;
+    }
+
+    const result = writeOutreach(updates, { timestamp, action: 'recheck', actor: ACTOR, from, notes });
+    return res.json(result);
+  }
+
+  // ── concept_approve ─────────────────────────────────────────────────────────
+  // Mark concept as approved and advance to outreach_drafted if pitch exists
+  if (action === 'concept_approve') {
+    const from = outreach.outreachStage || 'unknown';
+    const timestamp2 = nowIso();
+    const conceptPackage = outreach.conceptPackage || {};
+    const updates = {
+      conceptPackage: {
+        ...conceptPackage,
+        conceptStatus: 'approved',
+        approvedBy: ACTOR,
+        approvedAt: timestamp2,
+      },
+      lastAction: 'concept_approved',
+      lastActionAt: timestamp2,
+    };
+
+    // Auto-advance to outreach_drafted if pitch exists
+    const pitchPath = path.join(leadDir, 'PITCH.md');
+    if (fs.existsSync(pitchPath)) {
+      updates.outreachStage = 'outreach_drafted';
+    } else {
+      updates.outreachStage = 'concept_approved';
+    }
+
+    const result = writeOutreach(updates, { timestamp: timestamp2, action: 'concept_approved', actor: ACTOR, from, notes: `Concept approved by ${ACTOR}. Stage: ${updates.outreachStage}.` });
+    return res.json(result);
+  }
+
+  // ── concept_reject ──────────────────────────────────────────────────────────
+  // Mark concept as rework_needed
+  if (action === 'concept_reject') {
+    const from = outreach.outreachStage || 'unknown';
+    const timestamp2 = nowIso();
+    const conceptPackage = outreach.conceptPackage || {};
+    const updates = {
+      conceptPackage: {
+        ...conceptPackage,
+        conceptStatus: 'rework_needed',
+        approvedBy: null,
+        approvedAt: null,
+      },
+      outreachStage: 'concept_review',  // Back to review
+      lastAction: 'concept_rejected',
+      lastActionAt: timestamp2,
+    };
+    const result = writeOutreach(updates, { timestamp: timestamp2, action: 'concept_rejected', actor: ACTOR, from, notes: `Concept rejected — rework needed.` });
+    return res.json(result);
+  }
+
+  // ── concept_start_build ─────────────────────────────────────────────────────
+  // Advance concept from brief_ready to building
+  if (action === 'concept_start_build') {
+    const from = outreach.outreachStage || 'unknown';
+    const timestamp2 = nowIso();
+    const conceptPackage = outreach.conceptPackage || {};
+    const updates = {
+      conceptPackage: {
+        ...conceptPackage,
+        conceptStatus: 'building',
+      },
+      outreachStage: 'concept_building',
+      lastAction: 'concept_build_started',
+      lastActionAt: timestamp2,
+    };
+    const result = writeOutreach(updates, { timestamp: timestamp2, action: 'concept_build_started', actor: ACTOR, from, notes: `Concept build started.` });
     return res.json(result);
   }
 
@@ -2750,6 +2891,721 @@ app.post('/api/query', asyncHandler(async (req, res) => {
     }
 
     res.json({ query, parsed, results, response, count: Array.isArray(results) ? results.length : 1 });
+}));
+
+function slugifyLeadName(value = '') {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function safeReadText(filePath) {
+  try {
+    return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeReadJson(filePath, fallback = {}) {
+  try {
+    return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(filePath, value) {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf8');
+}
+
+function resolveLeadVersions(leadDir) {
+  const files = fs.readdirSync(leadDir)
+    .filter(name => /\.html?$/i.test(name))
+    .sort();
+
+  return files.map((name, index) => ({
+    id: name,
+    label: name === 'index.html' ? 'Current' : name.replace(/\.html?$/i, ''),
+    fileName: name,
+    order: index,
+  }));
+}
+
+function parseMarkdownBullets(content) {
+  if (!content) return [];
+  return content
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => /^[-*+]\s+/.test(line))
+    .map(line => line.replace(/^[-*+]\s+/, '').trim())
+    .filter(Boolean);
+}
+
+function parsePreviewDoc(content, leadDir, contactId) {
+  const screenshots = [];
+  let publicPreviewUrl = null;
+  let localPreviewCandidate = null;
+  let previewVerifiedAt = null;
+
+  if (content) {
+    const urlMatch = content.match(/(?:public\s+preview\s+url|preview\s+url|public\s+url|url):\s*(https?:\/\/\S+)/i)
+      || content.match(/https?:\/\/\S+/i);
+    if (urlMatch) {
+      publicPreviewUrl = urlMatch[1] || urlMatch[0];
+    }
+
+    const localMatch = content.match(/(?:local\s+preview\s+path|local\s+path|build\s+path|path):\s*([^\n]+)/i);
+    if (localMatch) {
+      localPreviewCandidate = localMatch[1].trim();
+    }
+
+    const verifiedMatch = content.match(/(?:verified\s+at|last\s+verified):\s*([^\n]+)/i);
+    if (verifiedMatch) {
+      const parsed = new Date(verifiedMatch[1].trim());
+      if (Number.isFinite(parsed.getTime())) {
+        previewVerifiedAt = parsed.toISOString();
+      }
+    }
+
+    const screenshotMatches = content.match(/(?:screenshots?|images?):[\s\S]*?(?=\n\n|$)/i);
+    if (screenshotMatches) {
+      const localShots = screenshotMatches[0]
+        .split('\n')
+        .map(line => line.replace(/^[-*+]\s+/, '').trim())
+        .filter(line => /\.(png|jpe?g|webp|gif)$/i.test(line));
+      screenshots.push(...localShots);
+    }
+
+    const inlineShots = content.match(/[^\s)]+\.(?:png|jpe?g|webp|gif)/ig) || [];
+    screenshots.push(...inlineShots);
+  }
+
+  const versions = resolveLeadVersions(leadDir);
+  const preferredFile = localPreviewCandidate
+    ? path.basename(localPreviewCandidate)
+    : (versions.find(entry => entry.fileName === 'index.html')?.fileName || versions[0]?.fileName || null);
+  const actualPreviewFile = preferredFile ? path.join(leadDir, preferredFile) : null;
+  const previewFileExists = actualPreviewFile ? fs.existsSync(actualPreviewFile) : false;
+
+  const screenshotUrls = [...new Set(screenshots)]
+    .map(file => path.basename(file))
+    .filter(Boolean)
+    .filter(file => fs.existsSync(path.join(leadDir, file)))
+    .map(file => `/api/contacts/${contactId}/canvas/file?path=${encodeURIComponent(file)}`);
+
+  return {
+    publicPreviewUrl,
+    localPreviewPath: `/api/contacts/${contactId}/canvas/preview${preferredFile ? `?file=${encodeURIComponent(preferredFile)}` : ''}`,
+    previewVerifiedAt,
+    previewFileExists,
+    screenshots: screenshotUrls,
+    versions: versions.map(version => ({
+      ...version,
+      url: `/api/contacts/${contactId}/canvas/preview?file=${encodeURIComponent(version.fileName)}`,
+    })),
+  };
+}
+
+function parseApprovalDoc(content, leadDir) {
+  const bullets = parseMarkdownBullets(content);
+  let approvedAt = null;
+  let approvedBy = null;
+
+  if (content) {
+    const byMatch = content.match(/approved\s+by:\s*([^\n]+)/i);
+    const atMatch = content.match(/approved\s+at:\s*([^\n]+)/i);
+    if (byMatch) approvedBy = byMatch[1].trim();
+    if (atMatch) {
+      const parsed = new Date(atMatch[1].trim());
+      if (Number.isFinite(parsed.getTime())) approvedAt = parsed.toISOString();
+    }
+  }
+
+  const artifactsDir = path.join(leadDir, 'artifacts');
+  const artifactNotes = [];
+  if (fs.existsSync(artifactsDir)) {
+    const files = fs.readdirSync(artifactsDir).filter(name => /qa|review|audit/i.test(name));
+    for (const file of files) {
+      const artifactContent = safeReadText(path.join(artifactsDir, file));
+      const parsedBullets = parseMarkdownBullets(artifactContent);
+      if (parsedBullets.length) {
+        artifactNotes.push(...parsedBullets.map(item => `${file}: ${item}`));
+      } else if (artifactContent && artifactContent.trim()) {
+        artifactNotes.push(`${file}: ${artifactContent.trim().split('\n')[0]}`);
+      }
+    }
+  }
+
+  return {
+    qaFindings: [...new Set([...bullets, ...artifactNotes])],
+    approvedAt,
+    approvedBy,
+  };
+}
+
+function parseDecisionNotes(content) {
+  if (!content) return [];
+  return content
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => !line.startsWith('#'))
+    .map(line => line.replace(/^[-*+]\s+/, '').trim())
+    .filter(Boolean);
+}
+
+function extractBusinessEssence(briefContent, leadSlug) {
+  if (!briefContent) {
+    return {
+      title: leadSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      subtitle: 'Concept preview pending',
+      highlights: [],
+    };
+  }
+
+  const title = (briefContent.match(/^#\s+(.+)/m)?.[1] || leadSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).trim();
+  const subtitle = (briefContent.match(/\*\*The ONE thing:\*\*\s*(.+)/i)?.[1]
+    || briefContent.match(/\*\*What:\*\*\s*(.+)/i)?.[1]
+    || 'Local-first website concept').trim();
+
+  const highlights = [];
+  for (const label of ['Who', 'Since', 'What', 'The business goal for this website']) {
+    const match = briefContent.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+)`, 'i'));
+    if (match) {
+      highlights.push({ label, value: match[1].trim() });
+    }
+  }
+
+  return { title, subtitle, highlights };
+}
+
+function buildGeneratedPreviewHtml({ leadSlug, conceptBrief, outreachPitch, conceptStatus }) {
+  const essence = extractBusinessEssence(conceptBrief, leadSlug);
+  const pitchSnippet = outreachPitch
+    ? outreachPitch.split('\n').filter(Boolean).slice(0, 5).join(' ')
+    : 'Outreach pitch not drafted yet.';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${essence.title}</title>
+  <style>
+    :root {
+      --bg: #f5efe7;
+      --surface: #fffdf9;
+      --ink: #171717;
+      --muted: #5f5c57;
+      --accent: #b96d31;
+      --border: rgba(23,23,23,0.08);
+      --shadow: 0 18px 60px rgba(0,0,0,0.08);
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, rgba(185,109,49,0.14), transparent 38%), var(--bg);
+      color: var(--ink);
+    }
+    .hero {
+      min-height: 100vh;
+      padding: 56px 24px;
+      display: grid;
+      place-items: center;
+    }
+    .shell {
+      width: min(1120px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,250,244,0.94));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+    .masthead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      font: 600 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .status {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(185,109,49,0.12);
+      color: var(--accent);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 0;
+    }
+    .copy {
+      padding: 56px 48px;
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 74px);
+      line-height: 0.94;
+      margin: 0 0 18px;
+      letter-spacing: -0.04em;
+    }
+    .sub {
+      font: 500 18px/1.65 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--muted);
+      max-width: 54ch;
+      margin-bottom: 28px;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 28px 0 32px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 14px 18px;
+      font: 600 14px/1 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      text-decoration: none;
+      border: 1px solid var(--ink);
+      color: var(--ink);
+    }
+    .btn.primary {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .fact {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.82);
+      padding: 14px 16px;
+      border-radius: 18px;
+    }
+    .fact-label {
+      font: 600 11px/1.2 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .fact-value {
+      font: 500 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+    }
+    .panel {
+      min-height: 100%;
+      padding: 48px 36px;
+      background:
+        linear-gradient(180deg, rgba(23,23,23,0.95), rgba(28,22,18,0.98)),
+        radial-gradient(circle at top right, rgba(185,109,49,0.24), transparent 40%);
+      color: rgba(255,255,255,0.92);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 28px;
+    }
+    .eyebrow {
+      font: 600 11px/1.2 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.58);
+      margin-bottom: 14px;
+    }
+    .quote {
+      font-size: 28px;
+      line-height: 1.15;
+      margin: 0;
+    }
+    .pitch {
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 22px;
+      font: 500 14px/1.7 system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: rgba(255,255,255,0.72);
+    }
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .copy, .panel { padding: 32px 24px; }
+      .facts { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="shell">
+      <div class="masthead">
+        <span>Generated Concept Preview</span>
+        <span class="status">${String(conceptStatus || 'internal_review').replace(/_/g, ' ')}</span>
+      </div>
+      <div class="grid">
+        <div class="copy">
+          <h1>${essence.title}</h1>
+          <p class="sub">${essence.subtitle}</p>
+          <div class="cta-row">
+            <a class="btn primary" href="#">Call Now</a>
+            <a class="btn" href="#">Request a Quote</a>
+          </div>
+          <div class="facts">
+            ${essence.highlights.slice(0, 4).map(item => `
+              <div class="fact">
+                <div class="fact-label">${item.label}</div>
+                <div class="fact-value">${item.value}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <aside class="panel">
+          <div>
+            <div class="eyebrow">Concept Direction</div>
+            <p class="quote">A trust-first, mobile-leaning homepage focused on clarity, locality, and direct contact.</p>
+          </div>
+          <div class="pitch">
+            <div class="eyebrow">Pitch Context</div>
+            ${pitchSnippet}
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</body>
+</html>`;
+}
+
+function resolveCanvasContext(id) {
+  let contact = db.getOne('SELECT * FROM contacts WHERE id = ?', [id]) || null;
+  let leadSlug = null;
+
+  if (fs.existsSync(path.join(LEADS_DIR, id))) {
+    leadSlug = id;
+  }
+
+  if (!leadSlug && contact?.email) {
+    const placeholderMatch = contact.email.match(/^mig_(.+)@placeholder\.local$/i);
+    if (placeholderMatch && fs.existsSync(path.join(LEADS_DIR, placeholderMatch[1]))) {
+      leadSlug = placeholderMatch[1];
+    }
+  }
+
+  if (!leadSlug && contact?.name) {
+    const nameSlug = slugifyLeadName(contact.name);
+    if (fs.existsSync(path.join(LEADS_DIR, nameSlug))) {
+      leadSlug = nameSlug;
+    }
+  }
+
+  if (!leadSlug && fs.existsSync(LEADS_DIR)) {
+    const dirs = fs.readdirSync(LEADS_DIR).filter(dir => fs.statSync(path.join(LEADS_DIR, dir)).isDirectory());
+    const targetEmail = (contact?.email || '').toLowerCase().trim();
+
+    outer: for (const dir of dirs) {
+      const leadDir = path.join(LEADS_DIR, dir);
+      const leadRecordContent = safeReadText(path.join(leadDir, 'LEAD_RECORD.md')) || '';
+      const pitchContent = safeReadText(path.join(leadDir, 'PITCH.md')) || '';
+      const emailMatches = [
+        ...(leadRecordContent.match(/\*\*Contact Email:\*\*\s*(.+)/ig) || []),
+        ...(pitchContent.match(/\*\*To:\*\*\s*(.+)/ig) || []),
+      ];
+
+      if (targetEmail && emailMatches.some(line => line.toLowerCase().includes(targetEmail))) {
+        leadSlug = dir;
+        break outer;
+      }
+
+      if (!contact && dir === id) {
+        leadSlug = dir;
+        break outer;
+      }
+    }
+  }
+
+  if (!leadSlug) {
+    throw createHttpError(404, 'Lead not found for contact');
+  }
+
+  const leadDir = path.join(LEADS_DIR, leadSlug);
+  if (!contact) {
+    contact = db.getOne('SELECT * FROM contacts WHERE email = ?', [`mig_${leadSlug}@placeholder.local`])
+      || db.getOne('SELECT * FROM contacts WHERE lower(name) = lower(?)', [leadSlug.replace(/-/g, ' ')])
+      || null;
+  }
+
+  return { contact, leadSlug, leadDir };
+}
+
+async function buildCanvasPayload(id) {
+  const { contact, leadSlug, leadDir } = resolveCanvasContext(id);
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  const previewPath = path.join(leadDir, 'CONCEPT_PREVIEW.md');
+  const briefPath = path.join(leadDir, 'CONCEPT_BRIEF.md');
+  const approvalPath = path.join(leadDir, 'CONCEPT_APPROVAL.md');
+  const decisionPath = path.join(leadDir, 'CONCEPT_APPROVAL_DECISION.md');
+  const draftPath = path.join(leadDir, 'OUTREACH_DRAFT.md');
+  const pitchPath = path.join(leadDir, 'PITCH.md');
+  const outreach = safeReadJson(outreachPath, {});
+  const conceptPackage = outreach.conceptPackage || {};
+  const conceptBrief = safeReadText(briefPath) || '';
+  const previewDoc = safeReadText(previewPath) || '';
+  const approvalDoc = safeReadText(approvalPath) || '';
+  const decisionDoc = safeReadText(decisionPath) || '';
+  const outreachDraft = safeReadText(draftPath) || '';
+  const outreachPitch = safeReadText(pitchPath) || '';
+  const previewMeta = parsePreviewDoc(previewDoc, leadDir, id);
+  const approvalMeta = parseApprovalDoc(approvalDoc, leadDir);
+  const readiness = await getQueueReadiness();
+  const leadStats = fs.existsSync(leadDir) ? fs.statSync(leadDir) : null;
+
+  const checklistDefaults = {
+    previewLoads: previewMeta.previewFileExists || !!previewMeta.publicPreviewUrl || !!previewMeta.localPreviewPath,
+    mobileViewAcceptable: false,
+    screenshotsAttached: previewMeta.screenshots.length > 0,
+    trustClaimsVerified: false,
+    noUnverifiedCertifications: true,
+    draftReferencesConcept: !!(outreachDraft || outreachPitch),
+    publicUrlValid: !!(previewMeta.publicPreviewUrl || previewMeta.localPreviewPath),
+    qaPassed: approvalMeta.qaFindings.length === 0 || conceptPackage.conceptStatus === 'approved' || outreach.contentApproval === 'approved',
+    finalApprovalComplete: outreach.deploymentApproval === 'approved' || outreach.humanApproval === 'human_approved',
+  };
+
+  const checklist = {
+    ...checklistDefaults,
+    ...(outreach.conceptChecklist || {}),
+  };
+
+  const conceptStatus = conceptPackage.conceptStatus
+    || (outreach.outreachStage === 'concept_review' ? 'internal_review' : null)
+    || 'not_started';
+
+  const conceptApproved = conceptStatus === 'approved';
+  const previewValid = checklist.previewLoads && checklist.publicUrlValid;
+  const qaPassed = !!checklist.qaPassed;
+  const draftReady = !!checklist.draftReferencesConcept && !!outreachPitch;
+  const mailboxReady = !!readiness.mailboxReady;
+  const sendReady = conceptApproved && previewValid && qaPassed && draftReady && mailboxReady && !!checklist.finalApprovalComplete;
+  const blockers = [];
+  if (!conceptApproved) blockers.push('concept approval required');
+  if (!previewValid) blockers.push('preview validation incomplete');
+  if (!qaPassed) blockers.push('qa must pass');
+  if (!draftReady) blockers.push('outreach draft incomplete');
+  if (!mailboxReady) blockers.push('mailbox not ready');
+  if (!checklist.finalApprovalComplete) blockers.push('final approval required');
+
+  return {
+    contact: contact ? { id: contact.id, name: contact.name, email: contact.email } : null,
+    leadSlug,
+    leadDir,
+    concept: {
+      status: conceptStatus,
+      tier: conceptPackage.tier || 1,
+      type: conceptPackage.conceptType || 'homepage_mock',
+      publicPreviewUrl: previewMeta.publicPreviewUrl,
+      localPreviewPath: previewMeta.localPreviewPath,
+      previewVerifiedAt: previewMeta.previewVerifiedAt || conceptPackage.approvedAt || null,
+      screenshots: previewMeta.screenshots,
+      conceptBrief,
+      qaFindings: approvalMeta.qaFindings,
+      approvedAt: approvalMeta.approvedAt || conceptPackage.approvedAt || null,
+      approvedBy: approvalMeta.approvedBy || conceptPackage.approvedBy || null,
+      versions: previewMeta.versions,
+      createdAt: leadStats?.birthtime?.toISOString?.() || leadStats?.mtime?.toISOString?.() || null,
+    },
+    outreach: {
+      draft: outreachDraft,
+      pitch: outreachPitch,
+      stage: outreach.outreachStage || 'outreach_drafted',
+      contentApproval: outreach.contentApproval || null,
+      deploymentApproval: outreach.deploymentApproval || null,
+    },
+    checklist,
+    readiness: {
+      conceptApproved,
+      previewValid,
+      qaPassed,
+      draftReady,
+      mailboxReady,
+      sendReady,
+      blockers,
+    },
+    reviewNotes: parseDecisionNotes(decisionDoc),
+    status: outreach.lastActionAt || nowIso(),
+  };
+}
+
+app.get('/api/contacts/:id/canvas', asyncHandler(async (req, res) => {
+  const payload = await buildCanvasPayload(req.params.id);
+  res.json(payload);
+}));
+
+app.get('/api/contacts/:id/canvas/preview', handleRoute((req, res) => {
+  const { leadSlug, leadDir } = resolveCanvasContext(req.params.id);
+  const requestedFile = req.query.file ? path.basename(String(req.query.file)) : 'index.html';
+  const previewFile = path.join(leadDir, requestedFile);
+
+  if (fs.existsSync(previewFile) && fs.statSync(previewFile).isFile()) {
+    return res.sendFile(previewFile);
+  }
+
+  const conceptBrief = safeReadText(path.join(leadDir, 'CONCEPT_BRIEF.md')) || '';
+  const outreachPitch = safeReadText(path.join(leadDir, 'PITCH.md')) || '';
+  const outreach = safeReadJson(path.join(leadDir, 'OUTREACH.json'), {});
+  res.type('html').send(buildGeneratedPreviewHtml({
+    leadSlug,
+    conceptBrief,
+    outreachPitch,
+    conceptStatus: outreach?.conceptPackage?.conceptStatus || 'internal_review',
+  }));
+}));
+
+app.get('/api/contacts/:id/canvas/file', handleRoute((req, res) => {
+  const { leadDir } = resolveCanvasContext(req.params.id);
+  const requested = String(req.query.path || '').trim();
+  if (!requested) {
+    throw createHttpError(400, 'path is required');
+  }
+
+  const filePath = path.resolve(leadDir, requested);
+  if (!filePath.startsWith(path.resolve(leadDir))) {
+    throw createHttpError(400, 'Invalid path');
+  }
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw createHttpError(404, 'File not found');
+  }
+
+  res.sendFile(filePath);
+}));
+
+app.post('/api/contacts/:id/canvas/checklist', handleRoute((req, res) => {
+  const { leadDir } = resolveCanvasContext(req.params.id);
+  const { item, checked } = req.body || {};
+  const validItems = new Set([
+    'previewLoads',
+    'mobileViewAcceptable',
+    'screenshotsAttached',
+    'trustClaimsVerified',
+    'noUnverifiedCertifications',
+    'draftReferencesConcept',
+    'publicUrlValid',
+    'qaPassed',
+    'finalApprovalComplete',
+  ]);
+
+  if (!validItems.has(item)) {
+    throw createHttpError(400, 'Unknown checklist item');
+  }
+  if (typeof checked !== 'boolean') {
+    throw createHttpError(400, 'checked must be a boolean');
+  }
+
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  const outreach = safeReadJson(outreachPath, {});
+  outreach.conceptChecklist = {
+    ...(outreach.conceptChecklist || {}),
+    [item]: checked,
+  };
+  outreach.lastAction = `canvas_checklist_${item}`;
+  outreach.lastActionAt = nowIso();
+  writeJson(outreachPath, outreach);
+
+  res.json({ ok: true, checklist: outreach.conceptChecklist });
+}));
+
+app.post('/api/contacts/:id/canvas/approve-concept', handleRoute((req, res) => {
+  const { leadDir, leadSlug } = resolveCanvasContext(req.params.id);
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  const outreach = safeReadJson(outreachPath, {});
+  const timestamp = nowIso();
+  outreach.conceptPackage = {
+    ...(outreach.conceptPackage || {}),
+    conceptStatus: 'approved',
+    approvedBy: 'nero',
+    approvedAt: timestamp,
+  };
+  outreach.outreachStage = 'concept_approved';
+  outreach.lastAction = 'concept_approved';
+  outreach.lastActionAt = timestamp;
+  writeJson(outreachPath, outreach);
+  appendTimeline(leadDir, {
+    leadName: leadSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    timestamp,
+    action: 'concept_approved',
+    actor: 'nero',
+    from: 'canvas review',
+    notes: 'Concept approved from review canvas.',
+  });
+  res.json({ ok: true, conceptStatus: 'approved' });
+}));
+
+app.post('/api/contacts/:id/canvas/request-rework', handleRoute((req, res) => {
+  const { leadDir, leadSlug } = resolveCanvasContext(req.params.id);
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  const outreach = safeReadJson(outreachPath, {});
+  const timestamp = nowIso();
+  outreach.conceptPackage = {
+    ...(outreach.conceptPackage || {}),
+    conceptStatus: 'rework_needed',
+    approvedBy: null,
+    approvedAt: null,
+  };
+  outreach.outreachStage = 'concept_review';
+  outreach.lastAction = 'concept_rework_requested';
+  outreach.lastActionAt = timestamp;
+  writeJson(outreachPath, outreach);
+  appendTimeline(leadDir, {
+    leadName: leadSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    timestamp,
+    action: 'concept_rework_requested',
+    actor: 'nero',
+    from: 'canvas review',
+    notes: 'Concept sent back for rework from review canvas.',
+  });
+  res.json({ ok: true, conceptStatus: 'rework_needed' });
+}));
+
+app.post('/api/contacts/:id/canvas/approve-draft', handleRoute((req, res) => {
+  const { leadDir, leadSlug } = resolveCanvasContext(req.params.id);
+  const outreachPath = path.join(leadDir, 'OUTREACH.json');
+  const outreach = safeReadJson(outreachPath, {});
+  const timestamp = nowIso();
+  outreach.contentApproval = 'approved';
+  outreach.contentApprovedBy = 'nero';
+  outreach.contentApprovedAt = timestamp;
+  outreach.outreachStage = outreach.deploymentApproval === 'approved' ? 'ready_to_send' : 'content_approved';
+  outreach.lastAction = 'canvas_draft_approved';
+  outreach.lastActionAt = timestamp;
+  writeJson(outreachPath, outreach);
+  appendTimeline(leadDir, {
+    leadName: leadSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    timestamp,
+    action: 'draft_approved',
+    actor: 'nero',
+    from: 'canvas review',
+    notes: 'Outreach draft approved from review canvas.',
+  });
+  res.json({ ok: true, contentApproval: 'approved' });
+}));
+
+app.post('/api/contacts/:id/canvas/review-note', handleRoute((req, res) => {
+  const { leadDir } = resolveCanvasContext(req.params.id);
+  const { note } = req.body || {};
+  if (!note || !String(note).trim()) {
+    throw createHttpError(400, 'note is required');
+  }
+
+  const decisionPath = path.join(leadDir, 'CONCEPT_APPROVAL_DECISION.md');
+  const timestamp = nowIso();
+  const prefix = fs.existsSync(decisionPath) ? '\n' : '# Concept Approval Decision Notes\n\n';
+  fs.appendFileSync(decisionPath, `${prefix}- [${timestamp}] ${String(note).trim()}` , 'utf8');
+  res.json({ ok: true });
 }));
 
 app.use((req, res) => {

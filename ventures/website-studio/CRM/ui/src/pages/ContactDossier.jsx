@@ -46,8 +46,8 @@ export default function ContactDossier() {
   if (error) return <ErrorState error={error} navigate={navigate} />;
   if (!data) return null;
 
-  const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = data || {};
-  const websiteStudio = data?.[1] || {};
+  const [contactData = {}, websiteStudio = {}] = Array.isArray(data) ? data : [data, {}];
+  const { contact = {}, interactions = [], follow_ups: followUps = [], summary = {} } = contactData || {};
 
   const tabContent = {
     summary: (
@@ -117,6 +117,9 @@ export default function ContactDossier() {
           </button>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowLogModal(true)}>
             📞 Log Interaction
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/contacts/${id}/review`)}>
+            🧭 Review Canvas
           </button>
         </div>
       </div>

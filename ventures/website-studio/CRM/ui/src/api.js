@@ -246,3 +246,22 @@ export const apiHumanDeny = (leadId) =>
 
 // ── Pipeline ─────────────────────────────────────────────
 export const apiPipeline = () => request('/pipeline');
+
+// ── Concept Canvas ───────────────────────────────────────
+export const apiCanvas = (contactId) => request(`/contacts/${contactId}/canvas`);
+export const apiCanvasChecklist = (contactId, item, checked) =>
+  request(`/contacts/${contactId}/canvas/checklist`, {
+    method: 'POST',
+    body: JSON.stringify({ item, checked }),
+  });
+export const apiCanvasApproveConcept = (contactId) =>
+  request(`/contacts/${contactId}/canvas/approve-concept`, { method: 'POST' });
+export const apiCanvasRequestRework = (contactId) =>
+  request(`/contacts/${contactId}/canvas/request-rework`, { method: 'POST' });
+export const apiCanvasApproveDraft = (contactId) =>
+  request(`/contacts/${contactId}/canvas/approve-draft`, { method: 'POST' });
+export const apiCanvasReviewNote = (contactId, note) =>
+  request(`/contacts/${contactId}/canvas/review-note`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
