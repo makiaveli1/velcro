@@ -8,9 +8,10 @@ const path = require('path');
 const url = require('url');
 
 // ── Config ───────────────────────────────────────────────────────────────────
-
-const CONFIG_PATH = path.join(__dirname, '..', 'config', 'graph.json');
-const TOKEN_PATH  = path.join(__dirname, '..', 'config', 'graph_token.json');
+// Canonical path: ~/.openclaw/graph/ — shared between velcro CRM and signal-loom
+const GRAPH_DIR = path.join(process.env.HOME ?? '/home/likwid', '.openclaw', 'graph');
+const CONFIG_PATH = path.join(GRAPH_DIR, 'graph.json');
+const TOKEN_PATH  = path.join(GRAPH_DIR, 'graph_token.json');
 
 let deviceCodeSetupState = null;
 

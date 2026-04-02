@@ -9,13 +9,30 @@
     "mailbox"
   ],
   "warnings": [
-    "Pitch references St. Brendan's Crescent \u2014 confirm this is accurate and intentional.",
-    "Pitch is 3+ days old \u2014 verify Brian hasn't claimed a GBP listing since the March 2026 discovery data."
+    "Pitch references St. Brendan's Crescent — confirm this is accurate and intentional.",
+    "Pitch is 3+ days old — verify Brian hasn't claimed a GBP listing since the March 2026 discovery data."
   ],
-  "outreachStage": "send_blocked",
-  "lastAction": "human_approved",
-  "lastActionAt": "2026-03-31T02:56:23.423Z",
+  "outreachStage": "awaiting_send",
+  "lastAction": "canvas_checklist_previewLoads",
+  "lastActionAt": "2026-04-02T10:51:41.007Z",
   "sentAt": null,
   "humanApproval": "human_approved",
-  "pitchHashAtApproval": "1774925609009.9492-2304"
+  "pitchHashAtApproval": "1774925609009.9492-2304",
+  "sendBlockedReason": null,
+  "conceptPackage": {
+    "conceptStatus": "approved",
+    "conceptType": "homepage_mock",
+    "tier": 1,
+    "previewUrl": null,
+    "screenshots": [],
+    "buildPath": null,
+    "notes": "Full design language defined: DM Serif Display headings, Instrument Sans body, copper/charcoal palette. Business essence: local man with 11yr track record, mobile-first phone CTA.",
+    "qaFindings": null,
+    "approvedBy": "Nero",
+    "approvedAt": "2026-03-25T00:00:00Z",
+    "conceptBriefExists": true
+  },
+  "conceptChecklist": {
+    "previewLoads": false
+  }
 }

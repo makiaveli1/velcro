@@ -693,6 +693,16 @@ img {
   color: var(--signal-sky);
 }
 
+.badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--signal-amber);
+}
+
+.badge-rose {
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--signal-rose);
+}
+
 /* ---------- Score Bar ---------- */
 .score-bar {
   display: flex;

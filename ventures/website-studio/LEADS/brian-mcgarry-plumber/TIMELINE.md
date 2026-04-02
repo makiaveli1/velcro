@@ -85,3 +85,11 @@
 
 **Notes:** Human approved send. Next stage: send_blocked.
 
+## 2026-04-01T01:51:40.653Z
+**Action:** recheck
+**Actor:** Nero
+
+**From:** send_blocked
+
+**Notes:** Infrastructure restored — auto-advanced from send_blocked to awaiting_send. cleared=[]
+
