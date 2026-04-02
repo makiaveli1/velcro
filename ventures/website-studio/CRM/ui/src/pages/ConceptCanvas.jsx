@@ -14,29 +14,50 @@ import { useToast } from '../App';
 import { formatDate, formatFullDate, relativeTime } from '../utils';
 
 const NAV_ITEMS = [
-  { key: 'brief', label: 'Concept Brief', icon: '📄' },
-  { key: 'website', label: 'Website Preview', icon: '🌐' },
-  { key: 'outreach', label: 'Outreach Draft', icon: '📧' },
-  { key: 'qa', label: 'QA Notes', icon: '📋' },
-  { key: 'package', label: 'Package Summary', icon: '📦' },
+  { key: 'brief',    label: 'Concept Brief',     icon: '📄' },
+  { key: 'website',  label: 'Website Preview',   icon: '🌐' },
+  { key: 'outreach', label: 'Outreach Draft',     icon: '📧' },
+  { key: 'qa',       label: 'QA Notes',          icon: '📋' },
+  { key: 'package',  label: 'Package Summary',  icon: '📦' },
 ];
 
 const CHECKLIST_ITEMS = [
-  ['previewLoads', 'Preview loads'],
-  ['mobileViewAcceptable', 'Mobile view acceptable'],
-  ['screenshotsAttached', 'Screenshots attached'],
-  ['trustClaimsVerified', 'Trust claims verified'],
+  ['previewLoads',              'Preview loads'],
+  ['mobileViewAcceptable',       'Mobile view acceptable'],
+  ['screenshotsAttached',        'Screenshots attached'],
+  ['trustClaimsVerified',        'Trust claims verified'],
   ['noUnverifiedCertifications', 'No unverified certifications'],
-  ['draftReferencesConcept', 'Draft references concept'],
-  ['publicUrlValid', 'Public preview URL valid'],
-  ['qaPassed', 'QA passed'],
-  ['finalApprovalComplete', 'Final approval complete'],
+  ['draftReferencesConcept',     'Draft references concept'],
+  ['publicUrlValid',            'Public preview URL valid'],
+  ['qaPassed',                  'QA passed'],
+  ['finalApprovalComplete',      'Final approval complete'],
 ];
 
 const DEVICE_WIDTHS = {
   desktop: '100%',
-  tablet: 768,
-  mobile: 375,
+  tablet:  768,
+  mobile:  375,
+};
+
+const TONE_CONFIG = {
+  good: {
+    bg:    'rgba(16, 185, 129, 0.10)',
+    border:'rgba(16, 185, 129, 0.30)',
+    dot:   '#10b981',
+    text:  'var(--signal-emerald)',
+  },
+  warn: {
+    bg:    'rgba(232, 164, 69, 0.10)',
+    border:'rgba(232, 164, 69, 0.30)',
+    dot:   '#e8a445',
+    text:  'var(--accent)',
+  },
+  bad: {
+    bg:    'rgba(244, 63, 94, 0.10)',
+    border:'rgba(244, 63, 94, 0.30)',
+    dot:   '#f43f5e',
+    text:  'var(--signal-rose)',
+  },
 };
 
 function kebabCase(value = '') {
@@ -49,24 +70,18 @@ function kebabCase(value = '') {
 
 function statusMeta(status) {
   const map = {
-    approved: ['badge badge-emerald', 'Approved'],
-    not_started: ['badge badge-default', 'Not Started'],
-    internal_review: ['badge badge-amber', 'Internal Review'],
-    rework_needed: ['badge badge-rose', 'Rework Needed'],
-    building: ['badge badge-sky', 'Building'],
-    concept_review: ['badge badge-amber', 'Concept Review'],
-    concept_approved: ['badge badge-emerald', 'Concept Approved'],
-    outreach_drafted: ['badge badge-violet', 'Outreach Drafted'],
-    content_approved: ['badge badge-sky', 'Draft Approved'],
-    awaiting_send: ['badge badge-emerald', 'Awaiting Send'],
+    approved:          ['badge badge-emerald', 'Approved'],
+    not_started:       ['badge badge-default',  'Not Started'],
+    internal_review:   ['badge badge-amber',   'Internal Review'],
+    rework_needed:     ['badge badge-rose',     'Rework Needed'],
+    building:          ['badge badge-sky',      'Building'],
+    concept_review:    ['badge badge-amber',     'Concept Review'],
+    concept_approved:  ['badge badge-emerald',   'Concept Approved'],
+    outreach_drafted:  ['badge badge-violet',   'Outreach Drafted'],
+    content_approved:  ['badge badge-sky',      'Draft Approved'],
+    awaiting_send:     ['badge badge-emerald',   'Awaiting Send'],
   };
   return map[status] || ['badge badge-default', String(status || 'unknown').replace(/_/g, ' ')];
-}
-
-function boolBadge(value) {
-  return value
-    ? <span className="badge badge-emerald">Pass</span>
-    : <span className="badge badge-rose">Pending</span>;
 }
 
 function escapeHtml(value = '') {
@@ -100,13 +115,11 @@ function markdownToHtml(markdown = '') {
     html.push(`<p>${applyInlineMarkdown(paragraph.join(' '))}</p>`);
     paragraph = [];
   };
-
   const flushList = () => {
     if (!listItems.length) return;
     html.push(`<ul>${listItems.map(item => `<li>${applyInlineMarkdown(item)}</li>`).join('')}</ul>`);
     listItems = [];
   };
-
   const flushCode = () => {
     if (!codeLines.length) return;
     html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
@@ -115,113 +128,204 @@ function markdownToHtml(markdown = '') {
 
   for (const rawLine of lines) {
     const line = rawLine || '';
-
     if (line.trim().startsWith('```')) {
-      flushParagraph();
-      flushList();
-      if (inCode) {
-        flushCode();
-        inCode = false;
-      } else {
-        inCode = true;
-      }
+      flushParagraph(); flushList();
+      if (inCode) { flushCode(); inCode = false; } else { inCode = true; }
       continue;
     }
-
-    if (inCode) {
-      codeLines.push(line);
-      continue;
-    }
-
-    if (!line.trim()) {
-      flushParagraph();
-      flushList();
-      continue;
-    }
-
+    if (inCode) { codeLines.push(line); continue; }
+    if (!line.trim()) { flushParagraph(); flushList(); continue; }
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
-      flushParagraph();
-      flushList();
-      const level = headingMatch[1].length;
-      html.push(`<h${level}>${applyInlineMarkdown(headingMatch[2])}</h${level}>`);
-      continue;
-    }
-
+    if (headingMatch) { flushParagraph(); flushList(); html.push(`<h${headingMatch[1].length}>${applyInlineMarkdown(headingMatch[2])}</h${headingMatch[1].length}>`); continue; }
     const listMatch = line.match(/^[-*+]\s+(.+)$/);
-    if (listMatch) {
-      flushParagraph();
-      listItems.push(listMatch[1]);
-      continue;
-    }
-
-    if (/^---+$/.test(line.trim())) {
-      flushParagraph();
-      flushList();
-      html.push('<hr />');
-      continue;
-    }
-
+    if (listMatch) { flushParagraph(); listItems.push(listMatch[1]); continue; }
+    if (/^---+$/.test(line.trim())) { flushParagraph(); flushList(); html.push('<hr />'); continue; }
     paragraph.push(line.trim());
   }
-
-  flushParagraph();
-  flushList();
-  flushCode();
+  flushParagraph(); flushList(); flushCode();
   return html.join('');
 }
 
-function MarkdownPreview({ markdown, emptyTitle, emptyDescription }) {
-  if (!markdown?.trim()) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
-  }
-
+// ─── Upgraded PanelCard with tone-config ───────────────────────────────────────
+function PanelCard({ title, value, tone = 'default', sub }) {
+  const cfg = TONE_CONFIG[tone] || { bg: 'var(--bg-elevated)', border: 'var(--border-default)', dot: 'var(--text-tertiary)', text: 'var(--text-primary)' };
   return (
     <div
+      className="card"
       style={{
-        color: 'var(--text-primary)',
-        lineHeight: 1.75,
-        fontSize: 14,
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
+        borderRadius: 14,
+        transition: 'all 200ms ease',
+        cursor: 'default',
       }}
-      dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown) }}
-    />
-  );
-}
-
-function PanelCard({ title, value, tone = 'default', sub }) {
-  const toneClass = tone === 'good'
-    ? 'badge badge-emerald'
-    : tone === 'warn'
-    ? 'badge badge-amber'
-    : tone === 'bad'
-    ? 'badge badge-rose'
-    : 'badge badge-default';
-
-  return (
-    <div className="card" style={{ background: 'var(--bg-elevated)' }}>
-      <div className="card-body" style={{ padding: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-          <span className={toneClass}>{tone}</span>
+    >
+      <div className="card-body" style={{ padding: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{title}</div>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.dot, boxShadow: `0 0 6px ${cfg.dot}` }} />
         </div>
-        {sub && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>{sub}</div>}
+        <div style={{ fontSize: 22, fontWeight: 800, color: cfg.text, letterSpacing: '-0.01em', marginBottom: 4 }}>{value}</div>
+        {sub && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{sub}</div>}
       </div>
     </div>
   );
 }
 
+// ─── Gate Row ─────────────────────────────────────────────────────────────────
+function GateRow({ label, value, accent = false }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 12 }}>
+      <span style={{ color: accent ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: accent ? 600 : 500 }}>{label}</span>
+      {value
+        ? <span className="badge badge-emerald" style={{ fontSize: 11 }}>Yes</span>
+        : <span className="badge badge-rose"    style={{ fontSize: 11 }}>No</span>}
+    </div>
+  );
+}
+
+// ─── Device Frame (viewport chrome) ───────────────────────────────────────────
+function DeviceFrame({ previewSrc, previewWidth, leadName }) {
+  const [fading, setFading] = useState(false);
+  const [displaySrc, setDisplaySrc] = useState(previewSrc);
+
+  useEffect(() => {
+    if (previewSrc !== displaySrc) {
+      setFading(true);
+      const t = setTimeout(() => {
+        setDisplaySrc(previewSrc);
+        setFading(false);
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  }, [previewSrc]);
+
+  const hostname = (() => { try { return new URL(displaySrc).hostname; } catch { return 'preview'; } })();
+
+  return (
+    <div style={{ margin: '0 auto', width: previewWidth, maxWidth: '100%', transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      {/* Chrome bar */}
+      <div style={{
+        borderRadius: '12px 12px 0 0',
+        background: '#1e1e2e',
+        border: '1px solid #313244',
+        borderBottom: 'none',
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+      }}>
+        {/* Traffic lights */}
+        {['#ff5f57', '#febc2e', '#28c840'].map((color, i) => (
+          <div key={i} className="device-chrome-dot" style={{ width: 12, height: 12, borderRadius: '50%', background: color, opacity: 0.85 }} />
+        ))}
+        {/* URL pill */}
+        <div style={{
+          marginLeft: 10, flex: 1,
+          background: '#11111b', borderRadius: 6, padding: '4px 12px',
+          fontSize: 11, color: '#6c7086', fontFamily: 'monospace',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          letterSpacing: '0.02em',
+        }}>
+          {hostname}
+        </div>
+      </div>
+      {/* iframe */}
+      <iframe
+        title={`${leadName} concept preview`}
+        src={displaySrc}
+        sandbox="allow-scripts allow-same-origin"
+        data-automation-id="canvas-preview-iframe"
+        style={{
+          display: 'block', width: '100%', minHeight: 820,
+          border: '1px solid #313244', borderTop: 'none',
+          borderRadius: '0 0 12px 12px', background: '#fff',
+          opacity: fading ? 0 : 1,
+          transition: 'opacity 300ms ease',
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── Canvas Skeleton ──────────────────────────────────────────────────────────
+function CanvasSkeleton() {
+  return (
+    <div style={{ minHeight: 'calc(100vh - 140px)' }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+        {/* Left rail */}
+        <div className="card" style={{ width: 260, flexShrink: 0, background: 'var(--bg-surface)' }}>
+          <div className="card-body" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ padding: '14px 16px', background: 'var(--bg-elevated)', borderRadius: 12 }}>
+              <div className="skeleton skeleton-text" style={{ width: '60%', marginBottom: 10 }} />
+              <div className="skeleton skeleton-text" style={{ width: '80%' }} />
+            </div>
+            {[80, 75, 70, 65, 60].map((w, i) => (
+              <div key={i} className="skeleton skeleton-text" style={{ width: `${w}%`, height: 40, borderRadius: 8 }} />
+            ))}
+            <div style={{ marginTop: 'auto' }}>
+              {[65, 55, 60].map((w, i) => (
+                <div key={i} className="skeleton skeleton-text" style={{ width: `${w}%`, marginBottom: 10 }} />
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Center panel */}
+        <div className="card" style={{ flex: 1, minWidth: 0, background: 'var(--bg-surface)' }}>
+          <div className="card-header" style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-default)' }}>
+            <div className="skeleton skeleton-text lg" style={{ width: 280, marginBottom: 8 }} />
+            <div className="skeleton skeleton-text" style={{ width: 160 }} />
+          </div>
+          <div className="card-body" style={{ padding: 28 }}>
+            <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
+              <div style={{ background: '#1e1e2e', padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                {[12,12,12].map((s, i) => <div key={i} className="skeleton" style={{ width: s, height: s, borderRadius: '50%' }} />)}
+                <div className="skeleton skeleton-text" style={{ marginLeft: 10, height: 22, borderRadius: 6, flex: 1, maxWidth: '60%' }} />
+              </div>
+              <div className="skeleton-card" style={{ height: 700, background: '#fff' }} />
+            </div>
+          </div>
+        </div>
+        {/* Right rail */}
+        <div className="card" style={{ width: 300, flexShrink: 0, background: 'var(--bg-surface)' }}>
+          <div className="card-body" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="skeleton skeleton-text" style={{ width: '70%', marginBottom: 4 }} />
+            {[100,100,95,100,90].map((w, i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: 48, borderRadius: 10 }} />
+            ))}
+            <div style={{ marginTop: 8 }}>
+              <div className="skeleton skeleton-text" style={{ width: '65%', marginBottom: 12 }} />
+              {[100,100,100].map((w, i) => (
+                <div key={i} className="skeleton skeleton-card" style={{ height: 36, borderRadius: 8, marginBottom: 8 }} />
+              ))}
+            </div>
+            <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid var(--border-default)' }}>
+              <div className="skeleton skeleton-card" style={{ height: 40, borderRadius: 8, marginBottom: 8 }} />
+              <div className="skeleton skeleton-card" style={{ height: 40, borderRadius: 8 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Canvas ──────────────────────────────────────────────────────────────
 export default function ConceptCanvas() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [mode, setMode] = useState('website');
-  const [device, setDevice] = useState('desktop');
+
+  const [mode,           setMode]           = useState('website');
+  const [device,         setDevice]         = useState('desktop');
   const [selectedVersion, setSelectedVersion] = useState('');
-  const [reviewNote, setReviewNote] = useState('');
+  const [reviewNote,     setReviewNote]     = useState('');
   const [submittingNote, setSubmittingNote] = useState(false);
-  const [busyAction, setBusyAction] = useState('');
-  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
+  const [busyAction,    setBusyAction]     = useState('');
+  const [viewportWidth,  setViewportWidth]  = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1440
+  );
 
   const fetchCanvas = useCallback(() => apiCanvas(id), [id]);
   const { data, loading, error, execute, setData } = useApi(fetchCanvas, [id], { immediate: true });
@@ -234,59 +338,48 @@ export default function ConceptCanvas() {
 
   useEffect(() => {
     const versions = data?.concept?.versions || [];
-    if (versions.length && !selectedVersion) {
-      setSelectedVersion(versions[0].url);
-    }
+    if (versions.length && !selectedVersion) setSelectedVersion(versions[0].url);
   }, [data, selectedVersion]);
 
   const collapsedRail = viewportWidth < 1200;
   const leadName = data?.contact?.name || data?.leadSlug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Lead';
   const [conceptBadgeClass, conceptBadgeLabel] = statusMeta(data?.concept?.status);
-  const previewSrc = selectedVersion || data?.concept?.publicPreviewUrl || data?.concept?.localPreviewPath || '';
-  const previewWidth = DEVICE_WIDTHS[device];
-  const checklist = data?.checklist || {};
-  const readiness = data?.readiness || {};
-  const canMarkReady = readiness.conceptApproved && readiness.previewValid && readiness.qaPassed && readiness.draftReady && readiness.mailboxReady && !checklist.finalApprovalComplete;
+  const previewSrc    = selectedVersion || data?.concept?.publicPreviewUrl || data?.concept?.localPreviewPath || '';
+  const previewWidth  = DEVICE_WIDTHS[device];
+  const checklist     = data?.checklist || {};
+  const readiness     = data?.readiness || {};
+  const canMarkReady  = readiness.conceptApproved && readiness.previewValid && readiness.qaPassed
+    && readiness.draftReady && readiness.mailboxReady && !checklist.finalApprovalComplete;
 
   const packageCards = useMemo(() => ([
-    { title: 'Concept', value: readiness.conceptApproved ? 'Approved' : 'Pending', tone: readiness.conceptApproved ? 'good' : 'warn', sub: data?.concept?.type?.replace(/_/g, ' ') || 'Homepage mock' },
-    { title: 'Preview', value: readiness.previewValid ? 'Verified' : 'Needs Review', tone: readiness.previewValid ? 'good' : 'warn', sub: data?.concept?.publicPreviewUrl ? 'Public preview linked' : 'Local preview route active' },
-    { title: 'QA', value: readiness.qaPassed ? 'Passed' : 'Open Findings', tone: readiness.qaPassed ? 'good' : 'bad', sub: `${data?.concept?.qaFindings?.length || 0} findings recorded` },
-    { title: 'Draft', value: readiness.draftReady ? 'Ready' : 'Incomplete', tone: readiness.draftReady ? 'good' : 'warn', sub: data?.outreach?.stage?.replace(/_/g, ' ') || 'outreach drafted' },
-    { title: 'Mailbox', value: readiness.mailboxReady ? 'Ready' : 'Blocked', tone: readiness.mailboxReady ? 'good' : 'bad', sub: readiness.mailboxReady ? 'System gate passed' : 'Outbound system needs attention' },
-    { title: 'Send', value: readiness.sendReady ? 'READY' : 'Blocked', tone: readiness.sendReady ? 'good' : 'bad', sub: readiness.sendReady ? 'Final gates cleared' : `${readiness.blockers?.length || 0} blocker(s)` },
+    { title: 'Concept',  value: readiness.conceptApproved ? 'Approved'     : 'Pending',       tone: readiness.conceptApproved ? 'good' : 'warn', sub: data?.concept?.type?.replace(/_/g, ' ') || 'Homepage mock' },
+    { title: 'Preview',  value: readiness.previewValid    ? 'Verified'     : 'Needs Review',  tone: readiness.previewValid    ? 'good' : 'warn', sub: data?.concept?.publicPreviewUrl ? 'Public preview linked' : 'Local preview route active' },
+    { title: 'QA',      value: readiness.qaPassed         ? 'Passed'       : 'Open Findings', tone: readiness.qaPassed         ? 'good' : 'bad',  sub: `${data?.concept?.qaFindings?.length || 0} findings recorded` },
+    { title: 'Draft',   value: readiness.draftReady       ? 'Ready'        : 'Incomplete',    tone: readiness.draftReady       ? 'good' : 'warn', sub: data?.outreach?.stage?.replace(/_/g, ' ') || 'outreach drafted' },
+    { title: 'Mailbox', value: readiness.mailboxReady     ? 'Ready'        : 'Blocked',       tone: readiness.mailboxReady     ? 'good' : 'bad',  sub: readiness.mailboxReady ? 'System gate passed' : 'Outbound system needs attention' },
+    { title: 'Send',    value: readiness.sendReady        ? 'READY'        : 'Blocked',       tone: readiness.sendReady        ? 'good' : 'bad',  sub: readiness.sendReady ? 'Final gates cleared' : `${readiness.blockers?.length || 0} blocker(s)` },
   ]), [data, readiness]);
 
   const qaMarkdown = useMemo(() => {
     const findings = data?.concept?.qaFindings || [];
-    const notes = data?.reviewNotes || [];
-    const sections = [];
-    if (findings.length) {
-      sections.push('## QA Findings');
-      findings.forEach(item => sections.push(`- ${item}`));
-    }
-    if (notes.length) {
-      sections.push('', '## Review Notes');
-      notes.forEach(item => sections.push(`- ${item}`));
-    }
+    const notes    = data?.reviewNotes || [];
+    const sections  = [];
+    if (findings.length) { sections.push('## QA Findings'); findings.forEach(f => sections.push(`- ${f}`)); }
+    if (notes.length)     { sections.push('', '## Review Notes'); notes.forEach(n => sections.push(`- ${n}`)); }
     return sections.join('\n');
   }, [data]);
 
   const currentDocument = useMemo(() => {
     if (!data) return '';
-    if (mode === 'brief') return data.concept?.conceptBrief || '';
+    if (mode === 'brief')    return data.concept?.conceptBrief || '';
     if (mode === 'outreach') return data.outreach?.draft || data.outreach?.pitch || '';
-    if (mode === 'qa') return qaMarkdown;
+    if (mode === 'qa')       return qaMarkdown;
     return '';
   }, [data, mode, qaMarkdown]);
 
   const mutateChecklist = async (item, checked) => {
     const previous = data;
-    setData(current => current ? {
-      ...current,
-      checklist: { ...current.checklist, [item]: checked },
-    } : current);
-
+    setData(current => current ? { ...current, checklist: { ...current.checklist, [item]: checked } } : current);
     try {
       await apiCanvasChecklist(id, item, checked);
       await execute();
@@ -298,15 +391,9 @@ export default function ConceptCanvas() {
 
   const runAction = async (key, action) => {
     setBusyAction(key);
-    try {
-      await action();
-      await execute();
-      addToast({ type: 'success', message: key.replace(/-/g, ' ') });
-    } catch (err) {
-      addToast({ type: 'error', message: err.message || 'Action failed' });
-    } finally {
-      setBusyAction('');
-    }
+    try { await action(); await execute(); addToast({ type: 'success', message: key.replace(/-/g, ' ') }); }
+    catch (err)        { addToast({ type: 'error', message: err.message || 'Action failed' }); }
+    finally             { setBusyAction(''); }
   };
 
   const submitReviewNote = async () => {
@@ -317,417 +404,492 @@ export default function ConceptCanvas() {
       setReviewNote('');
       await execute();
       addToast({ type: 'success', message: 'Review note added' });
-    } catch (err) {
-      addToast({ type: 'error', message: err.message || 'Failed to add review note' });
-    } finally {
-      setSubmittingNote(false);
-    }
+    } catch (err) { addToast({ type: 'error', message: err.message || 'Failed to add review note' }); }
+    finally       { setSubmittingNote(false); }
   };
 
   if (loading) return <CanvasSkeleton />;
-  if (error) {
-    return (
-      <div className="card">
-        <div className="card-body" style={{ padding: 28 }}>
-          <EmptyState
-            title="Canvas failed to load"
-            description={error}
-            action
-            actionLabel="Retry"
-            onAction={execute}
-          />
-        </div>
-      </div>
-    );
-  }
+  if (error)   return (
+    <div className="card"><div className="card-body" style={{ padding: 28 }}>
+      <EmptyState title="Canvas failed to load" description={error} action actionLabel="Retry" onAction={execute} />
+    </div></div>
+  );
   if (!data) return null;
 
+  const modePanelKey = `${mode}-${device}`;
+
   return (
-    <div style={{ minHeight: 'calc(100vh - 140px)' }}>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
-        <aside
-          className="card"
-          data-automation-id="canvas-left-rail"
-          style={{
-            width: collapsedRail ? 84 : 260,
-            flexShrink: 0,
-            transition: 'width 200ms ease',
-            overflow: 'hidden',
-            background: 'var(--bg-surface)',
-          }}
-        >
-          <div className="card-body" style={{ padding: collapsedRail ? 14 : 18, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsedRail ? 'center' : 'space-between', gap: 10, marginBottom: 10 }}>
-                {!collapsedRail && (
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Concept Review</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginTop: 6 }}>{leadName}</div>
-                  </div>
-                )}
-                <span className={conceptBadgeClass} data-automation-id="canvas-status-badge">{collapsedRail ? '●' : conceptBadgeLabel}</span>
-              </div>
-              {!collapsedRail && data.contact?.email && (
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{data.contact.email}</div>
-              )}
-            </div>
+    <div className="canvas-page" style={{ minHeight: 'calc(100vh - 140px)' }}>
 
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {NAV_ITEMS.map(item => {
-                const active = mode === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setMode(item.key)}
-                    className={`sidebar-item ${active ? 'active' : ''}`}
-                    data-automation-id={`canvas-nav-${item.key === 'brief' ? 'brief' : item.key === 'website' ? 'website' : item.key}`}
-                    style={{ justifyContent: collapsedRail ? 'center' : 'flex-start', paddingInline: collapsedRail ? 10 : 14 }}
-                  >
-                    <span style={{ fontSize: 18 }}>{item.icon}</span>
-                    {!collapsedRail && <span>{item.label}</span>}
-                  </button>
-                );
-              })}
-            </nav>
+      {/* ── Left Rail ─────────────────────────────────────────────── */}
+      <aside
+        data-automation-id="canvas-left-rail"
+        style={{
+          width:         collapsedRail ? 84 : 252,
+          flexShrink:    0,
+          background:    'var(--bg-surface)',
+          borderRadius:  12,
+          overflow:      'hidden',
+          display:       'flex',
+          flexDirection: 'column',
+          transition:    'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow:     '0 2px 12px rgba(0,0,0,0.20)',
+        }}
+      >
+        <div style={{ padding: collapsedRail ? 14 : 16, display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
 
-            {!collapsedRail && data.concept?.screenshots?.length > 0 && (
-              <section>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Screenshots</div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {data.concept.screenshots.map((src, index) => (
-                    <a key={src} href={src} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-                      <img src={src} alt={`Screenshot ${index + 1}`} style={{ display: 'block', width: '100%', height: 96, objectFit: 'cover' }} />
-                    </a>
-                  ))}
-                </div>
-              </section>
-            )}
-
+          {/* Lead header block */}
+          <div style={{
+            padding:       '14px 16px',
+            background:    'var(--bg-elevated)',
+            borderRadius:  12,
+            border:        '1px solid var(--border-default)',
+          }}>
             {!collapsedRail && (
-              <section className="card" style={{ background: 'var(--bg-elevated)' }}>
-                <div className="card-body" style={{ padding: 14 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Concept Metadata</div>
-                  <MetaRow label="Tier" value={`Tier ${data.concept?.tier || 1}`} />
-                  <MetaRow label="Type" value={String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')} />
-                  <MetaRow label="Created" value={data.concept?.createdAt ? formatDate(data.concept.createdAt, true) : '—'} />
-                </div>
-              </section>
-            )}
-
-            {!collapsedRail && (data.concept?.versions?.length || 0) > 1 && (
-              <section>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Version</div>
-                <select
-                  className="form-input form-select"
-                  value={selectedVersion}
-                  onChange={event => setSelectedVersion(event.target.value)}
-                  style={{ width: '100%' }}
-                >
-                  {data.concept.versions.map(version => (
-                    <option key={version.id} value={version.url}>{version.label}</option>
-                  ))}
-                </select>
-              </section>
-            )}
-          </div>
-        </aside>
-
-        <main
-          className="card"
-          data-automation-id="canvas-center-panel"
-          style={{ flex: 1, minWidth: 0, background: 'var(--bg-surface)' }}
-        >
-          <div className="card-header" style={{ padding: '18px 22px', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 6 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/contacts')} style={{ paddingInline: 0 }}>Contacts</button>
-                <span style={{ margin: '0 6px' }}>›</span>
-                <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/contacts/${id}`)} style={{ paddingInline: 0 }}>{leadName}</button>
-                <span style={{ margin: '0 6px' }}>›</span>
-                <span>{NAV_ITEMS.find(item => item.key === mode)?.label || 'Review'}</span>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 6 }}>
+                Concept Review
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)' }}>{NAV_ITEMS.find(item => item.key === mode)?.label || 'Website Preview'}</div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
-              {mode === 'website' && (
-                <div style={{ display: 'inline-flex', padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
-                  {['desktop', 'tablet', 'mobile'].map(option => (
-                    <button
-                      key={option}
-                      type="button"
-                      className={`btn btn-sm ${device === option ? 'btn-primary' : 'btn-ghost'}`}
-                      onClick={() => setDevice(option)}
-                      data-automation-id={`canvas-device-${option}`}
-                      style={{ minWidth: 82, textTransform: 'capitalize' }}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  data-automation-id="canvas-open-tab"
-                  onClick={() => previewSrc && window.open(previewSrc, '_blank', 'noopener,noreferrer')}
-                  disabled={!previewSrc}
-                >
-                  Open in new tab
-                </button>
-                <span data-automation-id="canvas-last-verified" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Last verified: {data.concept?.previewVerifiedAt ? relativeTime(data.concept.previewVerifiedAt) : 'not yet'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card-body" style={{ padding: 22 }}>
-            {mode === 'website' && (
-              previewSrc ? (
-                <div style={{ transition: 'all 200ms ease' }}>
-                  <div style={{ margin: '0 auto', width: previewWidth, maxWidth: '100%', transition: 'width 200ms ease' }}>
-                    <iframe
-                      title={`${leadName} concept preview`}
-                      src={previewSrc}
-                      sandbox="allow-scripts allow-same-origin"
-                      data-automation-id="canvas-preview-iframe"
-                      style={{
-                        width: '100%',
-                        minHeight: 880,
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 16,
-                        background: '#fff',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)',
-                      }}
-                    />
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsedRail ? 'center' : 'space-between', gap: 10 }}>
+              {!collapsedRail && (
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{leadName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, textTransform: 'capitalize' }}>
+                    {String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')}
                   </div>
                 </div>
-              ) : (
-                <EmptyState title="Preview not available yet" description="There’s no saved public or local concept preview for this lead yet." />
-              )
+              )}
+              <span className={conceptBadgeClass} data-automation-id="canvas-status-badge">
+                {collapsedRail ? '●' : conceptBadgeLabel}
+              </span>
+            </div>
+            {!collapsedRail && data.contact?.email && (
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>{data.contact.email}</div>
             )}
+          </div>
 
-            {mode !== 'website' && mode !== 'package' && (
-              <div className="card" style={{ background: 'var(--bg-elevated)' }}>
-                <div className="card-body" style={{ padding: 24 }}>
-                  <MarkdownPreview
-                    markdown={currentDocument}
-                    emptyTitle={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
-                    emptyDescription={mode === 'brief'
-                      ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
-                      : mode === 'outreach'
-                      ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
+          {/* Nav */}
+          {!collapsedRail && (
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, padding: '0 4px' }}>
+              Assets
+            </div>
+          )}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {NAV_ITEMS.map(item => {
+              const active = mode === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setMode(item.key)}
+                  className={`sidebar-item ${active ? 'active' : ''}`}
+                  data-automation-id={`canvas-nav-${item.key}`}
+                  style={{ justifyContent: collapsedRail ? 'center' : 'flex-start', paddingInline: collapsedRail ? 10 : 14 }}
+                >
+                  <span style={{ fontSize: 17 }}>{item.icon}</span>
+                  {!collapsedRail && <span style={{ fontSize: 13 }}>{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Screenshots */}
+          {!collapsedRail && (data.concept?.screenshots?.length ?? 0) > 0 && (
+            <section>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, padding: '0 4px', marginBottom: 8 }}>Screenshots</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {data.concept.screenshots.map(src => (
+                  <a key={src} href={src} target="_blank" rel="noreferrer"
+                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                    <img src={src} alt="Screenshot" style={{ display: 'block', width: '100%', height: 88, objectFit: 'cover' }} />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Metadata */}
+          {!collapsedRail && (
+            <div style={{ marginTop: 'auto', padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 10, border: '1px solid var(--border-default)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 10 }}>Concept Info</div>
+              <MetaRow label="Tier"    value={`Tier ${data.concept?.tier || 1}`} />
+              <MetaRow label="Type"    value={String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')} />
+              <MetaRow label="Created" value={data.concept?.createdAt ? formatDate(data.concept.createdAt, true) : '—'} />
+            </div>
+          )}
+
+          {/* Version selector */}
+          {!collapsedRail && (data.concept?.versions?.length ?? 0) > 1 && (
+            <section>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, padding: '0 4px', marginBottom: 8 }}>Version</div>
+              <select
+                className="form-input form-select"
+                value={selectedVersion}
+                onChange={e => setSelectedVersion(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                {data.concept.versions.map(v => <option key={v.id} value={v.url}>{v.label}</option>)}
+              </select>
+            </section>
+          )}
+        </div>
+      </aside>
+
+      {/* ── Center Panel ──────────────────────────────────────────── */}
+      <main
+        data-automation-id="canvas-center-panel"
+        style={{
+          flex:            1,
+          minWidth:        0,
+          background:      'var(--bg-surface)',
+          borderRadius:    12,
+          boxShadow:       '0 2px 16px rgba(0,0,0,0.18)',
+          display:         'flex',
+          flexDirection:   'column',
+          overflow:        'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding:     '22px 28px',
+          borderBottom:'1px solid var(--border-default)',
+          display:     'flex',
+          alignItems:  'flex-start',
+          justifyContent: 'space-between',
+          gap:          16,
+          flexShrink:  0,
+        }}>
+          <div>
+            {/* Breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 13 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/contacts')}
+                style={{ paddingInline: 0, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 13 }}>Contacts</button>
+              <span style={{ opacity: 0.4 }}>›</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/contacts/${id}`)}
+                style={{ paddingInline: 0, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 13 }}>{leadName}</button>
+              <span style={{ opacity: 0.4 }}>›</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{NAV_ITEMS.find(i => i.key === mode)?.label}</span>
+            </div>
+            {/* Page title */}
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              {NAV_ITEMS.find(i => i.key === mode)?.label || 'Website Preview'}
+            </div>
+          </div>
+
+          {/* Controls cluster */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
+            {mode === 'website' && (
+              <div style={{ display: 'inline-flex', padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
+                {(['desktop', 'tablet', 'mobile']).map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`btn btn-sm ${device === opt ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setDevice(opt)}
+                    data-automation-id={`canvas-device-${opt}`}
+                    style={{ minWidth: 82, textTransform: 'capitalize' }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                data-automation-id="canvas-open-tab"
+                onClick={() => previewSrc && window.open(previewSrc, '_blank', 'noopener,noreferrer')}
+                disabled={!previewSrc}
+              >
+                Open in new tab
+              </button>
+              <span data-automation-id="canvas-last-verified" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                {data.concept?.previewVerifiedAt ? `Verified ${relativeTime(data.concept.previewVerifiedAt)}` : 'Not yet verified'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mode content */}
+        <div className="card-body" style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+
+          {/* Website Preview */}
+          {mode === 'website' && (
+            <div key={modePanelKey} data-mode-panel>
+              {previewSrc
+                ? <DeviceFrame previewSrc={previewSrc} previewWidth={previewWidth} leadName={leadName} />
+                : <EmptyState title="Preview not available yet" description="No saved public or local concept preview for this lead yet." />
+              }
+            </div>
+          )}
+
+          {/* Document modes */}
+          {mode !== 'website' && mode !== 'package' && (
+            <div key={modePanelKey} data-mode-panel className="card" style={{ background: 'var(--bg-elevated)' }}>
+              <div className="card-body" style={{ padding: 24 }}>
+                <div style={{ color: 'var(--text-primary)', lineHeight: 1.75, fontSize: 14 }}
+                  dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
+                {!currentDocument && (
+                  <EmptyState
+                    title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
+                    description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
+                      : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
                       : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
                   />
-                </div>
-              </div>
-            )}
-
-            {mode === 'package' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, transition: 'all 200ms ease' }}>
-                {packageCards.map(card => <PanelCard key={card.title} {...card} />)}
-              </div>
-            )}
-          </div>
-        </main>
-
-        <aside
-          className="card"
-          data-automation-id="canvas-right-rail"
-          style={{ width: 300, flexShrink: 0, background: 'var(--bg-surface)' }}
-        >
-          <div className="card-body" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <section>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Review Checklist</div>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {CHECKLIST_ITEMS.map(([key, label]) => {
-                  const checked = !!checklist[key];
-                  return (
-                    <label
-                      key={key}
-                      data-automation-id={`canvas-checklist-${kebabCase(key)}`}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '18px 1fr auto',
-                        gap: 10,
-                        alignItems: 'center',
-                        padding: '10px 12px',
-                        background: 'var(--bg-elevated)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: 10,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <input type="checkbox" checked={checked} onChange={event => mutateChecklist(key, event.target.checked)} />
-                      <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{label}</span>
-                      {boolBadge(checked)}
-                    </label>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="card" style={{ background: 'var(--bg-elevated)' }}>
-              <div className="card-body" style={{ padding: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Concept Status</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span className={conceptBadgeClass}>{conceptBadgeLabel}</span>
-                  {data.concept?.approvedAt && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{relativeTime(data.concept.approvedAt)}</span>}
-                </div>
-                {data.concept?.approvedBy && (
-                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
-                    Approved by <strong style={{ color: 'var(--text-primary)' }}>{data.concept.approvedBy}</strong> on {formatFullDate(data.concept.approvedAt)}
-                  </div>
                 )}
               </div>
-            </section>
+            </div>
+          )}
 
-            <section>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Blockers</div>
-                <span className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`} data-automation-id="canvas-send-readiness">
-                  {readiness.sendReady ? 'Ready' : 'Blocked'}
-                </span>
-              </div>
-              <div data-automation-id="canvas-blockers-list" style={{ display: 'grid', gap: 8 }}>
-                {readiness.blockers?.length ? readiness.blockers.map(blocker => (
-                  <div key={blocker} style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(244, 63, 94, 0.12)', border: '1px solid rgba(244, 63, 94, 0.2)', fontSize: 12, color: 'var(--signal-rose)' }}>
-                    {blocker}
-                  </div>
-                )) : (
-                  <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: 12, color: 'var(--signal-emerald)' }}>
-                    No blockers recorded.
-                  </div>
-                )}
-              </div>
-            </section>
+          {/* Package Summary */}
+          {mode === 'package' && (
+            <div key={modePanelKey} data-mode-panel style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              {packageCards.map(card => <PanelCard key={card.title} {...card} />)}
+            </div>
+          )}
 
-            <section className="card" style={{ background: 'var(--bg-elevated)' }}>
-              <div className="card-body" style={{ padding: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Send Readiness</div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <GateRow label="Concept approved" value={readiness.conceptApproved} />
-                  <GateRow label="Preview valid" value={readiness.previewValid} />
-                  <GateRow label="QA passed" value={readiness.qaPassed} />
-                  <GateRow label="Draft ready" value={readiness.draftReady} />
-                  <GateRow label="Mailbox ready" value={readiness.mailboxReady} />
+        </div>
+      </main>
+
+      {/* ── Right Rail ─────────────────────────────────────────────── */}
+      <aside
+        data-automation-id="canvas-right-rail"
+        style={{
+          width:      288,
+          flexShrink: 0,
+          background:'var(--bg-surface)',
+          borderRadius: 12,
+          display:    'flex',
+          flexDirection: 'column',
+          boxShadow:  '0 2px 12px rgba(0,0,0,0.20)',
+          overflow:  'hidden',
+        }}
+      >
+        <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, overflowY: 'auto' }}>
+
+          {/* ── Section 1: Review Gates (checklist + send readiness) ── */}
+          <section>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>
+              Review Gates
+            </div>
+
+            {/* Checklist */}
+            <div style={{ display: 'grid', gap: 7, marginBottom: 14 }}>
+              {CHECKLIST_ITEMS.map(([key, label]) => {
+                const checked = !!checklist[key];
+                return (
+                  <label
+                    key={key}
+                    data-automation-id={`canvas-checklist-${kebabCase(key)}`}
+                    style={{
+                      display:          'grid',
+                      gridTemplateColumns: '20px 1fr',
+                      gap:              10,
+                      alignItems:       'center',
+                      padding:          '8px 12px',
+                      background:       checked ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-elevated)',
+                      border:           `1px solid ${checked ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-default)'}`,
+                      borderRadius:     8,
+                      cursor:           'pointer',
+                      transition:       'background 200ms ease, border-color 200ms ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={e => mutateChecklist(key, e.target.checked)}
+                      style={{ accentColor: 'var(--signal-emerald)' }}
+                    />
+                    <span style={{
+                      fontSize:   13,
+                      color:      checked ? 'var(--signal-emerald)' : 'var(--text-primary)',
+                      fontWeight: checked ? 600 : 400,
+                      transition: 'color 200ms ease',
+                    }}>
+                      {label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Send Readiness */}
+            <div style={{
+              padding:       '12px 14px',
+              background:   'var(--bg-elevated)',
+              borderRadius:  10,
+              border:       '1px solid var(--border-default)',
+            }}>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <GateRow label="Concept approved" value={readiness.conceptApproved} />
+                <GateRow label="Preview valid"    value={readiness.previewValid} />
+                <GateRow label="QA passed"        value={readiness.qaPassed} />
+                <GateRow label="Draft ready"     value={readiness.draftReady} />
+                <GateRow label="Mailbox ready"   value={readiness.mailboxReady} />
+                <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 8, marginTop: 2 }}>
                   <GateRow label="Send ready" value={readiness.sendReady} accent />
                 </div>
               </div>
-            </section>
+            </div>
+          </section>
 
-            <section>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Review Notes</div>
-              <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
-                {(data.reviewNotes || []).slice(0, 5).map((note, index) => (
-                  <div key={`${note}-${index}`} style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {note}
-                  </div>
-                ))}
-                {!data.reviewNotes?.length && (
-                  <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px dashed var(--border-default)', fontSize: 12, color: 'var(--text-tertiary)' }}>
-                    No review notes yet.
-                  </div>
+          {/* ── Section 2: Concept Status ──────────────────────────── */}
+          <section className="card" style={{ background: 'var(--bg-elevated)' }}>
+            <div className="card-body" style={{ padding: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Concept Status</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <span className={conceptBadgeClass}>{conceptBadgeLabel}</span>
+                {data.concept?.approvedAt && (
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{relativeTime(data.concept.approvedAt)}</span>
                 )}
               </div>
-              <textarea
-                className="form-input"
-                rows={3}
-                value={reviewNote}
-                onChange={event => setReviewNote(event.target.value)}
-                placeholder="Add a review note…"
-                style={{ width: '100%', resize: 'vertical' }}
-              />
-              <button className="btn btn-secondary btn-sm" onClick={submitReviewNote} disabled={!reviewNote.trim() || submittingNote} style={{ marginTop: 8 }}>
-                {submittingNote ? 'Adding…' : 'Add note'}
-              </button>
-            </section>
+              {data.concept?.approvedBy && (
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  Approved by <strong style={{ color: 'var(--text-primary)' }}>{data.concept.approvedBy}</strong> on {formatFullDate(data.concept.approvedAt)}
+                </div>
+              )}
+            </div>
+          </section>
 
-            <section style={{ display: 'grid', gap: 10 }}>
-              <button
-                className="btn btn-success"
-                data-automation-id="canvas-btn-approve-concept"
-                disabled={data.concept?.status === 'approved' || busyAction === 'Approve Concept'}
-                onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}
+          {/* ── Section 3: Blockers ─────────────────────────────────── */}
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Blockers</div>
+              <span
+                className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`}
+                data-automation-id="canvas-send-readiness"
               >
-                {busyAction === 'Approve Concept' ? 'Approving…' : 'Approve Concept'}
-              </button>
-              <button
-                className="btn btn-secondary"
-                data-automation-id="canvas-btn-request-rework"
-                onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}
-                disabled={busyAction === 'Request Rework'}
-                style={{ borderColor: 'rgba(232, 164, 69, 0.3)', color: 'var(--accent)' }}
-              >
-                {busyAction === 'Request Rework' ? 'Sending…' : 'Request Rework'}
-              </button>
-              <button
-                className="btn btn-secondary"
-                data-automation-id="canvas-btn-approve-draft"
-                onClick={() => runAction('Approve Draft', () => apiCanvasApproveDraft(id))}
-                disabled={(!data.outreach?.draft && !data.outreach?.pitch) || data.outreach?.contentApproval === 'approved' || busyAction === 'Approve Draft'}
-                style={{ borderColor: 'rgba(56, 189, 248, 0.25)', color: 'var(--signal-sky)' }}
-              >
-                {busyAction === 'Approve Draft' ? 'Approving…' : 'Approve Draft'}
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}
-                disabled={!canMarkReady || busyAction === 'Mark Ready to Send'}
-              >
-                {busyAction === 'Mark Ready to Send' ? 'Saving…' : 'Mark Ready to Send'}
-              </button>
-            </section>
-          </div>
-        </aside>
-      </div>
+                {readiness.sendReady ? 'Ready' : 'Blocked'}
+              </span>
+            </div>
+            <div data-automation-id="canvas-blockers-list" style={{ display: 'grid', gap: 8 }}>
+              {readiness.blockers?.length
+                ? readiness.blockers.map(b => (
+                    <div key={b} style={{
+                      padding: '9px 12px', borderRadius: 10,
+                      background: 'rgba(244, 63, 94, 0.12)',
+                      border:    '1px solid rgba(244, 63, 94, 0.20)',
+                      fontSize:   12, color: 'var(--signal-rose)',
+                    }}>
+                      {b}
+                    </div>
+                  ))
+                : (
+                  <div style={{
+                    padding: '9px 12px', borderRadius: 10,
+                    background: 'rgba(16, 185, 129, 0.10)',
+                    border:    '1px solid rgba(16, 185, 129, 0.20)',
+                    fontSize:   12, color: 'var(--signal-emerald)',
+                  }}>
+                    No blockers — ready to proceed.
+                  </div>
+                )
+              }
+            </div>
+          </section>
+
+          {/* ── Section 4: Review Notes ─────────────────────────────── */}
+          <section>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Review Notes</div>
+            <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+              {(data.reviewNotes || []).slice(0, 5).map((note, i) => (
+                <div key={i} style={{
+                  padding: '9px 12px', borderRadius: 10,
+                  background: 'var(--bg-elevated)',
+                  border:    '1px solid var(--border-default)',
+                  fontSize:  12, color: 'var(--text-secondary)',
+                }}>
+                  {note}
+                </div>
+              ))}
+              {!data.reviewNotes?.length && (
+                <div style={{
+                  padding: '9px 12px', borderRadius: 10,
+                  background: 'var(--bg-elevated)',
+                  border:    '1px dashed var(--border-default)',
+                  fontSize:  12, color: 'var(--text-tertiary)',
+                }}>
+                  No review notes yet.
+                </div>
+              )}
+            </div>
+            <textarea
+              className="form-input"
+              rows={3}
+              value={reviewNote}
+              onChange={e => setReviewNote(e.target.value)}
+              placeholder="Add a review note…"
+              style={{ width: '100%', resize: 'vertical' }}
+            />
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={submitReviewNote}
+              disabled={!reviewNote.trim() || submittingNote}
+              style={{ marginTop: 8, width: '100%' }}
+            >
+              {submittingNote ? 'Adding…' : 'Add note'}
+            </button>
+          </section>
+
+        </div>
+
+        {/* ── Section 5: Sticky Action Buttons ─────────────────────── */}
+        <div style={{
+          padding:        '14px 18px',
+          borderTop:      '1px solid var(--border-default)',
+          display:        'grid',
+          gap:            9,
+          position:       'sticky',
+          bottom:         0,
+          background:     'var(--bg-surface)',
+          flexShrink:     0,
+        }}>
+          <button
+            className="btn btn-success"
+            data-automation-id="canvas-btn-approve-concept"
+            disabled={data.concept?.status === 'approved' || busyAction === 'Approve Concept'}
+            onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}
+          >
+            {busyAction === 'Approve Concept' ? 'Approving…' : '✓ Approve Concept'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            data-automation-id="canvas-btn-request-rework"
+            disabled={busyAction === 'Request Rework'}
+            onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}
+            style={{ borderColor: 'rgba(232, 164, 69, 0.3)', color: 'var(--accent)' }}
+          >
+            {busyAction === 'Request Rework' ? 'Sending…' : '↺ Request Rework'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            data-automation-id="canvas-btn-approve-draft"
+            disabled={(!data.outreach?.draft && !data.outreach?.pitch) || data.outreach?.contentApproval === 'approved' || busyAction === 'Approve Draft'}
+            onClick={() => runAction('Approve Draft', () => apiCanvasApproveDraft(id))}
+            style={{ borderColor: 'rgba(56, 189, 248, 0.25)', color: 'var(--signal-sky)' }}
+          >
+            {busyAction === 'Approve Draft' ? 'Approving…' : '✓ Approve Draft'}
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={!canMarkReady || busyAction === 'Mark Ready to Send'}
+            onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}
+          >
+            {busyAction === 'Mark Ready to Send' ? 'Saving…' : 'Mark Ready to Send'}
+          </button>
+        </div>
+      </aside>
+
     </div>
   );
 }
 
+// ─── Meta Row helper ─────────────────────────────────────────────────────────
 function MetaRow({ label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8, fontSize: 12 }}>
       <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
       <span style={{ color: 'var(--text-primary)', textTransform: 'capitalize', textAlign: 'right' }}>{value}</span>
-    </div>
-  );
-}
-
-function GateRow({ label, value, accent = false }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 12 }}>
-      <span style={{ color: accent ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: accent ? 600 : 500 }}>{label}</span>
-      {value ? <span className="badge badge-emerald">Yes</span> : <span className="badge badge-rose">No</span>}
-    </div>
-  );
-}
-
-function CanvasSkeleton() {
-  return (
-    <div style={{ display: 'flex', gap: 16 }}>
-      <div className="card" style={{ width: 260 }}>
-        <div className="card-body" style={{ padding: 18 }}>
-          <div className="skeleton skeleton-text lg" style={{ width: '65%', marginBottom: 16 }} />
-          <div className="skeleton skeleton-text" style={{ width: '85%', marginBottom: 10 }} />
-          <div className="skeleton skeleton-text" style={{ width: '80%', marginBottom: 10 }} />
-          <div className="skeleton skeleton-text" style={{ width: '75%', marginBottom: 10 }} />
-        </div>
-      </div>
-      <div className="card" style={{ flex: 1 }}>
-        <div className="card-body" style={{ padding: 22 }}>
-          <div className="skeleton skeleton-text lg" style={{ width: 240, marginBottom: 20 }} />
-          <div className="skeleton-card" style={{ height: 760 }} />
-        </div>
-      </div>
-      <div className="card" style={{ width: 300 }}>
-        <div className="card-body" style={{ padding: 18 }}>
-          <div className="skeleton skeleton-text" style={{ width: 160, marginBottom: 16 }} />
-          <div className="skeleton-card" style={{ height: 480 }} />
-        </div>
-      </div>
     </div>
   );
 }
