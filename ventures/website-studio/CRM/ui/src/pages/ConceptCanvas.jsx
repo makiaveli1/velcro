@@ -635,7 +635,7 @@ export default function ConceptCanvas() {
               letterSpacing: '-0.02em',
               lineHeight: 1.2,
             }}>
-              {NAV_ITEMS.find(i => i.key === mode)?.label || 'Website Preview'}
+              {mode === 'website' ? 'Website Preview' : mode === 'package' ? 'Package Summary' : ''}
             </div>
           </div>
 
@@ -715,9 +715,15 @@ export default function ConceptCanvas() {
           {mode !== 'website' && mode !== 'package' && (
             <div key={modePanelKey} data-mode-panel className="card" style={{ background: 'var(--bg-elevated)' }}>
               <div className="card-body" style={{ padding: 24 }}>
-                <div style={{ color: 'var(--text-primary)', lineHeight: 1.75, fontSize: 14 }}
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
-                {!currentDocument && (
+                {/* Sticky document sub-header */}
+                <div className="panel-doc-header">
+                  {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
+                </div>
+                {/* Constrained reading width content */}
+                {currentDocument ? (
+                  <div className="doc-content"
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
+                ) : (
                   <EmptyState
                     title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
                     description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
@@ -731,7 +737,8 @@ export default function ConceptCanvas() {
 
           {/* Package Summary */}
           {mode === 'package' && (
-            <div key={modePanelKey} data-mode-panel style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+            <div key={modePanelKey} data-mode-panel className="package-grid">
+              <div className="package-section-label">Readiness Summary</div>
               {packageCards.map(card => <PanelCard key={card.title} {...card} />)}
             </div>
           )}
