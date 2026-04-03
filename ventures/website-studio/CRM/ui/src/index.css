@@ -175,7 +175,10 @@ img {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
 .app-topbar {
@@ -190,12 +193,15 @@ img {
   flex: 1;
   padding: var(--space-6);
   max-width: 1200px;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
-
-/* Canvas route: full-bleed workspace, no max-width constraint */
 .app-content.canvas-route {
   max-width: none;
-  padding: 0;
+  padding: 20px;
+  overflow: hidden;
 }
 
 /* ---------- Sidebar ---------- */
@@ -2107,11 +2113,10 @@ iframe[data-automation-id="canvas-preview-iframe"] {
 /* Nav item — smooth hover nudge */
 .sidebar-item:hover:not(.active) {
   background: var(--bg-elevated);
-  transform: translateX(2px);
-  transition: transform 150ms ease, background 150ms ease;
+  transition: background 200ms ease;
 }
 .sidebar-item {
-  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
 }
 
 /* Button press feedback */
@@ -2120,12 +2125,12 @@ iframe[data-automation-id="canvas-preview-iframe"] {
   transition: transform 100ms ease;
 }
 .btn {
-  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
 }
 
 /* Card hover lift */
 .card {
-  transition: box-shadow 200ms ease;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
 }
 
 /* Canvas page entrance */
@@ -2133,15 +2138,28 @@ iframe[data-automation-id="canvas-preview-iframe"] {
 .canvas-page {
   animation: canvasEntrance 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   flex: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: 252px 1fr 288px;
+  gap: 16px;
   align-items: stretch;
   background: var(--bg-elevated);
   border-radius: 12px;
   overflow: hidden;
   box-sizing: border-box;
   min-height: 0;
-  /* Inset from the shell — feels grounded, not floating */
+  height: 100dvh;
+  max-height: 100dvh;
   margin: 0;
+  transition: grid-template-columns 280ms cubic-bezier(0.4, 0, 0.2, 1), gap 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.canvas-page.collapsed {
+  grid-template-columns: 84px 1fr 288px;
+}
+
+.canvas-page.immersive {
+  grid-template-columns: 1fr;
+  gap: 0;
 }
 
 /* App-content full-bleed for canvas route */
@@ -2162,6 +2180,24 @@ iframe[data-automation-id="canvas-preview-iframe"] {
 .canvas-page > [data-automation-id="canvas-center-panel"] {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+}
+
+/* Canvas center panel body: 16px padding, bounded scrollable */
+.canvas-page > [data-automation-id="canvas-center-panel"] .card-body {
+  padding: 16px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+/* Right rail: left-border accent when blocked */
+.canvas-page > [data-automation-id="canvas-right-rail"] {
+  border-left: 3px solid transparent;
+  transition: border-color 200ms ease;
+}
+.canvas-page > [data-automation-id="canvas-right-rail"].has-blockers {
+  border-left-color: var(--signal-rose);
 }
 
 /* Left rail: slightly lighter surface to distinguish it */
@@ -2245,20 +2281,20 @@ iframe[data-automation-id="canvas-preview-iframe"] {
    ============================================================ */
 
 .utility-drawer {
-  position: absolute;
+  position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   width: 320px;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-default);
-  z-index: 30;
+  z-index: 200;
   overflow-y: auto;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.2);
-  padding: 16px;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   animation: drawerSlideIn 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -2271,6 +2307,22 @@ iframe[data-automation-id="canvas-preview-iframe"] {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+@keyframes immersivePillReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ============================================================

@@ -162,11 +162,11 @@ function PanelCard({ title, value, tone = 'default', sub }) {
     >
       <div className="card-body" style={{ padding: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{title}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{title}</div>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.dot, boxShadow: `0 0 6px ${cfg.dot}` }} />
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: cfg.text, letterSpacing: '-0.01em', marginBottom: 4 }}>{value}</div>
-        {sub && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{sub}</div>}
       </div>
     </div>
   );
@@ -428,15 +428,25 @@ export default function ConceptCanvas() {
   const modePanelKey = `${mode}-${device}`;
 
   return (
-    <div className={`canvas-page${immersive ? ' immersive' : ''}`} style={{ minHeight: 'calc(100vh - 140px)' }}>
+    <div
+      className={`canvas-page${collapsedRail ? ' collapsed' : ''}${immersive ? ' immersive' : ''}`}
+      style={{ minHeight: 'calc(100vh - 140px)' }}
+    >
 
       {/* ── Immersive floating bar ───────────────────────────────── */}
       {immersive && (
         <div className="immersive-bar" data-automation-id="immersive-bar">
-          <span style={{ fontSize: 14, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+          <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
             {leadName}
           </span>
-          <span className="badge badge-amber" style={{ fontSize: 11 }}>Focus Mode</span>
+          <span style={{
+            fontSize: 11, fontWeight: 600, padding: '3px 10px',
+            background: 'rgba(232, 164, 69, 0.2)',
+            border: '1px solid rgba(232, 164, 69, 0.4)',
+            borderRadius: 999, color: 'var(--accent)', letterSpacing: '0.05em',
+          }}>
+            ● Focus Mode
+          </span>
           {mode === 'website' && (
             <div style={{ display: 'inline-flex', marginLeft: 8, padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
               {(['desktop', 'tablet', 'mobile']).map(opt => (
@@ -464,18 +474,51 @@ export default function ConceptCanvas() {
         </div>
       )}
 
+      {/* ── Immersive bottom status strip ────────────────────────── */}
+      {immersive && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          background: 'rgba(30, 30, 46, 0.92)',
+          backdropFilter: 'blur(12px)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          padding: '10px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          animation: 'immersivePillReveal 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
+        }}>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            <span className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`}>
+              {readiness.blockers?.length ? `${readiness.blockers.length} blocker(s)` : 'No blockers'}
+            </span>
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-success btn-sm" onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}>✓ Approve</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}>↺ Rework</button>
+            <button className="btn btn-primary btn-sm" disabled={!canMarkReady} onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}>Mark Ready</button>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>·</div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setDrawerOpen(true)} style={{ color: '#a6adc8' }}>
+            ☰ More
+          </button>
+        </div>
+      )}
+
       {/* ── Left Rail ─────────────────────────────────────────────── */}
       <aside
         data-automation-id="canvas-left-rail"
         style={{
-          width:         collapsedRail ? 84 : 252,
           flexShrink:    0,
           background:    'var(--bg-surface)',
           borderRadius:  12,
           overflow:      'hidden',
           display:       'flex',
           flexDirection: 'column',
-          transition:    'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow:     '0 2px 12px rgba(0,0,0,0.20)',
         }}
       >
@@ -536,45 +579,7 @@ export default function ConceptCanvas() {
             })}
           </nav>
 
-          {/* Screenshots */}
-          {!collapsedRail && (data.concept?.screenshots?.length ?? 0) > 0 && (
-            <section>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, padding: '0 4px', marginBottom: 8 }}>Screenshots</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {data.concept.screenshots.map(src => (
-                  <a key={src} href={src} target="_blank" rel="noreferrer"
-                    style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
-                    <img src={src} alt="Screenshot" style={{ display: 'block', width: '100%', height: 88, objectFit: 'cover' }} />
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Metadata */}
-          {!collapsedRail && (
-            <div style={{ marginTop: 'auto', padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 10, border: '1px solid var(--border-default)' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, marginBottom: 10 }}>Concept Info</div>
-              <MetaRow label="Tier"    value={`Tier ${data.concept?.tier || 1}`} />
-              <MetaRow label="Type"    value={String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')} />
-              <MetaRow label="Created" value={data.concept?.createdAt ? formatDate(data.concept.createdAt, true) : '—'} />
-            </div>
-          )}
-
-          {/* Version selector */}
-          {!collapsedRail && (data.concept?.versions?.length ?? 0) > 1 && (
-            <section>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, padding: '0 4px', marginBottom: 8 }}>Version</div>
-              <select
-                className="form-input form-select"
-                value={selectedVersion}
-                onChange={e => setSelectedVersion(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                {data.concept.versions.map(v => <option key={v.id} value={v.url}>{v.label}</option>)}
-              </select>
-            </section>
-          )}
+          {/* Screenshots, metadata, version — moved to utility drawer */}
         </div>
       </aside>
 
@@ -592,59 +597,53 @@ export default function ConceptCanvas() {
           overflow:        'hidden',
         }}
       >
-        {/* Header */}
+        {/* Header — compact single row, ~52px */}
         <div style={{
-          padding:     '22px 28px',
+          padding:     '14px 20px',
           borderBottom:'1px solid var(--border-default)',
           display:     'flex',
-          alignItems:  'flex-start',
+          alignItems:  'center',
           justifyContent: 'space-between',
           gap:          16,
           flexShrink:  0,
         }}>
+          {/* Left: breadcrumb trail + page title */}
           <div>
-            {/* Breadcrumb */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 13 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/contacts')}
-                style={{ paddingInline: 0, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 13 }}>Contacts</button>
+            <div style={{
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 2,
+            }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => navigate('/contacts')}
+                style={{ paddingInline: 0, fontSize: 12, color: 'var(--text-secondary)' }}
+              >
+                Contacts
+              </button>
               <span style={{ opacity: 0.4 }}>›</span>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/contacts/${id}`)}
-                style={{ paddingInline: 0, color: 'var(--text-secondary)', fontWeight: 500, fontSize: 13 }}>{leadName}</button>
-              <span style={{ opacity: 0.4 }}>›</span>
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{NAV_ITEMS.find(i => i.key === mode)?.label}</span>
+              <span>{leadName}</span>
             </div>
-            {/* Page title */}
-            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+            <div style={{
+              fontSize: 18,
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}>
               {NAV_ITEMS.find(i => i.key === mode)?.label || 'Website Preview'}
             </div>
           </div>
 
-          {/* Controls cluster */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
-            {/* Header action buttons: immersive + hamburger */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                data-automation-id="canvas-btn-immersive"
-                onClick={() => setImmersive(v => !v)}
-                title="Focus mode"
-              >
-                {immersive ? 'Exit Focus' : 'Focus Mode'}
-              </button>
-              <button
-                className="hamburger-btn"
-                data-automation-id="canvas-btn-drawer"
-                onClick={() => setDrawerOpen(v => !v)}
-                title="Canvas utilities"
-                aria-label="Open canvas utilities"
-              >
-                <span className="hamburger-line" />
-                <span className="hamburger-line" />
-                <span className="hamburger-line" />
-              </button>
-            </div>
+          {/* Right: icon controls cluster */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Device switcher — only in website mode, hidden in immersive */}
             {mode === 'website' && !immersive && (
-              <div style={{ display: 'inline-flex', padding: 4, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
+              <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 999 }}>
                 {(['desktop', 'tablet', 'mobile']).map(opt => (
                   <button
                     key={opt}
@@ -652,31 +651,55 @@ export default function ConceptCanvas() {
                     className={`btn btn-sm ${device === opt ? 'btn-primary' : 'btn-ghost'}`}
                     onClick={() => setDevice(opt)}
                     data-automation-id={`canvas-device-${opt}`}
-                    style={{ minWidth: 82, textTransform: 'capitalize' }}
+                    style={{ minWidth: 68, textTransform: 'capitalize', fontSize: 12 }}
                   >
                     {opt}
                   </button>
                 ))}
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+
+            {/* Open in new tab */}
+            <button
+              className="btn btn-secondary btn-sm"
+              data-automation-id="canvas-open-tab"
+              onClick={() => previewSrc && window.open(previewSrc, '_blank', 'noopener,noreferrer')}
+              disabled={!previewSrc}
+              title="Open preview in new tab"
+            >
+              ↗
+            </button>
+
+            {/* Focus mode toggle */}
+            {!immersive ? (
               <button
+                type="button"
                 className="btn btn-secondary btn-sm"
-                data-automation-id="canvas-open-tab"
-                onClick={() => previewSrc && window.open(previewSrc, '_blank', 'noopener,noreferrer')}
-                disabled={!previewSrc}
+                onClick={() => setImmersive(true)}
+                title="Focus mode — hide sidebars"
+                data-automation-id="canvas-enter-immersive"
               >
-                Open in new tab
+                Focus
               </button>
-              <span data-automation-id="canvas-last-verified" style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                {data.concept?.previewVerifiedAt ? `Verified ${relativeTime(data.concept.previewVerifiedAt)}` : 'Not yet verified'}
-              </span>
-            </div>
+            ) : null}
+
+            {/* Hamburger — canvas utilities */}
+            <button
+              className="hamburger-btn"
+              data-automation-id="canvas-btn-drawer"
+              onClick={() => setDrawerOpen(v => !v)}
+              title="Canvas utilities"
+              aria-label="Open canvas utilities"
+            >
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+              <span className="hamburger-line" />
+            </button>
           </div>
         </div>
 
-        {/* Mode content */}
-        <div className="card-body" style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+        {/* Mode content — bounded scroll container */}
+        <div className="card-body" style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* Website Preview */}
           {mode === 'website' && (
@@ -708,7 +731,7 @@ export default function ConceptCanvas() {
 
           {/* Package Summary */}
           {mode === 'package' && (
-            <div key={modePanelKey} data-mode-panel style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div key={modePanelKey} data-mode-panel style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
               {packageCards.map(card => <PanelCard key={card.title} {...card} />)}
             </div>
           )}
@@ -719,8 +742,8 @@ export default function ConceptCanvas() {
       {/* ── Right Rail — Essential signal + sticky actions ────────── */}
       <aside
         data-automation-id="canvas-right-rail"
+        className={readiness.blockers?.length ? 'has-blockers' : ''}
         style={{
-          width:      288,
           flexShrink: 0,
           background:'var(--bg-surface)',
           borderRadius: 12,
@@ -739,6 +762,7 @@ export default function ConceptCanvas() {
               <span
                 className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`}
                 data-automation-id="canvas-send-readiness"
+                style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', letterSpacing: '0.05em' }}
               >
                 {readiness.sendReady ? 'Ready' : 'Blocked'}
               </span>
@@ -769,81 +793,89 @@ export default function ConceptCanvas() {
             </div>
           </section>
 
-          {/* ── Review Notes — read-only (textarea moved to drawer) ─── */}
-          <section>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Review Notes</div>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {(data.reviewNotes || []).slice(0, 5).map((note, i) => (
-                <div key={i} style={{
-                  padding: '9px 12px', borderRadius: 10,
-                  background: 'var(--bg-elevated)',
-                  border:    '1px solid var(--border-default)',
-                  fontSize:  12, color: 'var(--text-secondary)',
-                }}>
-                  {note}
-                </div>
-              ))}
-              {!data.reviewNotes?.length && (
-                <div style={{
-                  padding: '9px 12px', borderRadius: 10,
-                  background: 'var(--bg-elevated)',
-                  border:    '1px dashed var(--border-default)',
-                  fontSize:  12, color: 'var(--text-tertiary)',
-                }}>
-                  No review notes yet.
-                </div>
-              )}
-            </div>
-          </section>
-
         </div>
 
-        {/* ── Sticky Action Buttons ────────────────────────────────── */}
+        {/* ── Last verified timestamp (moved from center header) ──── */}
+        <div style={{
+          fontSize:        11,
+          color:           'var(--text-tertiary)',
+          textAlign:       'center',
+          borderTop:       '1px solid var(--border-subtle)',
+          paddingTop:      12,
+          paddingBottom:   12,
+          paddingInline:  18,
+          marginTop:       4,
+        }}>
+          {data.concept?.previewVerifiedAt
+            ? `Preview verified ${relativeTime(data.concept.previewVerifiedAt)}`
+            : 'Preview not yet verified'}
+        </div>
+
+        {/* ── Sticky Action Buttons — 2x2 grid: Decision + Handoff ───── */}
         <div style={{
           padding:        '14px 18px',
           borderTop:      '1px solid var(--border-default)',
-          display:        'grid',
-          gap:            9,
+          display:        'flex',
+          flexDirection: 'column',
+          gap:            12,
           position:       'sticky',
           bottom:         0,
           background:     'var(--bg-surface)',
           flexShrink:     0,
         }}>
-          <button
-            className="btn btn-success"
-            data-automation-id="canvas-btn-approve-concept"
-            disabled={data.concept?.status === 'approved' || busyAction === 'Approve Concept'}
-            onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}
-          >
-            {busyAction === 'Approve Concept' ? 'Approving…' : '✓ Approve Concept'}
-          </button>
-          <button
-            className="btn btn-secondary"
-            data-automation-id="canvas-btn-request-rework"
-            disabled={busyAction === 'Request Rework'}
-            onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}
-            style={{ borderColor: 'rgba(232, 164, 69, 0.3)', color: 'var(--accent)' }}
-          >
-            {busyAction === 'Request Rework' ? 'Sending…' : '↺ Request Rework'}
-          </button>
-          <button
-            className="btn btn-secondary"
-            data-automation-id="canvas-btn-approve-draft"
-            disabled={(!data.outreach?.draft && !data.outreach?.pitch) || data.outreach?.contentApproval === 'approved' || busyAction === 'Approve Draft'}
-            onClick={() => runAction('Approve Draft', () => apiCanvasApproveDraft(id))}
-            style={{ borderColor: 'rgba(56, 189, 248, 0.25)', color: 'var(--signal-sky)' }}
-          >
-            {busyAction === 'Approve Draft' ? 'Approving…' : '✓ Approve Draft'}
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={!canMarkReady || busyAction === 'Mark Ready to Send'}
-            onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}
-          >
-            {busyAction === 'Mark Ready to Send' ? 'Saving…' : 'Mark Ready to Send'}
-          </button>
+          {/* Decision group */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              data-automation-id="canvas-btn-request-rework"
+              disabled={busyAction === 'Request Rework'}
+              onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}
+              style={{ borderColor: 'rgba(232, 164, 69, 0.3)', color: 'var(--accent)' }}
+            >
+              {busyAction === 'Request Rework' ? 'Sending…' : '↺ Rework'}
+            </button>
+            <button
+              className="btn btn-success btn-sm"
+              data-automation-id="canvas-btn-approve-concept"
+              disabled={data.concept?.status === 'approved' || busyAction === 'Approve Concept'}
+              onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}
+            >
+              {busyAction === 'Approve Concept' ? 'Approving…' : '✓ Approve'}
+            </button>
+          </div>
+          {/* Handoff group */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              data-automation-id="canvas-btn-approve-draft"
+              disabled={(!data.outreach?.draft && !data.outreach?.pitch) || data.outreach?.contentApproval === 'approved' || busyAction === 'Approve Draft'}
+              onClick={() => runAction('Approve Draft', () => apiCanvasApproveDraft(id))}
+              style={{ borderColor: 'rgba(56, 189, 248, 0.25)', color: 'var(--signal-sky)' }}
+            >
+              {busyAction === 'Approve Draft' ? 'Approving…' : '✓ Draft'}
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={!canMarkReady || busyAction === 'Mark Ready to Send'}
+              onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}
+            >
+              {busyAction === 'Mark Ready to Send' ? 'Saving…' : 'Send →'}
+            </button>
+          </div>
         </div>
       </aside>
+
+      {/* ── Utility Drawer backdrop ─────────────────────────────── */}
+      {drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 199,
+            background: 'rgba(0,0,0,0.3)',
+            animation: 'fadeIn 200ms ease forwards',
+          }}
+        />
+      )}
 
       {/* ── Utility Drawer — screenshots, metadata, notes, review gates */}
       {drawerOpen && (
@@ -868,7 +900,7 @@ export default function ConceptCanvas() {
           {(data.concept?.screenshots?.length ?? 0) > 0 && (
             <section>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Screenshots</div>
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
                 {data.concept.screenshots.map(src => (
                   <a key={src} href={src} target="_blank" rel="noreferrer"
                     style={{ display: 'block', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
@@ -876,6 +908,16 @@ export default function ConceptCanvas() {
                   </a>
                 ))}
               </div>
+              {(data.concept?.versions?.length ?? 0) > 1 && (
+                <select
+                  className="form-input form-select"
+                  value={selectedVersion}
+                  onChange={e => setSelectedVersion(e.target.value)}
+                  style={{ width: '100%', fontSize: 12 }}
+                >
+                  {data.concept.versions.map(v => <option key={v.id} value={v.url}>{v.label}</option>)}
+                </select>
+              )}
             </section>
           )}
 
@@ -883,22 +925,12 @@ export default function ConceptCanvas() {
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Concept Info</div>
             <MetaRow label="Tier"    value={`Tier ${data.concept?.tier || 1}`} />
             <MetaRow label="Type"    value={String(data.concept?.type || 'homepage_mock').replace(/_/g, ' ')} />
+            <MetaRow label="Status"  value={conceptBadgeLabel} />
             <MetaRow label="Created" value={data.concept?.createdAt ? formatDate(data.concept.createdAt, true) : '—'} />
+            {data.concept?.approvedBy && (
+              <MetaRow label="Approved" value={`${data.concept.approvedBy} · ${relativeTime(data.concept.approvedAt)}`} />
+            )}
           </section>
-
-          {(data.concept?.versions?.length ?? 0) > 1 && (
-            <section>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Version</div>
-              <select
-                className="form-input form-select"
-                value={selectedVersion}
-                onChange={e => setSelectedVersion(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                {data.concept.versions.map(v => <option key={v.id} value={v.url}>{v.label}</option>)}
-              </select>
-            </section>
-          )}
 
           <section>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Review Gates</div>
@@ -956,23 +988,6 @@ export default function ConceptCanvas() {
                   <GateRow label="Send ready" value={readiness.sendReady} accent />
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section className="card" style={{ background: 'var(--bg-elevated)' }}>
-            <div className="card-body" style={{ padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Concept Status</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <span className={conceptBadgeClass}>{conceptBadgeLabel}</span>
-                {data.concept?.approvedAt && (
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{relativeTime(data.concept.approvedAt)}</span>
-                )}
-              </div>
-              {data.concept?.approvedBy && (
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Approved by <strong style={{ color: 'var(--text-primary)' }}>{data.concept.approvedBy}</strong> on {formatFullDate(data.concept.approvedAt)}
-                </div>
-              )}
             </div>
           </section>
 
