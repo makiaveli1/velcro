@@ -3029,6 +3029,13 @@ img {
 .doc-content strong { font-weight: 600; color: var(--text-primary); }
 .doc-content a { color: var(--accent); text-decoration: underline; }
 /* Doc panel: direct flex child of card-body alongside panel-doc-header */
+
+/* Center panel card-body must be a flex column so .doc-panel gets flex:1 */
+main[data-automation-id="canvas-center-panel"] > .card-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 .doc-panel {
   flex: 1;
   overflow: hidden;
