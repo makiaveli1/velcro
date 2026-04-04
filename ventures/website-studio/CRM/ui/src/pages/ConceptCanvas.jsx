@@ -677,24 +677,27 @@ export default function ConceptCanvas() {
             </div>
           )}
 
-          {/* Document modes — render directly in the card-body scroll region */}
+          {/* Document modes — panel-doc-header and doc-content are direct card-body flex children.
+               This makes .card-body the scroll container: header stays fixed, content scrolls within. */}
           {mode !== 'website' && mode !== 'package' && (
-            <div key={modePanelKey} data-mode-panel>
-              <div className="panel-doc-header" style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-4)' }}>
+            <>
+              <div className="panel-doc-header" style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
                 {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
               </div>
-              {currentDocument ? (
-                <div className="doc-content"
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
-              ) : (
-                <EmptyState
-                  title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
-                  description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
-                    : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
-                    : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
-                />
-              )}
-            </div>
+              <div key={modePanelKey} data-mode-panel className="doc-panel">
+                {currentDocument ? (
+                  <div className="doc-content"
+                    dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
+                ) : (
+                  <EmptyState
+                    title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
+                    description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
+                      : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
+                      : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
+                  />
+                )}
+              </div>
+            </>
           )}
 
           {/* Package Summary */}
