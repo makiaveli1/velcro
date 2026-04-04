@@ -93,7 +93,7 @@ export default function Discovery() {
   const { stats = {} } = data || {};
 
   return (
-    <div>
+    <div className="content-queue">
       {/* Header */}
       <div className="page-header">
         <div className="page-title-row">

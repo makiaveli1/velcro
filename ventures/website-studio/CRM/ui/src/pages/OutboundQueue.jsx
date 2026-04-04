@@ -475,7 +475,7 @@ export default function OutboundQueue() {
   }
 
   return (
-    <div>
+    <div className="content-queue">
       <div className="page-header">
         <div className="page-title-row">
           <div>

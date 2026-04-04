@@ -84,7 +84,7 @@ export default function Dashboard() {
   const today = formatFullDate(new Date().toISOString());
 
   return (
-    <div>
+    <div className="content-bounded">
       {/* Page Header */}
       <div className="page-header">
         <div className="page-title-row">

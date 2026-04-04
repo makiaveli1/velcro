@@ -704,7 +704,7 @@ export default function Pipeline() {
   }
 
   return (
-    <div>
+    <div className="content-board">
       <div className="page-header">
         <div className="page-title-row">
           <div>

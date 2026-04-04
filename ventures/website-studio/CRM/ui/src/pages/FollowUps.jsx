@@ -37,7 +37,7 @@ export default function FollowUps() {
     : followUps;
 
   return (
-    <div>
+    <div className="content-queue">
       <div className="page-header">
         <div className="page-title-row">
           <div>
