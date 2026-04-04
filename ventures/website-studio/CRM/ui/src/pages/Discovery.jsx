@@ -94,12 +94,21 @@ export default function Discovery() {
 
   return (
     <div className="content-queue">
+      {/* Breadcrumb */}
+      <div className="subpage-breadcrumb">
+        <div className="breadcrumb-item">
+          <a href="/contacts">CRM</a>
+        </div>
+        <span className="breadcrumb-sep">›</span>
+        <div className="breadcrumb-item current">Discovery</div>
+      </div>
+
       {/* Header */}
-      <div className="page-header">
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Discovery Queue</h1>
-            <p className="page-subtitle">{filteredItems.length} contact{filteredItems.length !== 1 ? 's' : ''} awaiting review</p>
+      <div className="subpage-header">
+        <div className="subpage-header-row">
+          <div className="subpage-header-main">
+            <h1 className="subpage-title">Discovery Queue</h1>
+            <p className="subpage-subtitle">{filteredItems.length} contact{filteredItems.length !== 1 ? 's' : ''} awaiting review</p>
           </div>
         </div>
       </div>
@@ -149,15 +158,17 @@ export default function Discovery() {
 
       {/* Cards */}
       {filteredItems.length === 0 ? (
-        <EmptyState
-          title="Queue is clear"
-          description="New contacts discovered from Outlook will appear here for review."
-          icon={
-            <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="var(--signal-emerald)" strokeWidth="1.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          }
-        />
+        <div className="empty-state-shell">
+          <EmptyState
+            title="Queue is clear"
+            description="New contacts discovered from Outlook will appear here for review."
+            icon={
+              <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="var(--signal-emerald)" strokeWidth="1.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            }
+          />
+        </div>
       ) : (
         filteredItems.map(item => (
           <DiscoveryCard
@@ -199,6 +210,7 @@ function DiscoveryCard({ item, selected, onSelect, onApprove, onReject, onSkip }
   return (
     <div className="discovery-card">
       <div className="discovery-card-header">
+        <div className="discovery-signal-bar" />
         <input
           type="checkbox"
           className="discovery-card-select"

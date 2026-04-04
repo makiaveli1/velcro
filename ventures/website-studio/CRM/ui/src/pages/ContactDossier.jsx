@@ -65,9 +65,18 @@ export default function ContactDossier() {
 
   return (
     <div>
+      {/* Breadcrumb */}
+      <div className="subpage-breadcrumb">
+        <div className="breadcrumb-item">
+          <button onClick={() => navigate('/contacts')}>Contacts</button>
+        </div>
+        <span className="breadcrumb-sep">›</span>
+        <div className="breadcrumb-item current">{contact.name}</div>
+      </div>
+
       {/* Back */}
       <div
-        className="dossier-back"
+        className="back-nav"
         data-automation-id="dossier-back"
         onClick={() => navigate('/contacts')}
       >
@@ -165,7 +174,7 @@ export default function ContactDossier() {
           {websiteStudio.outbound?.sendReady === false ? (
             <div
               data-automation-id="dossier-banner-blocked"
-              style={{ background: 'var(--signal-rose)', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}
+              className="readiness-banner blocked"
             >
               ✕ Outbound BLOCKED —{' '}
               {websiteStudio.outbound?.sendBlockedReason === 'mailbox'
@@ -177,7 +186,7 @@ export default function ContactDossier() {
           ) : (
             <div
               data-automation-id="dossier-banner-ready"
-              style={{ background: 'var(--signal-emerald)', color: '#fff', padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}
+              className="readiness-banner ready"
             >
               ✓ Ready to send — both gates approved, all systems ready
             </div>
@@ -186,57 +195,58 @@ export default function ContactDossier() {
           {/* Review Canvas entry card */}
           <div
             data-automation-id="dossier-canvas-entry"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              padding: '16px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-            }}
+            className="info-card accent-emerald"
           >
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Concept Review Canvas</span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    padding: '2px 7px',
-                    borderRadius: 9,
-                    background: 'var(--accent-dim)',
-                    color: 'var(--accent)',
-                    fontWeight: 600,
-                  }}
-                >
-                  {websiteStudio.concept?.hasConcept ? 'Concept Ready' : 'No Concept Yet'}
-                </span>
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
-                Review the full concept package — website preview, brief, draft, QA, and approval — in one surface.
-              </p>
-              {websiteStudio.outbound?.outreachStage && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
-                  Pipeline stage:{' '}
-                  <span style={{ color: 'var(--accent)' }}>
-                    {String(websiteStudio.outbound.outreachStage || '').replace(/_/g, ' ')}
+            <div className="info-card-header">
+              <span className="info-card-kicker">Website Studio</span>
+              <span className="info-card-title">Concept Review Canvas</span>
+            </div>
+            <div className="info-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Concept Review Canvas</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      padding: '2px 7px',
+                      borderRadius: 9,
+                      background: 'var(--accent-dim)',
+                      color: 'var(--accent)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {websiteStudio.concept?.hasConcept ? 'Concept Ready' : 'No Concept Yet'}
                   </span>
                 </div>
-              )}
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  Review the full concept package — website preview, brief, draft, QA, and approval — in one surface.
+                </p>
+                {websiteStudio.outbound?.outreachStage && (
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    Pipeline stage:{' '}
+                    <span style={{ color: 'var(--accent)' }}>
+                      {String(websiteStudio.outbound.outreachStage || '').replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn btn-primary btn-sm"
+                data-automation-id="dossier-btn-open-canvas"
+                onClick={() => navigate(`/contacts/${id}/review`)}
+              >
+                Open Canvas →
+              </button>
             </div>
-            <button
-              className="btn btn-primary btn-sm"
-              data-automation-id="dossier-btn-open-canvas"
-              onClick={() => navigate(`/contacts/${id}/review`)}
-            >
-              Open Canvas →
-            </button>
           </div>
 
           {/* Outbound Status Card */}
-          <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+          <div className="info-card accent-sky">
+            <div className="info-card-header">
+              <span className="info-card-kicker">Outbound</span>
+              <span className="info-card-title">Outbound Status</span>
+            </div>
+            <div className="info-card-body">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outbound Status</div>
               <button
@@ -266,15 +276,21 @@ export default function ContactDossier() {
                 ))}
               </div>
             )}
+            </div>
           </div>
 
           {/* Concept / Pitch Constraints */}
           {websiteStudio.concept?.constraints?.length > 0 && (
-            <div style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pitch Constraints</div>
-              {websiteStudio.concept.constraints.map((c, i) => (
-                <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 4 }}>⚠ {c}</div>
-              ))}
+            <div className="info-card">
+              <div className="info-card-header">
+                <span className="info-card-kicker">Pitch</span>
+                <span className="info-card-title">Pitch Constraints</span>
+              </div>
+              <div className="info-card-body">
+                {websiteStudio.concept.constraints.map((c, i) => (
+                  <div key={i} style={{ fontSize: 12, color: 'var(--signal-amber)', marginBottom: 4 }}>⚠ {c}</div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -282,7 +298,7 @@ export default function ContactDossier() {
           {websiteStudio.nextAction && (
             <div
               data-automation-id="dossier-next-action"
-              style={{ background: 'var(--signal-sky)', color: '#1a1a1a', padding: '12px 16px', borderRadius: 8, marginBottom: 16 }}
+              className="readiness-banner info"
             >
               <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>NEXT ACTION</div>
               <div style={{ fontSize: 13 }}>{websiteStudio.nextAction.text}</div>
@@ -321,26 +337,26 @@ export default function ContactDossier() {
       )}
 
       {/* Tabs */}
-      <div className="tabs" data-automation-id="dossier-tabs">
+      <div className="tab-bar" data-automation-id="dossier-tabs">
         {['summary', 'timeline', 'drafts'].map(tab => (
           <button
             key={tab}
-            className={`tab ${activeTab === tab ? 'active' : ''}`}
+            className={`tab-btn${activeTab === tab ? ' active' : ''}`}
             data-automation-id={`dossier-tab-${tab}`}
             onClick={() => setActiveTab(tab)}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === 'drafts' && contactDrafts.length > 0 && (
-              <span style={{ marginLeft: 6, background: 'var(--accent-dim)', color: 'var(--accent)', fontSize: 10, padding: '1px 5px', borderRadius: 9, fontWeight: 600 }}>
-                {contactDrafts.length}
-              </span>
+              <span className="tab-count">{contactDrafts.length}</span>
             )}
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
-      <div>{tabContent[activeTab]}</div>
+      <div className="tab-panel-shell">
+        <div className="tab-panel">{tabContent[activeTab]}</div>
+      </div>
 
       {/* Modals */}
       {showFollowUpModal && (

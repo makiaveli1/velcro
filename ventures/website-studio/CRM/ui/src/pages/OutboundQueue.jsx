@@ -102,16 +102,16 @@ function OutboundCard({ item, onAction, onPreview }) {
   const isLoading = (action) => loading === action;
 
   return (
-    <div className="discovery-card" style={{ marginBottom: 'var(--space-4)' }}>
+    <div className="outbound-card">
       {/* Warnings banner */}
       {item.warnings?.length > 0 && (
-        <div style={{ background: 'var(--signal-amber)', color: '#1a1a1a', padding: '10px 12px', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-3)', fontSize: 13 }}>
+        <div className="outbound-card-warnings">
           ⚠️ {item.warnings.map((w, i) => <div key={i}>{w}</div>)}
         </div>
       )}
 
       {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+      <div className="outbound-card-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 4 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>{item.name}</h3>
@@ -138,7 +138,7 @@ function OutboundCard({ item, onAction, onPreview }) {
       </div>
 
       {/* Approval chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+      <div className="outbound-card-chips">
         <ContentBadge approval={item.contentApproval} approvedBy={item.contentApprovedBy} approvedAt={item.contentApprovedAt} />
         <DeployBadge approval={item.deploymentApproval} approvedBy={item.deploymentApprovedBy} approvedAt={item.deploymentApprovedAt} />
         <HumanApprovalBadge approval={item.humanApproval} />
@@ -158,7 +158,7 @@ function OutboundCard({ item, onAction, onPreview }) {
       </div>
 
       {/* Pitch summary */}
-      <div style={{ background: 'var(--bg-overlay)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+      <div className="outbound-card-pitch">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
             Subject
@@ -168,7 +168,7 @@ function OutboundCard({ item, onAction, onPreview }) {
           )}
         </div>
         <p style={{ fontSize: 13, fontWeight: 500, margin: '0 0 4px 0' }}>{item.pitch?.subject || '—'}</p>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {item.pitch?.preview || '—'}
         </p>
         {item.pitch?.wordCount > 0 && (
@@ -179,7 +179,7 @@ function OutboundCard({ item, onAction, onPreview }) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+      <div className="outbound-card-actions">
         {/* ── Concept stages ── */}
         {/* concept_brief_ready — Forge can start build */}
         {item.outreachStage === 'concept_brief_ready' && (
@@ -456,7 +456,29 @@ export default function OutboundQueue() {
           <h1 className="page-title">Outbound Queue</h1>
           <p className="page-subtitle">Loading…</p>
         </div>
-        <div style={{ textAlign: 'center', padding: 'var(--space-8)', color: 'var(--text-secondary)' }}>Loading outbound queue…</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="outbound-card" style={{ minHeight: 200 }}>
+              <div className="skeleton skeleton-text" style={{ width: '40%', marginBottom: 12 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <div className="skeleton skeleton-text" style={{ width: 160, marginBottom: 8 }} />
+                  <div className="skeleton skeleton-text" style={{ width: 220 }} />
+                </div>
+                <div className="skeleton skeleton-text" style={{ width: 60 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div className="skeleton skeleton-text" style={{ width: 80, height: 22 }} />
+                <div className="skeleton skeleton-text" style={{ width: 80, height: 22 }} />
+                <div className="skeleton skeleton-text" style={{ width: 80, height: 22 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="skeleton skeleton-text" style={{ width: 90, height: 30 }} />
+                <div className="skeleton skeleton-text" style={{ width: 90, height: 30 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -489,7 +511,7 @@ export default function OutboundQueue() {
 
       {/* Mailbox readiness banner */}
       {!data?.mailboxReady && (
-        <div style={{ background: 'var(--signal-rose)', color: '#fff', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
+        <div className="readiness-banner blocked">
           <div style={{ fontWeight: 700, marginBottom: mailboxReason ? 4 : 0 }}>✕ {mailboxBannerCopy}</div>
           {mailboxReason && mailboxReason !== mailboxBannerCopy && (
             <div style={{ opacity: 0.92 }}>{mailboxReason}</div>
@@ -499,31 +521,19 @@ export default function OutboundQueue() {
 
       {/* Tab bar */}
       <div
+        className="tab-bar"
         data-automation-id="outbound-tabs"
-        style={{ display: 'flex', gap: 'var(--space-1)', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}
       >
         {ACTIONABLE_TABS.map(tab => (
           <button
             key={tab}
+            className={`tab-btn${activeTab === tab ? ' active' : ''}`}
             data-automation-id={`outbound-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
             onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '8px 16px',
-              fontSize: 13,
-              fontWeight: 600,
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === tab ? '2px solid var(--signal-emerald)' : '2px solid transparent',
-              color: activeTab === tab ? 'var(--text-primary)' : 'var(--text-secondary)',
-              cursor: 'pointer',
-              marginBottom: -1,
-            }}
           >
             {TAB_LABELS[tab]}
             {counts[tab] > 0 && (
-              <span style={{ marginLeft: 6, background: activeTab === tab ? 'var(--signal-emerald)' : 'var(--bg-overlay)', color: activeTab === tab ? '#fff' : 'var(--text-secondary)', borderRadius: 10, padding: '1px 6px', fontSize: 11 }}>
-                {counts[tab]}
-              </span>
+              <span className="tab-count">{counts[tab]}</span>
             )}
           </button>
         ))}
@@ -542,14 +552,17 @@ export default function OutboundQueue() {
           icon={<svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="var(--signal-emerald)" strokeWidth="1.5"><polyline points="20 6 9 17 4 12" /></svg>}
         />
       ) : (
-        items.map(item => (
-          <OutboundCard
-            key={item.id}
-            item={item}
-            onAction={handleAction}
-            onPreview={setPreviewItem}
-          />
-        ))
+        <div role="listbox" aria-label="Outbound leads" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {items.map(item => (
+            <div role="option" key={item.id} aria-selected={false}>
+              <OutboundCard
+                item={item}
+                onAction={handleAction}
+                onPreview={setPreviewItem}
+              />
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Preview Modal */}

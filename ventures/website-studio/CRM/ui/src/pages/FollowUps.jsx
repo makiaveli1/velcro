@@ -38,13 +38,22 @@ export default function FollowUps() {
 
   return (
     <div className="content-queue">
-      <div className="page-header">
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Follow-ups</h1>
-            <p className="page-subtitle">{followUps.length} pending</p>
+      {/* Breadcrumb */}
+      <div className="subpage-breadcrumb">
+        <div className="breadcrumb-item">
+          <a href="/contacts">CRM</a>
+        </div>
+        <span className="breadcrumb-sep">›</span>
+        <div className="breadcrumb-item current">Follow-ups</div>
+      </div>
+
+      <div className="subpage-header">
+        <div className="subpage-header-row">
+          <div className="subpage-header-main">
+            <h1 className="subpage-title">Follow-ups</h1>
+            <p className="subpage-subtitle">{followUps.length} pending</p>
           </div>
-          <div className="page-header-actions">
+          <div className="subpage-header-actions">
             <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
               + New Follow-up
             </button>
@@ -53,7 +62,7 @@ export default function FollowUps() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="filter-chips" style={{ marginBottom: 'var(--space-5)' }}>
+      <div className="filter-chips" style={{ marginBottom: 'var(--space-3)' }}>
         {[
           { key: 'all', label: `All (${followUps.length})` },
           { key: 'overdue', label: `Overdue (${overdue.length})`, alert: overdue.length > 0 },
@@ -62,14 +71,15 @@ export default function FollowUps() {
         ].map(tab => (
           <button
             key={tab.key}
-            className={`filter-chip ${filter === tab.key ? 'active' : ''}`}
-            style={tab.alert ? { borderColor: 'var(--signal-rose)', color: 'var(--signal-rose)' } : {}}
+            className={`filter-chip${filter === tab.key ? ' active' : ''}${tab.alert ? ' overdue-alert' : ''}`}
             onClick={() => setFilter(tab.key)}
           >
             {tab.label}
           </button>
         ))}
       </div>
+
+      <div className="section-divider" />
 
       {error ? (
         <div style={{ color: 'var(--signal-rose)', fontSize: 13, padding: 'var(--space-4) 0' }}>{error}</div>
@@ -128,6 +138,11 @@ function FollowUpCard({ item, today, navigate, onComplete, onSnooze }) {
       <div className="followup-item-header">
         <div>
           <div className="followup-contact-name">{item.contact_name}</div>
+          {(item.company || item.role) && (
+            <div className="followup-contact-company">
+              {[item.company, item.role].filter(Boolean).join(' · ')}
+            </div>
+          )}
           {item.reason && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{item.reason}</div>}
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -172,7 +187,7 @@ function SnoozeDropdown({ onSnooze }) {
         ⏱ Snooze ▾
       </button>
       {open && (
-        <div className="dropdown-menu">
+        <div className="dropdown-menu" role="listbox">
           {options.map(opt => (
             <button key={opt.label} className="dropdown-item" onClick={() => { onSnooze(opt.until); setOpen(false); }}>
               {opt.label}

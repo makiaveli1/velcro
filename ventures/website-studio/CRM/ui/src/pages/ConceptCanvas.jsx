@@ -430,12 +430,11 @@ export default function ConceptCanvas() {
   return (
     <div
       className={`canvas-page${collapsedRail ? ' collapsed' : ''}${immersive ? ' immersive' : ''}`}
-      style={{ minHeight: 'calc(100vh - 140px)' }}
     >
 
       {/* ── Immersive floating bar ───────────────────────────────── */}
       {immersive && (
-        <div className="immersive-bar" data-automation-id="immersive-bar">
+        <div className="canvas-immersive-bar" data-automation-id="immersive-bar">
           <span style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
             {leadName}
           </span>
@@ -476,22 +475,10 @@ export default function ConceptCanvas() {
 
       {/* ── Immersive bottom status strip ────────────────────────── */}
       {immersive && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          background: 'rgba(30, 30, 46, 0.92)',
-          backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          padding: '10px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          animation: 'immersivePillReveal 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
-        }}>
+        <div
+          className="canvas-immersive-bar"
+          style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100 }}
+        >
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             <span className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`}>
               {readiness.blockers?.length ? `${readiness.blockers.length} blocker(s)` : 'No blockers'}
@@ -713,9 +700,8 @@ export default function ConceptCanvas() {
 
           {/* Document modes */}
           {mode !== 'website' && mode !== 'package' && (
-            <div key={modePanelKey} data-mode-panel className="card" style={{ background: 'var(--bg-elevated)' }}>
+            <div key={modePanelKey} data-mode-panel className="card" >
               <div className="card-body" style={{ padding: 24 }}>
-                {/* Sticky document sub-header */}
                 <div className="panel-doc-header">
                   {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
                 </div>
@@ -749,7 +735,7 @@ export default function ConceptCanvas() {
       {/* ── Right Rail — Essential signal + sticky actions ────────── */}
       <aside
         data-automation-id="canvas-right-rail"
-        className={readiness.blockers?.length ? 'has-blockers' : ''}
+        className={`canvas-inspector${readiness.blockers?.length ? ' has-blockers' : ''}`}
         style={{
           flexShrink: 0,
           background:'var(--bg-surface)',
@@ -819,17 +805,7 @@ export default function ConceptCanvas() {
         </div>
 
         {/* ── Sticky Action Buttons — 2x2 grid: Decision + Handoff ───── */}
-        <div style={{
-          padding:        '14px 18px',
-          borderTop:      '1px solid var(--border-default)',
-          display:        'flex',
-          flexDirection: 'column',
-          gap:            12,
-          position:       'sticky',
-          bottom:         0,
-          background:     'var(--bg-surface)',
-          flexShrink:     0,
-        }}>
+        <div className="canvas-action-strip">
           {/* Decision group */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button
@@ -887,7 +863,7 @@ export default function ConceptCanvas() {
       {/* ── Utility Drawer — screenshots, metadata, notes, review gates */}
       {drawerOpen && (
         <div
-          className="utility-drawer"
+          className="canvas-utility-drawer"
           data-automation-id="canvas-utility-drawer"
           role="dialog"
           aria-label="Canvas utilities"

@@ -41,10 +41,19 @@ export default function Drafts() {
 
   return (
     <div className="content-queue">
-      <div className="page-header">
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Email Drafts</h1>
+      {/* Breadcrumb */}
+      <div className="subpage-breadcrumb">
+        <div className="breadcrumb-item">
+          <a href="/contacts">CRM</a>
+        </div>
+        <span className="breadcrumb-sep">›</span>
+        <div className="breadcrumb-item current">Drafts</div>
+      </div>
+
+      <div className="subpage-header">
+        <div className="subpage-header-row">
+          <div className="subpage-header-main">
+            <h1 className="subpage-title">Email Drafts</h1>
             <p className="page-subtitle">
               {tab === 'proposed' ? `${drafts.length} pending approval` : tab === 'approved' ? 'Ready to send' : 'History'}
             </p>
@@ -66,7 +75,18 @@ export default function Drafts() {
       </div>
 
       {loading ? (
-        <Skeleton />
+        <div>
+          {/* Tab bar skeleton */}
+          <div className="tab-bar">
+            <div className="skeleton skeleton-text" style={{ width: 80, margin: '0 8px', height: 20, borderRadius: 4 }} />
+            <div className="skeleton skeleton-text" style={{ width: 80, margin: '0 8px', height: 20, borderRadius: 4 }} />
+            <div className="skeleton skeleton-text" style={{ width: 60, margin: '0 8px', height: 20, borderRadius: 4 }} />
+          </div>
+          {/* Card skeletons */}
+          {[1, 2, 3].map(i => (
+            <div key={i} className="skeleton-card" style={{ height: 80, marginBottom: 12, marginTop: 12 }} />
+          ))}
+        </div>
       ) : error ? (
         <div style={{ color: 'var(--signal-rose)', fontSize: 13 }}>{error}</div>
       ) : tab === 'approved' ? (
@@ -120,7 +140,7 @@ function DraftCard({ draft, expanded, onToggle, onApprove, onReject }) {
       {expanded && (
         <div className="card-body" style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {draft.context_used && (
-            <details style={{ marginBottom: 12 }}>
+            <details aria-label="Context used" style={{ marginBottom: 12 }}>
               <summary style={{ fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer' }}>Context used</summary>
               <div style={{ marginTop: 8, padding: 'var(--space-3)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
                 {Array.isArray(draft.context_used) ? draft.context_used.map((c, j) => <div key={j}>• {c}</div>) : draft.context_used}
@@ -129,7 +149,7 @@ function DraftCard({ draft, expanded, onToggle, onApprove, onReject }) {
           )}
 
           {draft.body && (
-            <div style={{ padding: 'var(--space-4)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', maxHeight: 300, overflow: 'auto', lineHeight: 1.6 }}>
+            <div className="draft-preview-pane">
               {draft.body}
             </div>
           )}
@@ -152,7 +172,8 @@ function DraftCard({ draft, expanded, onToggle, onApprove, onReject }) {
 
 function ApprovedView() {
   return (
-    <div className="empty-state">
+    <div className="empty-state-shell">
+      <div className="empty-state">
       <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="var(--signal-emerald)" strokeWidth="1.5">
         <polyline points="20 6 9 17 4 12" />
       </svg>
@@ -163,6 +184,7 @@ function ApprovedView() {
       <div style={{ marginTop: 16, padding: 'var(--space-4)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text-secondary)', maxWidth: 400, textAlign: 'center' }}>
         Drafts are sent directly from your email client — Verdantia CRM opens your mail app with the content ready to review and send.
       </div>
+    </div>
     </div>
   );
 }
