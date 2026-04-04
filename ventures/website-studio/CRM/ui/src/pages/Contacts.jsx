@@ -40,7 +40,7 @@ export default function Contacts() {
   const contacts = data?.items || [];
 
   return (
-    <div>
+    <div className="content-queue">
       {/* Header */}
       <div className="page-header">
         <div className="page-title-row">

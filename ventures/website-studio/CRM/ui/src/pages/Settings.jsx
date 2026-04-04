@@ -44,11 +44,7 @@ function PriorityTag({ priority }) {
 
 function SectionHeader({ title, icon }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '10px 16px', borderBottom: '1px solid var(--border)',
-      background: 'var(--surface-raised)',
-    }}>
+    <div className="inline-row border-bottom-subtle" style={{ padding: '10px 16px', background: 'var(--bg-elevated)' }}>
       {icon}
       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>{title}</span>
     </div>
@@ -249,14 +245,14 @@ function GraphSetupModal({
       <div
         style={{
           width: 'min(640px, 100%)',
-          background: 'var(--surface-primary)',
-          border: '1px solid var(--border)',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-default)',
           borderRadius: 16,
           boxShadow: '0 24px 80px rgba(15,23,42,0.45)',
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border-default)' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Complete Graph Authentication</div>
           <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
             Use Microsoft device login to reconnect the mailbox. After browser sign-in completes, verify here.
@@ -266,9 +262,9 @@ function GraphSetupModal({
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
-              border: '1px solid var(--border)',
+              border: '1px solid var(--border-default)',
               borderRadius: 12,
-              background: 'var(--surface-raised)',
+              background: 'var(--bg-elevated)',
               padding: 16,
               display: 'flex',
               flexDirection: 'column',
@@ -303,7 +299,7 @@ function GraphSetupModal({
               gap: 12,
             }}
           >
-            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
                 Setup status
               </div>
@@ -311,7 +307,7 @@ function GraphSetupModal({
                 {getModalStatusText(status)}
               </div>
             </div>
-            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
                 Token file
               </div>
@@ -319,7 +315,7 @@ function GraphSetupModal({
                 {status?.hasToken ? 'Present' : 'Not received yet'}
               </div>
             </div>
-            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+            <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 6 }}>
                 Healthy token
               </div>
@@ -654,7 +650,7 @@ export default function Settings() {
 
   return (
     <>
-      <div>
+      <div className="content-queue">
         <div className="page-header">
           <div>
             <h1 className="page-title">Settings</h1>
@@ -668,15 +664,15 @@ export default function Settings() {
             title="Outbound System"
             icon={<OutboundIcon />}
           />
-          <div style={{ border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+          <div className="settings-surface" style={{ borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
 
             {/* Overall status banner */}
-            <div style={{
+            <div className="settings-note-block" style={{
               padding: '14px 16px',
               background: sendReady
                 ? 'rgba(16,185,129,0.08)'
                 : 'rgba(239,68,68,0.08)',
-              borderBottom: '1px solid var(--border)',
+              borderBottom: '1px solid var(--border-default)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: sendReady ? 0 : 10 }}>
                 <span style={{ fontSize: 18 }}>{sendReady ? '✓' : '✕'}</span>
@@ -703,7 +699,7 @@ export default function Settings() {
             </div>
 
             {/* Setup checklist */}
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-default)', background: 'var(--bg-elevated)' }}>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5, marginBottom: 10 }}>
                 Outbound requires a connected Graph mailbox and a defined outreach policy. Fix any blockers below, then approve leads from the Outbound Queue before dispatching.
               </div>
@@ -747,7 +743,7 @@ export default function Settings() {
             </div>
 
             {/* Setup actions */}
-            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border-default)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>
                 Setup Actions
               </div>
@@ -788,7 +784,7 @@ export default function Settings() {
             </div>
 
             {/* Policy card */}
-            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border-default)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 12 }}>
                 Outreach Policy
               </div>
@@ -797,9 +793,9 @@ export default function Settings() {
                 flexWrap: 'wrap',
                 justifyContent: 'space-between',
                 gap: 16,
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border-default)',
                 borderRadius: 12,
-                background: 'var(--surface-raised)',
+                background: 'var(--bg-elevated)',
                 padding: 16,
               }}>
                 <div style={{ minWidth: 260, flex: '1 1 320px' }}>
@@ -836,10 +832,10 @@ export default function Settings() {
             </div>
 
             {/* Detail grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            <div className="settings-grid-2">
 
               {/* Mailbox detail */}
-              <div style={{ padding: '14px 16px', borderRight: '1px solid var(--border)' }}>
+              <div className="settings-pane with-divider">
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Mailbox</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -914,7 +910,7 @@ export default function Settings() {
               </div>
 
               {/* Policy detail */}
-              <div style={{ padding: '14px 16px' }}>
+              <div className="settings-pane">
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>Outreach Policy</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -955,7 +951,7 @@ export default function Settings() {
 
             {/* System blockers */}
             {systemBlockers.length > 0 && (
-              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'rgba(239,68,68,0.04)' }}>
+              <div className="settings-note-block rose">
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--signal-rose)', marginBottom: 6 }}>
                   System Blockers
                 </div>
@@ -975,7 +971,7 @@ export default function Settings() {
 
             {/* System warnings */}
             {systemWarnings.length > 0 && (
-              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'rgba(245,158,11,0.06)' }}>
+              <div className="settings-note-block amber">
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--signal-amber)', marginBottom: 6 }}>
                   Warnings
                 </div>
@@ -987,7 +983,7 @@ export default function Settings() {
 
             {/* Next fixes */}
             {nextFixes.length > 0 && (
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+              <div className="settings-note-block" style={{ padding: '12px 16px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
                   Next Fixes Required
                 </div>
@@ -1007,7 +1003,7 @@ export default function Settings() {
 
             {/* All clear state */}
             {sendReady && nextFixes.length === 0 && (
-              <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="settings-note-block inline-row" style={{ padding: '14px 16px' }}>
                 <span style={{ color: 'var(--signal-emerald)', fontSize: 16 }}>✓</span>
                 <span style={{ fontSize: 13, color: 'var(--signal-emerald)', fontWeight: 600 }}>Outbound is fully operational.</span>
               </div>
@@ -1021,15 +1017,7 @@ export default function Settings() {
             <div className="settings-section-title">Mailbox &amp; Auth</div>
           </div>
           <div className="settings-section-body">
-            <div style={{
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              background: 'var(--surface-raised)',
-              padding: 16,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 14,
-            }}>
+            <div className="settings-surface stack-md" style={{ padding: 16 }}>
               <div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>Overall</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: mailboxOverall.color }}>
