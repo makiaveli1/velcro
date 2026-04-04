@@ -478,12 +478,12 @@ export default function ConceptCanvas() {
       {/* ── Left Rail ─────────────────────────────────────────────── */}
       <aside
         data-automation-id="canvas-left-rail"
+        className="canvas-left-rail"
         style={{
           flexShrink:    0,
           background:    'var(--bg-surface)',
           borderRadius:  12,
           overflow:      'hidden',
-          display:       'flex',
           flexDirection: 'column',
           boxShadow:     '0 2px 12px rgba(0,0,0,0.20)',
         }}
@@ -677,25 +677,22 @@ export default function ConceptCanvas() {
             </div>
           )}
 
-          {/* Document modes — own bounded scroll region like web preview */}
+          {/* Document modes — render directly in the card-body scroll region */}
           {mode !== 'website' && mode !== 'package' && (
-            <div key={modePanelKey} data-mode-panel className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <div className="panel-doc-header" style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+            <div key={modePanelKey} data-mode-panel>
+              <div className="panel-doc-header" style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-4)' }}>
                 {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
               </div>
               {currentDocument ? (
                 <div className="doc-content"
-                  style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)' }}
                   dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
               ) : (
-                <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)' }}>
-                  <EmptyState
-                    title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
-                    description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
-                      : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
-                      : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
-                  />
-                </div>
+                <EmptyState
+                  title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
+                  description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
+                    : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
+                    : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
+                />
               )}
             </div>
           )}
@@ -719,7 +716,6 @@ export default function ConceptCanvas() {
           flexShrink: 0,
           background:'var(--bg-surface)',
           borderRadius: 12,
-          display:    'flex',
           flexDirection: 'column',
           boxShadow:  '0 2px 12px rgba(0,0,0,0.20)',
           overflow:  'hidden',

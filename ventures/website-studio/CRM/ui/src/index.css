@@ -2915,12 +2915,21 @@ img {
 .canvas-page {
   display: flex;
   gap: var(--space-4);
-  min-height: calc(100vh - 140px);
+  /* height:0 + overflow:hidden creates a proper flex clipping container */
+  height: calc(100vh - 88px);
+  overflow: hidden;
   position: relative;
 }
 
-.canvas-page.immersive aside,
-.canvas-page.immersive > .canvas-inspector {
+/* Left and right rails use display:flex so the immersive override can hide them */
+.canvas-left-rail,
+.canvas-inspector {
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-page.immersive .canvas-left-rail,
+.canvas-page.immersive .canvas-inspector {
   display: none;
 }
 .canvas-page.collapsed aside { /* collapsed rail state */ }
