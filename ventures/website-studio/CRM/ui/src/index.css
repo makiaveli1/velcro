@@ -919,9 +919,11 @@ img {
 }
 
 .app-main {
-  /* Fill all remaining width after the fixed sidebar. */
+  /* Actual content lane to the right of the fixed sidebar. */
   flex: 1;
-  min-width: 0; /* prevent flex item from overflowing */
+  min-width: 0;
+  width: calc(100% - var(--sidebar-width));
+  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
 }
@@ -931,8 +933,8 @@ img {
   flex: none;
   min-height: 100vh;
   width: 100%;
-  /* Sidebar offset — sidebar is fixed at left:0, content starts to the right of it. */
-  margin-left: var(--sidebar-width);
+  /* No extra horizontal offset here — app-main already defines the content lane. */
+  margin-left: 0;
   /* Topbar compensation — fixed 56px topbar sits above, content starts below it. */
   padding-top: calc(56px + var(--space-6));
   padding-left: var(--space-6);
@@ -947,14 +949,16 @@ img {
    Shell: no width strategy. Each page uses the class that fits.
    ============================================================ */
 
-/* Bounded/Analytic — stat grids, tables, dashboards (~1600px for better wide-screen use) */
+/* Bounded/Analytic — stat grids, tables, dashboards
+   Cap at 1400px so content doesn't over-stretch on wide viewports.
+   margin: auto centers it when the viewport is narrower than max-width. */
 .content-bounded {
   width: 100%;
-  max-width: 1600px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* Queue/Inbox — card lists, vertical scanning (1400px for better horizontal use) */
+/* Queue/Inbox — card lists, vertical scanning */
 .content-queue {
   width: 100%;
   max-width: 1400px;
@@ -988,7 +992,7 @@ img {
 .app-topbar {
   position: fixed;
   top: 0;
-  left: 0;
+  left: var(--sidebar-width);
   right: 0;
   z-index: 90;
   background: var(--bg-base);
@@ -1336,9 +1340,11 @@ img {
 /* ---------- Stat Cards ---------- */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-6);
+  /* Cap the grid so stat cards don't blow out to fill every pixel of wide viewport */
+  max-width: 100%;
 }
 
 .stat-card {
