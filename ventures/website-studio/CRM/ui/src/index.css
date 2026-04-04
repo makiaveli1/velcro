@@ -2919,7 +2919,10 @@ img {
   position: relative;
 }
 
-.canvas-page.immersive { /* immersive mode */ }
+.canvas-page.immersive aside,
+.canvas-page.immersive > .canvas-inspector {
+  display: none;
+}
 .canvas-page.collapsed aside { /* collapsed rail state */ }
 
 .canvas-immersive-bar {

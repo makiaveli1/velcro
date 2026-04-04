@@ -473,28 +473,7 @@ export default function ConceptCanvas() {
         </div>
       )}
 
-      {/* ── Immersive bottom status strip ────────────────────────── */}
-      {immersive && (
-        <div
-          className="canvas-immersive-bar"
-          style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100 }}
-        >
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            <span className={`badge ${readiness.blockers?.length ? 'badge-rose' : 'badge-emerald'}`}>
-              {readiness.blockers?.length ? `${readiness.blockers.length} blocker(s)` : 'No blockers'}
-            </span>
-          </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-success btn-sm" onClick={() => runAction('Approve Concept', () => apiCanvasApproveConcept(id))}>✓ Approve</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => runAction('Request Rework', () => apiCanvasRequestRework(id))}>↺ Rework</button>
-            <button className="btn btn-primary btn-sm" disabled={!canMarkReady} onClick={() => runAction('Mark Ready to Send', () => apiCanvasChecklist(id, 'finalApprovalComplete', true))}>Mark Ready</button>
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>·</div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setDrawerOpen(true)} style={{ color: '#a6adc8' }}>
-            ☰ More
-          </button>
-        </div>
-      )}
+      {/* ── Immersive bar: Exit Focus / device switcher / lead info ── */}
 
       {/* ── Left Rail ─────────────────────────────────────────────── */}
       <aside
@@ -698,26 +677,26 @@ export default function ConceptCanvas() {
             </div>
           )}
 
-          {/* Document modes */}
+          {/* Document modes — own bounded scroll region like web preview */}
           {mode !== 'website' && mode !== 'package' && (
-            <div key={modePanelKey} data-mode-panel className="card" >
-              <div className="card-body" style={{ padding: 24 }}>
-                <div className="panel-doc-header">
-                  {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
-                </div>
-                {/* Constrained reading width content */}
-                {currentDocument ? (
-                  <div className="doc-content"
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
-                ) : (
+            <div key={modePanelKey} data-mode-panel className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div className="panel-doc-header" style={{ padding: 'var(--space-4) var(--space-5)', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+                {NAV_ITEMS.find(i => i.key === mode)?.label || ''}
+              </div>
+              {currentDocument ? (
+                <div className="doc-content"
+                  style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)' }}
+                  dangerouslySetInnerHTML={{ __html: markdownToHtml(currentDocument) }} />
+              ) : (
+                <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)' }}>
                   <EmptyState
                     title={mode === 'brief' ? 'Concept brief missing' : mode === 'outreach' ? 'Outreach draft missing' : 'QA notes missing'}
                     description={mode === 'brief' ? 'Add a CONCEPT_BRIEF.md file to populate this panel.'
                       : mode === 'outreach' ? 'Add OUTREACH_DRAFT.md or PITCH.md to populate this panel.'
                       : 'Add CONCEPT_APPROVAL.md or review notes to populate this panel.'}
                   />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
