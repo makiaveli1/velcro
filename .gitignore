@@ -1,7 +1,15 @@
+# CRM build artifacts (untracked local builds)
+CRM/ui/dist/
+CRM/ui/node_modules/.vite/
+CRM/node_modules/esprima/
+CRM/node_modules/js-yaml/
+CRM/node_modules/qs/
+CRM/node_modules/sprintf-js/
+CRM/node_modules/uuid/
 
-# skills lock files (generated)
-**/skills-lock.json
+# OS
+.DS_Store
+Thumbs.db
 
-# Build output
-dist/
-node_modules/.vite/
+# Logs
+*.log
