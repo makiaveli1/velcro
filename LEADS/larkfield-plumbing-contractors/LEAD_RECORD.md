@@ -1,89 +1,65 @@
-# Larkfield Plumbing Contractors Ltd — Lead Record
+# Lead Record — Larkfield Plumbing Contractors Ltd
 
-**Slug:** larkfield-plumbing-contractors
-**Score:** 41
-**Status:** ✅ VERIFIED — Active, Legitimate Irish Ltd
-
----
-
-## Verified Contact Information
-
-| Field | Value | Source |
-|-------|-------|--------|
-| Legal Name | Larkfield Plumbing Contractors Limited | SoloCheck / CRO |
-| Trading As | Larkfield Plumbing Contractors Ltd | Golden Pages |
-| Address | 11 Larkfield Grove, Dublin 6W, Kimmage, Dublin, D6W VW77 | SoloCheck (Eircode confirmed) |
-| Mobile | 086 248 6922 | YourLocal.ie |
-| Email | ❌ NOT FOUND | Web search |
-| Website | ❌ None | Web search |
-| Google Business Profile | Incomplete / minimal | Web search |
+**Status:** Qualified — ADD TO PIPELINE
+**Date Discovered:** 2026-03-25
+**Source:** Google search (Golden Pages listing)
 
 ---
 
-## Company Registration Details
+## Business Details
 
-| Field | Value |
-|-------|-------|
-| Company Number | 249634 (CRO — Ireland) |
-| Incorporation Date | 30 May 1996 |
-| Status | **NORMAL** |
-| Years in Business | 29 years (as of 2026) |
-| Company Size | Small Company |
-| Principal Activity | 4533 — Plumbing |
-| Directors | Has been director of 2 other Irish companies (1 now closed) |
-| Shareholders | 2 |
-| Accounts | Filed to 31/08/2024 — NOT overdue |
-| Next Due | 31/05/2026 |
-| Listed Eircode | D6W VW77 — shared with ≥1 other company |
-| RGI Registration | Listed on RGIi.ie ✅ |
+- **Business Name:** Larkfield Plumbing Contractors Ltd
+- **Location:** 11 Larkfield Grove, Dublin 6W, Co. Dublin
+- **Business Category:** Plumber
+- **Telephone:** 086 248 6922
+- **Contact Email:** Not found publicly
+- **Website URL:** NONE
+- **Google Business Profile URL:** Not found
 
 ---
 
-## Digital Presence Audit
+## Initial Signal Observed
 
-- **Website:** None found
-- **Google Business Profile:** Listed on YourLocal.ie but no standalone GBP profile found in search results
-- **Social media:** None found
-- **Directory listings:** Golden Pages, ConstructionIreland.ie, RGIi, YourLocal.ie
-- **Listed address:** 11 Larkfield Grove, Dublin 6W — consistent across all sources
-- **Listed phone:** 086 248 6922 — consistent across all sources
-- **"Website" listed on SoloCheck:** www.mylocaltown.info — **INVALID/NON-EXISTENT** (domain doesn't resolve)
+Listed on Golden Pages with no website link. Ltd company (Larkfield Plumbing Contractors Ltd). Dublin 6W location (Rathfarnham/Templeogue area). No independent web presence found beyond Golden Pages.
 
 ---
 
-## Email Assessment
+## Initial Score (Total: 41/100)
 
-- No business email found anywhere in web search
-- No email on any directory listing
-- No contact form available
-- **Verdict:** Email contact route currently unavailable. Phone-only approach.
+| Section | Score | Max | Notes |
+|---|---|---|---|
+| Website Quality | 14 | 30 | No website found. Pure directory-only presence. |
+| Google Business Profile | 8 | 20 | No Google Business Profile found. |
+| Business Indicators | 12 | 25 | Ltd company structure (credibility indicator). Listed on Golden Pages. Dublin 6W address. Mobile phone. |
+| Opportunity Gap | 7 | 25 | No website = no local SEO presence. Ltd company with no web footprint = clear website gap. |
 
 ---
 
-## Legitimacy Assessment
+## Disqualification Check
 
-- ✅ Genuine Irish registered company (CRO #249634)
-- ✅ Status: NORMAL — actively filed and compliant
-- ✅ 29 years in business — well-established
-- ✅ Accounts current (filed to Aug 2024)
-- ✅ RGI-listed
-- ✅ Verified address and phone number
-- ⚠️ No website, no email, no digital footprint beyond directories
-- **Legitimacy:** FULLY CONFIRMED — real, longstanding, registered Irish Ltd
+- [ ] No website? **YES — OPPORTUNITY**
+- [ ] No Google Business Profile? **YES — RISK/OPPORTUNITY**
+- [ ] Non-target category? **NO — Plumber**
+- [ ] Business outside Dublin? **NO — Dublin 6W**
+- [ ] "Do not contact" signal? **NO**
+- [ ] Already in CRM? **NO**
+
+**Disqualified:** No.
+
+---
+
+## Notes
+
+- Ltd company status is a strong legitimacy signal — this is a registered business entity.
+- Dublin 6W (Rathfarnham area) is a more affluent suburban area — potential for higher-value projects.
+- Mobile phone (086) suggests sole trader who runs the Ltd.
+- No website AND no Google Business Profile means this business is essentially invisible in digital searches.
+- Pure directory reliance is a significant weakness in today's market.
 
 ---
 
 ## Outreach Readiness
 
-- **Contact route:** Phone only (086 248 6922)
-- **Email:** ❌ Not found
-- **Best approach:** Cold call — they are a Ltd but small, no website suggests sole-trader-style outreach may work
-- **RGI registration:** Adds credibility — they serve both domestic and commercial
-
----
-
-## Verification Notes
-
-- Verified: 2026-03-25
-- Verification scope: CRO registration, directory presence, digital footprint, contact details
-- No outreach conducted
+- **Email:** Not found publicly
+- **Phone:** 086 248 6922 ✓
+- **Pitch angle:** "You're running a Ltd company but prospective customers can't find you online. No website means no first impression. A professional site + Google listing would put you ahead of 40% of local plumbers."

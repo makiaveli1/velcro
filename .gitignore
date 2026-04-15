@@ -1,7 +1,0 @@
-
-# skills lock files (generated)
-**/skills-lock.json
-
-# Build output
-dist/
-node_modules/.vite/
