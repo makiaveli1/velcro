@@ -54,7 +54,7 @@ export default function Drafts() {
         <div className="subpage-header-row">
           <div className="subpage-header-main">
             <h1 className="subpage-title">Email Drafts</h1>
-            <p className="page-subtitle">
+            <p className="subpage-subtitle">
               {tab === 'proposed' ? `${drafts.length} pending approval` : tab === 'approved' ? 'Ready to send' : 'History'}
             </p>
           </div>
@@ -62,13 +62,13 @@ export default function Drafts() {
       </div>
 
       {/* Tabs */}
-      <div className="filter-chips" style={{ marginBottom: 'var(--space-5)' }}>
+      <div className="tab-bar" style={{ marginBottom: 'var(--space-5)' }}>
         {[
           { key: 'proposed', label: `Proposed (${pendingApproval > 0 ? drafts.length : 0})` },
           { key: 'approved', label: 'Approved' },
           { key: 'history', label: 'History' },
         ].map(t => (
-          <button key={t.key} className={`filter-chip ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
+          <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
             {t.label}
           </button>
         ))}
@@ -92,10 +92,12 @@ export default function Drafts() {
       ) : tab === 'approved' ? (
         <ApprovedView />
       ) : drafts.length === 0 ? (
-        <EmptyState
-          title={tab === 'proposed' ? 'No drafts pending approval' : 'No history yet'}
-          description={tab === 'proposed' ? 'AI-generated drafts will appear here for your review.' : ''}
-        />
+        <div className="empty-state-shell">
+          <EmptyState
+            title={tab === 'proposed' ? 'No drafts pending approval' : 'No history yet'}
+            description={tab === 'proposed' ? 'AI-generated drafts will appear here for your review.' : ''}
+          />
+        </div>
       ) : (
         drafts.map(draft => (
           <DraftCard
@@ -138,7 +140,7 @@ function DraftCard({ draft, expanded, onToggle, onApprove, onReject }) {
       </div>
 
       {expanded && (
-        <div className="card-body" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="card-body draft-card-body">
           {draft.context_used && (
             <details aria-label="Context used" style={{ marginBottom: 12 }}>
               <summary style={{ fontSize: 12, color: 'var(--text-tertiary)', cursor: 'pointer' }}>Context used</summary>

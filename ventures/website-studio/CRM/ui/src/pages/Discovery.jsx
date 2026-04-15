@@ -149,7 +149,7 @@ export default function Discovery() {
           ))}
         </div>
         {selected.size > 0 && (
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <div className="discovery-bulk-bar">
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', alignSelf: 'center' }}>{selected.size} selected</span>
             <button className="btn btn-success btn-sm" onClick={bulkApprove}>Approve selected</button>
           </div>

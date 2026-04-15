@@ -3118,6 +3118,40 @@ main[data-automation-id="canvas-center-panel"] > .card-body {
 
 /* ─── DRAFT PREVIEW PANE ─── */
 .draft-preview-pane { background: var(--bg-elevated); border-radius: var(--radius-md); padding: var(--space-4); font-size: var(--text-sm); color: var(--text-secondary); white-space: pre-wrap; max-height: 300px; overflow-y: auto; line-height: 1.6; }
+/* Follow-up item hover — subtle lift to match outbound-card hover quality */
+.followup-item:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+/* 2. Discovery bulk action bar — elevated and sticky */
+.discovery-bulk-bar {
+  position: sticky;
+  top: 56px; /* below topbar */
+  z-index: 50;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  margin-bottom: var(--space-4);
+}
+
+/* 3. Better empty-state-shell — more breathing room */
+.empty-state-shell {
+  padding: var(--space-10) 0;
+}
+
+/* 4. Draft card accordion body refinement */
+.draft-card-body {
+  border-top: 1px solid var(--border-default);
+  padding: var(--space-4);
+}
+
 
 /* ─── FILTER CHIPS OVERDUE ALERT ─── */
 .filter-chip.overdue-alert { border-color: var(--signal-rose) !important; color: var(--signal-rose) !important; }
