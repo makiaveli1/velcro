@@ -1,11 +1,17 @@
 # CRM build artifacts (untracked local builds)
 CRM/ui/dist/
 CRM/ui/node_modules/.vite/
+CRM/ui/node_modules/*/dist/
 CRM/node_modules/esprima/
 CRM/node_modules/js-yaml/
 CRM/node_modules/qs/
 CRM/node_modules/sprintf-js/
 CRM/node_modules/uuid/
+CRM/ui/*.log
+
+# SQLite WAL/SHM (local runtime state)
+CRM/db/crm.sqlite-shm
+CRM/db/crm.sqlite-wal
 
 # OS
 .DS_Store
@@ -14,18 +20,8 @@ Thumbs.db
 # Logs
 *.log
 
-# CRM build artifacts
-CRM/ui/dist/
-CRM/ui/node_modules/.vite/
-CRM/ui/node_modules/*/dist/
-CRM/node_modules/esprima/
-CRM/node_modules/js-yaml/
-CRM/node_modules/qs/
-CRM/node_modules/sprintf-js/
-CRM/node_modules/uuid/
-CRM/ui/dist/
-CRM/ui/*.log
-
-# SQLite WAL/SHM (local runtime state)
-CRM/db/crm.sqlite-shm
-CRM/db/crm.sqlite-wal
+# Dependencies (install via npm)
+node_modules/
+CRM/node_modules/
+CRM/ui/node_modules/
+CRM/cockpit/node_modules/
