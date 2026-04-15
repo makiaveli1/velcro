@@ -13,3 +13,19 @@ Thumbs.db
 
 # Logs
 *.log
+
+# CRM build artifacts
+CRM/ui/dist/
+CRM/ui/node_modules/.vite/
+CRM/ui/node_modules/*/dist/
+CRM/node_modules/esprima/
+CRM/node_modules/js-yaml/
+CRM/node_modules/qs/
+CRM/node_modules/sprintf-js/
+CRM/node_modules/uuid/
+CRM/ui/dist/
+CRM/ui/*.log
+
+# SQLite WAL/SHM (local runtime state)
+CRM/db/crm.sqlite-shm
+CRM/db/crm.sqlite-wal
